@@ -1,5 +1,6 @@
 # Claude
 .claude/
+.worktrees/
 
 # IDE
 .idea/
