@@ -1,0 +1,47 @@
+# Claude
+.claude/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / Frontend
+node_modules/
+.pnpm-store/
+dist/
+.next/
+out/
+.turbo/
+
+# Build / Gradle
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# Coverage / Test
+coverage/
+.nyc_output/
+
+# Compiled
+*.class
+*.jar
+*.war

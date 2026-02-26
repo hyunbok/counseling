@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko" class="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>피드백 목록 — 어드민</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-200">
+
+  <div class="flex min-h-screen">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
+      <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <span class="font-semibold text-gray-900 dark:text-gray-100">Admin</span>
+        </div>
+      </div>
+      <nav class="flex-1 p-3 space-y-1">
+        <a href="admin-dashboard.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
+          대시보드
+        </a>
+        <a href="admin-agents.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          상담사 관리
+        </a>
+        <a href="admin-groups.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          그룹 관리
+        </a>
+        <a href="admin-feedbacks.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-medium">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+          피드백
+        </a>
+        <a href="admin-tenants.html" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+          테넌트 관리
+        </a>
+      </nav>
+      <div class="p-3 border-t border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-3 px-3 py-2">
+          <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center"><span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400">관</span></div>
+          <div class="flex-1 min-w-0"><p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">관리자</p></div>
+          <button id="darkToggle" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 overflow-y-auto">
+      <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">피드백 목록</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">고객 만족도 평가 및 의견</p>
+      </header>
+
+      <div class="p-6">
+        <!-- Summary -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+          <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">전체 평균</p>
+            <p class="text-2xl font-bold text-amber-500 mt-1">4.3<span class="text-sm font-normal text-gray-400">/5</span></p>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">5점</p>
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">42%</p>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">4점</p>
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">35%</p>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <p class="text-sm text-gray-500 dark:text-gray-400">3점 이하</p>
+            <p class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">23%</p>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-3 mb-6">
+          <select class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option>전체 평점</option>
+            <option>5점</option>
+            <option>4점</option>
+            <option>3점</option>
+            <option>2점</option>
+            <option>1점</option>
+          </select>
+          <select class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option>전체 상담사</option>
+            <option>김상담</option>
+            <option>이지원</option>
+            <option>박영호</option>
+          </select>
+          <input type="date" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" />
+          <input type="date" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none" />
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="bg-gray-50 dark:bg-gray-700/50">
+                  <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">일시</th>
+                  <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">고객</th>
+                  <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">상담사</th>
+                  <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">평점</th>
+                  <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">코멘트</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">2026-02-26 14:55</td>
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100">최진수</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300">김상담</td>
+                  <td class="px-5 py-3 text-sm text-amber-500">&#9733;&#9733;&#9733;&#9733;&#9733;</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">친절하게 안내해 주셔서 감사합니다. 문제가 빠르게 해결되었어요.</td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">2026-02-26 14:02</td>
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100">정미영</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300">김상담</td>
+                  <td class="px-5 py-3 text-sm text-amber-500">&#9733;&#9733;&#9733;&#9733;&#9734;</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">대체로 만족하지만 연결 대기 시간이 조금 길었습니다.</td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">2026-02-26 11:50</td>
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100">강민호</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300">김상담</td>
+                  <td class="px-5 py-3 text-sm text-amber-500">&#9733;&#9733;&#9733;&#9734;&#9734;</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">계약 조건에 대한 설명이 조금 더 상세했으면 좋겠습니다.</td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">2026-02-25 16:30</td>
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100">윤서연</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300">이지원</td>
+                  <td class="px-5 py-3 text-sm text-amber-500">&#9733;&#9733;&#9733;&#9733;&#9733;</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">화상 상담이 정말 편리하네요. 매우 만족합니다!</td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">2026-02-25 15:10</td>
+                  <td class="px-5 py-3 text-sm text-gray-900 dark:text-gray-100">한지영</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300">박영호</td>
+                  <td class="px-5 py-3 text-sm text-amber-500">&#9733;&#9733;&#9734;&#9734;&#9734;</td>
+                  <td class="px-5 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">영상 품질이 좋지 않았고 중간에 끊김이 있었습니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <p class="text-sm text-gray-500 dark:text-gray-400">총 128건 중 1-10</p>
+            <div class="flex gap-1">
+              <button class="px-3 py-1.5 rounded-lg text-sm bg-indigo-600 text-white">1</button>
+              <button class="px-3 py-1.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">2</button>
+              <button class="px-3 py-1.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">3</button>
+              <button class="px-3 py-1.5 rounded-lg text-sm border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">&raquo;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const toggle = document.getElementById('darkToggle');
+    const html = document.documentElement;
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      html.classList.add('dark');
+    }
+    toggle.addEventListener('click', () => {
+      html.classList.toggle('dark');
+      localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
+    });
+  </script>
+</body>
+</html>
