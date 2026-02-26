@@ -1,0 +1,1032 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup Development Infrastructure with Docker",
+        "description": "Create docker-compose.yml for local development databases (PostgreSQL, MongoDB, Redis) and LiveKit server configuration.",
+        "details": "Create docker-compose.yml at project root with services:\n- PostgreSQL 16+ for Meta DB and sample Tenant DB (CQRS write)\n- MongoDB 7+ for read-side queries\n- Redis 7+ for JWT token blacklist and session management\n- LiveKit server for WebRTC SFU\n\nConfiguration:\n```yaml\nservices:\n  postgres-meta:\n    image: postgres:16\n    ports: ['5432:5432']\n    environment:\n      POSTGRES_DB: meta_db\n      POSTGRES_USER: admin\n      POSTGRES_PASSWORD: admin\n    volumes:\n      - postgres_meta_data:/var/lib/postgresql/data\n  \n  postgres-tenant:\n    image: postgres:16\n    ports: ['5433:5432']\n    environment:\n      POSTGRES_DB: tenant_default\n  \n  mongodb:\n    image: mongo:7\n    ports: ['27017:27017']\n  \n  redis:\n    image: redis:7-alpine\n    ports: ['6379:6379']\n  \n  livekit:\n    image: livekit/livekit-server:latest\n    ports: ['7880:7880', '7881:7881']\n    command: --dev --bind 0.0.0.0\n```\n\nCreate .env.local template with connection strings.",
+        "testStrategy": "Run `docker-compose up -d` and verify all containers start successfully. Test connectivity to each service using CLI tools (psql, mongosh, redis-cli). Verify LiveKit server responds on HTTP port.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create docker-compose.yml with PostgreSQL services",
+            "description": "Create docker-compose.yml file at project root with PostgreSQL 16 services for Meta DB (port 5432) and Tenant DB (port 5433) including volume mounts and environment configuration.",
+            "dependencies": [],
+            "details": "Create docker-compose.yml at project root with two PostgreSQL 16 services:\n\n1. postgres-meta service:\n   - Image: postgres:16\n   - Container name: counseling-postgres-meta\n   - Port mapping: 5432:5432\n   - Environment: POSTGRES_DB=meta_db, POSTGRES_USER=admin, POSTGRES_PASSWORD=admin\n   - Volume: postgres_meta_data:/var/lib/postgresql/data\n   - Health check with pg_isready\n\n2. postgres-tenant service:\n   - Image: postgres:16\n   - Container name: counseling-postgres-tenant\n   - Port mapping: 5433:5432\n   - Environment: POSTGRES_DB=tenant_default, POSTGRES_USER=admin, POSTGRES_PASSWORD=admin\n   - Volume: postgres_tenant_data:/var/lib/postgresql/data\n   - Health check with pg_isready\n\nDefine named volumes at the bottom of the file for data persistence. Use docker-compose version 3.8 format.",
+            "status": "pending",
+            "testStrategy": "Run `docker-compose up -d postgres-meta postgres-tenant` and verify both containers start. Test connectivity with `psql -h localhost -p 5432 -U admin -d meta_db` and `psql -h localhost -p 5433 -U admin -d tenant_default`. Verify data persists across container restarts."
+          },
+          {
+            "id": 2,
+            "title": "Add MongoDB and Redis services to docker-compose.yml",
+            "description": "Extend docker-compose.yml with MongoDB 7 service for CQRS read-side queries and Redis 7-alpine service for JWT token blacklist and session management.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add MongoDB and Redis services to the existing docker-compose.yml:\n\n1. mongodb service:\n   - Image: mongo:7\n   - Container name: counseling-mongodb\n   - Port mapping: 27017:27017\n   - Environment: MONGO_INITDB_DATABASE=counseling_read\n   - Volume: mongodb_data:/data/db\n   - Health check using mongosh ping\n\n2. redis service:\n   - Image: redis:7-alpine\n   - Container name: counseling-redis\n   - Port mapping: 6379:6379\n   - Command: redis-server --appendonly yes (for persistence)\n   - Volume: redis_data:/data\n   - Health check using redis-cli ping\n\nAdd corresponding named volumes (mongodb_data, redis_data) to the volumes section.",
+            "status": "pending",
+            "testStrategy": "Run `docker-compose up -d mongodb redis` and verify containers start. Test MongoDB with `mongosh mongodb://localhost:27017/counseling_read`. Test Redis with `redis-cli -h localhost ping` expecting PONG response. Verify AOF persistence is enabled."
+          },
+          {
+            "id": 3,
+            "title": "Add LiveKit server service to docker-compose.yml",
+            "description": "Add LiveKit server service configuration to docker-compose.yml for WebRTC SFU functionality with development mode settings and proper port exposure.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add LiveKit server service to docker-compose.yml:\n\n1. livekit service:\n   - Image: livekit/livekit-server:latest\n   - Container name: counseling-livekit\n   - Port mappings:\n     - 7880:7880 (HTTP/WebSocket signaling)\n     - 7881:7881 (RTC over TCP)\n     - 7882:7882/udp (RTC over UDP)\n   - Command: --dev --bind 0.0.0.0\n   - Environment:\n     - LIVEKIT_KEYS=devkey:secret (development API key)\n   - Health check on HTTP port 7880\n\nNote: In development mode (--dev flag), LiveKit uses simplified authentication suitable for local development. For production, proper key configuration would be required.",
+            "status": "pending",
+            "testStrategy": "Run `docker-compose up -d livekit` and verify container starts. Test HTTP endpoint with `curl http://localhost:7880` expecting a response. Verify WebSocket is accessible. Check logs for successful startup with `docker-compose logs livekit`."
+          },
+          {
+            "id": 4,
+            "title": "Create .env.example with all connection strings and configuration",
+            "description": "Populate the existing .env.example file with all required environment variables including database connection strings, Redis URL, LiveKit configuration, and JWT settings.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Update .env.example file with comprehensive environment variables:\n\n# Database - PostgreSQL Meta DB\nMETA_DB_HOST=localhost\nMETA_DB_PORT=5432\nMETA_DB_NAME=meta_db\nMETA_DB_USER=admin\nMETA_DB_PASSWORD=admin\nMETA_DB_URL=r2dbc:postgresql://localhost:5432/meta_db\n\n# Database - PostgreSQL Tenant DB (Default)\nTENANT_DB_HOST=localhost\nTENANT_DB_PORT=5433\nTENANT_DB_NAME=tenant_default\nTENANT_DB_USER=admin\nTENANT_DB_PASSWORD=admin\nTENANT_DB_URL=r2dbc:postgresql://localhost:5433/tenant_default\n\n# MongoDB (Read-side CQRS)\nMONGODB_URI=mongodb://localhost:27017/counseling_read\n\n# Redis\nREDIS_HOST=localhost\nREDIS_PORT=6379\nREDIS_URL=redis://localhost:6379\n\n# LiveKit\nLIVEKIT_URL=ws://localhost:7880\nLIVEKIT_API_KEY=devkey\nLIVEKIT_API_SECRET=secret\n\n# JWT\nJWT_SECRET=your-jwt-secret-key-change-in-production\nJWT_ACCESS_EXPIRATION=3600000\nJWT_REFRESH_EXPIRATION=604800000\n\n# Server\nAPI_PORT=8080\nAPI_ADMIN_PORT=8081\n\n# Recording Storage\nRECORDING_STORAGE_PATH=./storage/recordings\nFILE_STORAGE_PATH=./storage/files",
+            "status": "pending",
+            "testStrategy": "Verify .env.example contains all required variables. Copy to .env.local and verify Spring Boot application can read configuration. Test that connection strings match docker-compose service ports and credentials."
+          },
+          {
+            "id": 5,
+            "title": "Add docker-compose convenience scripts and documentation",
+            "description": "Create helper commands in docker-compose.yml using profiles, add docker-compose.override.yml.example for custom overrides, and ensure .gitignore properly excludes sensitive files.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Final configuration and convenience setup:\n\n1. Update docker-compose.yml:\n   - Add 'depends_on' with health check conditions between services\n   - Add a default network 'counseling-network' for service communication\n   - Add profiles for selective service startup (e.g., 'db', 'all')\n   - Add restart policy: unless-stopped for all services\n\n2. Verify .gitignore includes:\n   - docker-compose.override.yml (already present)\n   - .env and .env.* (except .env.example) (already present)\n\n3. Add helpful labels and comments in docker-compose.yml:\n   - Service descriptions\n   - Port usage documentation\n   - Commands for common operations in comments\n\n4. Create storage directories structure:\n   - storage/recordings (for LiveKit egress)\n   - storage/files (for file uploads)\n   - storage/captures (for screen captures)\n   Add these to .gitignore with placeholder .gitkeep files.",
+            "status": "pending",
+            "testStrategy": "Run `docker-compose up -d` to start all services. Verify health checks pass with `docker-compose ps`. Test `docker-compose down -v` removes volumes. Verify storage directories exist. Run `docker-compose config` to validate YAML syntax. Test profile-based startup with `docker-compose --profile db up -d`."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Setup Backend API Module (be/api)",
+        "description": "Initialize Kotlin + Spring Boot 4.0.2 + WebFlux project for the public API serving agents and customers.",
+        "details": "Create be/api/ directory with Gradle Kotlin DSL build:\n\n```kotlin\n// build.gradle.kts\nplugins {\n    kotlin(\"jvm\") version \"2.3.0\"\n    kotlin(\"plugin.spring\") version \"2.3.0\"\n    id(\"org.springframework.boot\") version \"4.0.2\"\n    id(\"io.spring.dependency-management\") version \"1.1.6\"\n    id(\"org.jlleitschuh.gradle.ktlint\") version \"12.1.2\"\n}\n\nkotlin {\n    jvmToolchain(25)\n}\n\ndependencies {\n    implementation(\"org.springframework.boot:spring-boot-starter-webflux\")\n    implementation(\"org.springframework.boot:spring-boot-starter-data-r2dbc\")\n    implementation(\"org.springframework.boot:spring-boot-starter-data-mongodb-reactive\")\n    implementation(\"org.springframework.boot:spring-boot-starter-data-redis-reactive\")\n    implementation(\"org.springframework.boot:spring-boot-starter-security\")\n    implementation(\"io.jsonwebtoken:jjwt-api:0.12.6\")\n    implementation(\"io.livekit:livekit-server-sdk:0.8.0\")\n    testImplementation(\"org.springframework.boot:spring-boot-starter-test\")\n    testImplementation(\"io.kotest:kotest-runner-junit5:5.9.1\")\n}\n```\n\nSetup hexagonal architecture packages:\n- domain/ (entities, value objects)\n- application/ (use cases, ports)\n- infrastructure/ (adapters, repositories)\n- interfaces/ (controllers, DTOs)\n\nConfigure ktlint with ktlint_official style.",
+        "testStrategy": "Run `./gradlew build` to verify compilation. Execute `./gradlew ktlintCheck` for code style validation. Start application and verify health endpoint responds at /actuator/health.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create be/api directory structure with Gradle Kotlin DSL build configuration",
+            "description": "Initialize the be/api/ module directory and create the complete build.gradle.kts file with all required plugins (Kotlin 2.3, Spring Boot 4.0.2, ktlint 12.1.2) and dependencies (WebFlux, R2DBC, MongoDB Reactive, Redis Reactive, Security, JWT, LiveKit SDK, JUnit 5, Kotest).",
+            "dependencies": [],
+            "details": "Create be/api/ directory at project root. Create build.gradle.kts with:\n- Plugins: kotlin(\"jvm\") version 2.3.0, kotlin(\"plugin.spring\") version 2.3.0, org.springframework.boot version 4.0.2, io.spring.dependency-management version 1.1.6, org.jlleitschuh.gradle.ktlint version 12.1.2\n- kotlin { jvmToolchain(25) }\n- Dependencies: spring-boot-starter-webflux, spring-boot-starter-data-r2dbc, spring-boot-starter-data-mongodb-reactive, spring-boot-starter-data-redis-reactive, spring-boot-starter-security, jjwt-api:0.12.6, jjwt-impl:0.12.6, jjwt-jackson:0.12.6, livekit-server-sdk:0.8.0, spring-boot-starter-test, kotest-runner-junit5:5.9.1, io.projectreactor.kotlin:reactor-kotlin-extensions, kotlin-reflect\n- Create settings.gradle.kts with rootProject.name = \"api\"\n- Create gradle.properties with org.gradle.jvmargs and kotlin.code.style=official",
+            "status": "pending",
+            "testStrategy": "Run './gradlew build' in be/api directory to verify Gradle can resolve all dependencies and compile the empty project successfully."
+          },
+          {
+            "id": 2,
+            "title": "Configure ktlint with ktlint_official style and editor config",
+            "description": "Set up ktlint configuration for the project with ktlint_official code style and create .editorconfig file for consistent formatting across the team.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create be/api/.editorconfig file with ktlint_official style settings:\n- root = true\n- [*.{kt,kts}] indent_size = 4, indent_style = space, max_line_length = 120\n- ktlint_standard_package-name = disabled (if needed for package naming)\n- Configure build.gradle.kts ktlint block: configure(\"ktlint\") { version.set(\"1.5.0\") outputColorName.set(\"RED\") reporters { reporter(\"plain\"), reporter(\"checkstyle\") } }\n- Ensure lambdas inside class bodies use 8-space indent as per PRD\n- Add ktlintFormat and ktlintCheck tasks to the build lifecycle",
+            "status": "pending",
+            "testStrategy": "Run './gradlew ktlintCheck' to verify ktlint is properly configured. Create a sample Kotlin file with intentional style violations and verify ktlint detects them."
+          },
+          {
+            "id": 3,
+            "title": "Create hexagonal architecture package structure with base classes",
+            "description": "Set up the hexagonal architecture package structure (domain, port, application, adapter) with placeholder classes and appropriate package-info documentation for each layer.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create package structure under be/api/src/main/kotlin/com/counseling/api/:\n- domain/ - Pure business entities and value objects (no framework dependencies)\n- domain/model/ - Domain entities\n- domain/event/ - Domain events\n- port/ - Interface definitions\n- port/inbound/ - Use case interfaces (input ports)\n- port/outbound/ - Repository and external service interfaces (output ports)\n- application/ - Service implementations that orchestrate domain and ports\n- application/service/ - Service classes implementing use cases\n- adapter/ - Framework-specific implementations\n- adapter/inbound/web/ - REST controllers and DTOs\n- adapter/outbound/persistence/ - JPA/R2DBC/MongoDB repository implementations\n- adapter/outbound/external/ - External service adapters (LiveKit, email)\n- config/ - Spring configuration classes\nNote: Use 'inbound' instead of 'in' as 'in' is a Kotlin reserved keyword",
+            "status": "pending",
+            "testStrategy": "Verify all packages are created with correct naming. Ensure no 'in' or 'out' package names exist (use 'inbound'/'outbound'). Run './gradlew compileKotlin' to ensure package structure is valid."
+          },
+          {
+            "id": 4,
+            "title": "Create Spring Boot application entry point and base configuration",
+            "description": "Create the main Spring Boot application class, application.yml configuration file with profiles, and essential configuration classes for WebFlux, Security, and reactive support.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Create be/api/src/main/kotlin/com/counseling/api/ApiApplication.kt:\n- @SpringBootApplication class with main function using runApplication<ApiApplication>(*args)\n\nCreate be/api/src/main/resources/application.yml:\n- server.port: 8080\n- spring.application.name: counseling-api\n- spring.profiles.active: local\n- Placeholder configurations for R2DBC, MongoDB, Redis (to be populated from environment)\n- management.endpoints.web.exposure.include: health,info\n\nCreate application-local.yml for local development with docker-compose connection strings.\n\nCreate config/WebFluxConfig.kt with CORS configuration.\nCreate config/SecurityConfig.kt with basic WebFlux security setup (permitAll for now, to be secured later).\nCreate config/JacksonConfig.kt for JSON serialization with Kotlin module support.",
+            "status": "pending",
+            "testStrategy": "Run './gradlew bootRun' and verify application starts successfully on port 8080. Verify /actuator/health endpoint returns 200 OK with UP status."
+          },
+          {
+            "id": 5,
+            "title": "Set up testing infrastructure with JUnit 5 and Kotest",
+            "description": "Configure the testing framework with JUnit 5 for Spring integration tests and Kotest for pure unit tests, including sample tests to verify the setup.",
+            "dependencies": [
+              4
+            ],
+            "details": "Add test dependencies to build.gradle.kts if not already present:\n- testImplementation(\"org.springframework.boot:spring-boot-starter-test\") { exclude(\"org.mockito\") }\n- testImplementation(\"io.kotest:kotest-runner-junit5:5.9.1\")\n- testImplementation(\"io.kotest:kotest-assertions-core:5.9.1\")\n- testImplementation(\"io.kotest.extensions:kotest-extensions-spring:1.3.0\") - Note: May have compatibility issues with Spring Boot 4\n- testImplementation(\"io.mockk:mockk:1.13.13\")\n- testImplementation(\"io.projectreactor:reactor-test\")\n\nCreate test source structure:\n- be/api/src/test/kotlin/com/counseling/api/\n- Create ApiApplicationTests.kt with @SpringBootTest to verify context loads\n- Create a sample Kotest spec (SampleSpec.kt) with StringSpec demonstrating Kotest usage\n- Add JUnit 5 configuration in build.gradle.kts: tasks.withType<Test> { useJUnitPlatform() }",
+            "status": "pending",
+            "testStrategy": "Run './gradlew test' to verify both JUnit 5 and Kotest tests execute successfully. Verify test reports are generated in build/reports/tests/test/."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Setup Backend Admin API Module (be/api-admin)",
+        "description": "Initialize Kotlin + Spring Boot 4.0.2 + WebFlux project for the admin API serving company/group admins and super users.",
+        "details": "Create be/api-admin/ directory with similar structure to be/api/:\n\n```kotlin\n// build.gradle.kts - same plugins and dependencies as api module\n// Additional admin-specific dependencies if needed\n```\n\nKey differences from public API:\n- Separate authentication context for admin users\n- Different security configuration for admin roles\n- Admin-specific endpoints (/api-adm/*)\n\nShared code strategy:\n- Create be/common/ module for shared domain models, utilities\n- Both api and api-admin depend on common module\n\napplication.yml configuration:\n```yaml\nserver:\n  port: 8081\nspring:\n  application:\n    name: counseling-api-admin\n```",
+        "testStrategy": "Run `./gradlew build` in be/api-admin. Verify application starts on port 8081. Test health endpoint accessibility.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create be/api-admin directory structure with Gradle Kotlin DSL build configuration",
+            "description": "Initialize the be/api-admin/ module directory and create the complete build.gradle.kts file with all required plugins (Kotlin 2.3, Spring Boot 4.0.2, ktlint 12.1.2) and dependencies matching the api module, configured for admin API with port 8081.",
+            "dependencies": [],
+            "details": "Create be/api-admin/ directory at project root. Create build.gradle.kts with:\n- Plugins: kotlin(\"jvm\") version 2.3.0, kotlin(\"plugin.spring\") version 2.3.0, org.springframework.boot version 4.0.2, io.spring.dependency-management version 1.1.6, org.jlleitschuh.gradle.ktlint version 12.1.2\n- kotlin { jvmToolchain(25) }\n- Dependencies: spring-boot-starter-webflux, spring-boot-starter-data-r2dbc, spring-boot-starter-data-mongodb-reactive, spring-boot-starter-data-redis-reactive, spring-boot-starter-security, jjwt-api:0.12.6, jjwt-impl:0.12.6, jjwt-jackson:0.12.6, spring-boot-starter-test, kotest-runner-junit5:5.9.1, io.projectreactor.kotlin:reactor-kotlin-extensions, kotlin-reflect, io.mockk:mockk:1.13.13\n- Create settings.gradle.kts with rootProject.name = \"api-admin\"\n- Create gradle.properties with org.gradle.jvmargs and kotlin.code.style=official\n- Note: This module will eventually depend on be/common for shared domain models",
+            "status": "pending",
+            "testStrategy": "Run './gradlew build' in be/api-admin directory to verify Gradle can resolve all dependencies and compile the empty project successfully."
+          },
+          {
+            "id": 2,
+            "title": "Configure ktlint with ktlint_official style and editor config for admin module",
+            "description": "Set up ktlint configuration for the api-admin project with ktlint_official code style and create .editorconfig file for consistent formatting across the team.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create be/api-admin/.editorconfig file with ktlint_official style settings:\n- root = true\n- [*.{kt,kts}] indent_size = 4, indent_style = space, max_line_length = 120\n- ktlint_standard_package-name = disabled (if needed for package naming)\n- Configure build.gradle.kts ktlint block: configure(\"ktlint\") { version.set(\"1.5.0\") outputColorName.set(\"RED\") reporters { reporter(\"plain\"), reporter(\"checkstyle\") } }\n- Ensure lambdas inside class bodies use 8-space indent as per PRD\n- Add ktlintFormat and ktlintCheck tasks to the build lifecycle\n- Match the same ktlint configuration pattern used in be/api module for consistency",
+            "status": "pending",
+            "testStrategy": "Run './gradlew ktlintCheck' to verify ktlint is properly configured. Create a sample Kotlin file with intentional style violations and verify ktlint detects them."
+          },
+          {
+            "id": 3,
+            "title": "Create hexagonal architecture package structure for admin module",
+            "description": "Set up the hexagonal architecture package structure (domain, port, application, adapter) with admin-specific organization and placeholder classes for each layer.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create package structure under be/api-admin/src/main/kotlin/com/counseling/admin/:\n- domain/ - Admin-specific domain entities and value objects\n- domain/model/ - Admin domain entities (if any admin-specific)\n- port/ - Interface definitions\n- port/inbound/ - Admin use case interfaces (TenantManagement, GroupManagement, AgentManagement, Statistics)\n- port/outbound/ - Repository interfaces for admin operations\n- application/ - Service implementations for admin use cases\n- application/service/ - Admin service classes (TenantService, GroupService, AgentManagementService, StatisticsService)\n- adapter/ - Framework-specific implementations\n- adapter/inbound/web/ - Admin REST controllers with /api-adm/* prefix\n- adapter/outbound/persistence/ - Admin repository implementations\n- config/ - Spring configuration classes (admin-specific security, CORS)\nNote: Use 'inbound' instead of 'in' as 'in' is a Kotlin reserved keyword. Admin module will reuse domain models from be/common when implemented.",
+            "status": "pending",
+            "testStrategy": "Verify all packages are created with correct naming. Ensure no 'in' or 'out' package names exist (use 'inbound'/'outbound'). Run './gradlew compileKotlin' to ensure package structure is valid."
+          },
+          {
+            "id": 4,
+            "title": "Create Spring Boot application entry point and admin-specific configuration",
+            "description": "Create the main Spring Boot application class for admin API, application.yml with port 8081 configuration, and essential configuration classes for WebFlux security with admin role-based access control.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Create be/api-admin/src/main/kotlin/com/counseling/admin/ApiAdminApplication.kt:\n- @SpringBootApplication class with main function using runApplication<ApiAdminApplication>(*args)\n\nCreate be/api-admin/src/main/resources/application.yml:\n- server.port: 8081\n- spring.application.name: counseling-api-admin\n- spring.profiles.active: local\n- Placeholder configurations for R2DBC, MongoDB, Redis (to be populated from environment)\n- management.endpoints.web.exposure.include: health,info\n\nCreate application-local.yml for local development with docker-compose connection strings.\n\nCreate config/WebFluxConfig.kt with CORS configuration for admin endpoints.\nCreate config/AdminSecurityConfig.kt with WebFlux security setup:\n- Role-based access: SUPER_ADMIN can access /api-adm/tenants/**, COMPANY_ADMIN and GROUP_ADMIN for other endpoints\n- Separate authentication context from public API\n- JWT validation for admin tokens\nCreate config/JacksonConfig.kt for JSON serialization with Kotlin module support.",
+            "status": "pending",
+            "testStrategy": "Run './gradlew bootRun' and verify application starts successfully on port 8081. Verify /actuator/health endpoint returns 200 OK with UP status. Confirm port 8081 does not conflict with api module on port 8080."
+          },
+          {
+            "id": 5,
+            "title": "Set up testing infrastructure with JUnit 5 and Kotest for admin module",
+            "description": "Configure the testing framework with JUnit 5 for Spring integration tests and Kotest for pure unit tests, including sample tests to verify the admin module setup.",
+            "dependencies": [
+              4
+            ],
+            "details": "Add test dependencies to build.gradle.kts if not already present:\n- testImplementation(\"org.springframework.boot:spring-boot-starter-test\") { exclude(\"org.mockito\") }\n- testImplementation(\"io.kotest:kotest-runner-junit5:5.9.1\")\n- testImplementation(\"io.kotest:kotest-assertions-core:5.9.1\")\n- testImplementation(\"io.mockk:mockk:1.13.13\")\n- testImplementation(\"io.projectreactor:reactor-test\")\n\nCreate test source structure:\n- be/api-admin/src/test/kotlin/com/counseling/admin/\n- Create ApiAdminApplicationTests.kt with @SpringBootTest to verify context loads\n- Create a sample Kotest spec (AdminServiceSpec.kt) with StringSpec demonstrating Kotest usage for admin service tests\n- Add JUnit 5 configuration in build.gradle.kts: tasks.withType<Test> { useJUnitPlatform() }\n- Create test utilities for admin-specific testing (e.g., mock admin user with different roles)\nNote: Kotest SpringExtension may have compatibility issues with Spring Boot 4, so use Kotest for pure unit tests only.",
+            "status": "pending",
+            "testStrategy": "Run './gradlew test' to verify both JUnit 5 and Kotest tests execute successfully. Verify test reports are generated in build/reports/tests/test/. Ensure admin context loads separately from api module."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Implement Multi-Tenant Database Routing",
+        "description": "Build dynamic database routing infrastructure for tenant isolation with Meta DB storing tenant connection info.",
+        "details": "Implement AbstractRoutingConnectionFactory for R2DBC:\n\n```kotlin\n// TenantRoutingConnectionFactory.kt\nclass TenantRoutingConnectionFactory(\n    private val tenantRegistry: TenantConnectionRegistry\n) : AbstractRoutingConnectionFactory() {\n    \n    override fun determineCurrentLookupKey(): Mono<Any> {\n        return TenantContext.getCurrentTenant()\n    }\n    \n    override fun determineTargetConnectionFactory(\n        key: Any\n    ): Mono<ConnectionFactory> {\n        return tenantRegistry.getConnectionFactory(key as String)\n    }\n}\n\n// TenantContext.kt - using Reactor Context\nobject TenantContext {\n    private val TENANT_KEY = \"tenantId\"\n    \n    fun getCurrentTenant(): Mono<String> {\n        return Mono.deferContextual { ctx ->\n            Mono.just(ctx.getOrDefault(TENANT_KEY, \"default\"))\n        }\n    }\n}\n\n// TenantWebFilter.kt - extract tenant from JWT or header\n@Component\nclass TenantWebFilter : WebFilter {\n    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {\n        val tenantId = extractTenantId(exchange)\n        return chain.filter(exchange)\n            .contextWrite { it.put(\"tenantId\", tenantId) }\n    }\n}\n```\n\nMeta DB schema (PostgreSQL):\n```sql\nCREATE TABLE tenants (\n    id UUID PRIMARY KEY,\n    name VARCHAR(255) NOT NULL,\n    status VARCHAR(20) NOT NULL,\n    db_host VARCHAR(255) NOT NULL,\n    db_port INTEGER NOT NULL,\n    db_name VARCHAR(255) NOT NULL,\n    created_at TIMESTAMP,\n    updated_at TIMESTAMP\n);\n\nCREATE TABLE super_admins (\n    id UUID PRIMARY KEY,\n    username VARCHAR(255) UNIQUE NOT NULL,\n    password_hash VARCHAR(255) NOT NULL\n);\n```",
+        "testStrategy": "Write integration tests with multiple tenant contexts. Verify queries route to correct database. Test TenantWebFilter extracts tenant correctly from requests. Validate connection pool management under concurrent tenant access.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Meta DB Schema and R2DBC Entity Configuration",
+            "description": "Define the PostgreSQL Meta DB schema for tenants table and super_admins table, and create corresponding R2DBC entity classes with Spring Data R2DBC repositories.",
+            "dependencies": [],
+            "details": "Create the Meta DB schema as SQL migration files:\n\n1. Create SQL migration file `db/migration/meta/V1__create_meta_schema.sql`:\n```sql\nCREATE TABLE tenants (\n    id UUID PRIMARY KEY,\n    name VARCHAR(255) NOT NULL,\n    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',\n    db_host VARCHAR(255) NOT NULL,\n    db_port INTEGER NOT NULL DEFAULT 5432,\n    db_name VARCHAR(255) NOT NULL,\n    db_username VARCHAR(255) NOT NULL,\n    db_password VARCHAR(255) NOT NULL,\n    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE TABLE super_admins (\n    id UUID PRIMARY KEY,\n    username VARCHAR(255) UNIQUE NOT NULL,\n    password_hash VARCHAR(255) NOT NULL,\n    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX idx_tenants_status ON tenants(status);\n```\n\n2. Create Kotlin entity classes in `domain/model/`:\n- `Tenant.kt` - Entity with UUID id, name, status (enum ACTIVE/INACTIVE), dbHost, dbPort, dbName, dbUsername, dbPassword, timestamps\n- `SuperAdmin.kt` - Entity with UUID id, username, passwordHash, timestamps\n- `TenantStatus.kt` - Enum with ACTIVE, INACTIVE values\n\n3. Create R2DBC repository interfaces in `port/outbound/`:\n- `TenantRepository.kt` extending ReactiveCrudRepository with findByStatus() method\n- `SuperAdminRepository.kt` extending ReactiveCrudRepository with findByUsername() method\n\n4. Configure dedicated Meta DB ConnectionFactory bean for Meta DB operations.",
+            "status": "pending",
+            "testStrategy": "Write integration tests using @DataR2dbcTest with embedded PostgreSQL or TestContainers. Test: (1) Tenant CRUD operations, (2) SuperAdmin findByUsername query, (3) Verify tenant status filtering works correctly. Use Kotest for pure unit tests validating entity validation logic."
+          },
+          {
+            "id": 2,
+            "title": "Implement TenantContext with Reactor Context Propagation",
+            "description": "Create TenantContext object for storing and retrieving tenant ID using Reactor's Context, enabling reactive tenant propagation throughout the request lifecycle.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create tenant context infrastructure in `infrastructure/tenant/`:\n\n1. Create `TenantContext.kt`:\n```kotlin\nobject TenantContext {\n    private const val TENANT_KEY = \"tenantId\"\n    private const val DEFAULT_TENANT = \"default\"\n    \n    fun getCurrentTenant(): Mono<String> {\n        return Mono.deferContextual { ctx ->\n            Mono.just(ctx.getOrDefault(TENANT_KEY, DEFAULT_TENANT))\n        }\n    }\n    \n    fun getCurrentTenantOrEmpty(): Mono<String> {\n        return Mono.deferContextual { ctx ->\n            val tenantId = ctx.getOrEmpty<String>(TENANT_KEY)\n            if (tenantId.isPresent) Mono.just(tenantId.get())\n            else Mono.empty()\n        }\n    }\n    \n    fun withTenant(tenantId: String): Context {\n        return Context.of(TENANT_KEY, tenantId)\n    }\n    \n    fun contextModifier(tenantId: String): (Context) -> Context {\n        return { it.put(TENANT_KEY, tenantId) }\n    }\n}\n```\n\n2. Create `TenantAwareOperator.kt` for convenient tenant-aware operations:\n- Extension functions for Mono/Flux to propagate tenant context\n- `withCurrentTenant()` operator to ensure tenant context is available\n\n3. Create `TenantNotFoundException.kt` exception class for missing tenant scenarios.\n\n4. Ensure context propagation works with R2DBC transactions by configuring ReactorContextPropagation.",
+            "status": "pending",
+            "testStrategy": "Write unit tests with Kotest verifying: (1) getCurrentTenant() returns default when no context set, (2) getCurrentTenant() returns correct tenant when context is set, (3) Context propagation through Mono/Flux chains works correctly, (4) TenantNotFoundException is thrown when tenant is required but missing."
+          },
+          {
+            "id": 3,
+            "title": "Implement TenantConnectionRegistry for Dynamic Connection Management",
+            "description": "Build TenantConnectionRegistry service that manages dynamic R2DBC ConnectionFactory instances for each tenant, with caching and lazy initialization support.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create connection registry infrastructure in `infrastructure/tenant/`:\n\n1. Create `TenantConnectionRegistry.kt`:\n```kotlin\n@Component\nclass TenantConnectionRegistry(\n    private val tenantRepository: TenantRepository,\n    private val connectionFactoryOptions: ConnectionFactoryOptions\n) {\n    private val connectionFactories = ConcurrentHashMap<String, ConnectionFactory>()\n    \n    fun getConnectionFactory(tenantId: String): Mono<ConnectionFactory> {\n        return Mono.justOrEmpty(connectionFactories[tenantId])\n            .switchIfEmpty(\n                tenantRepository.findById(UUID.fromString(tenantId))\n                    .filter { it.status == TenantStatus.ACTIVE }\n                    .map { tenant -> createConnectionFactory(tenant) }\n                    .doOnNext { cf -> connectionFactories[tenantId] = cf }\n            )\n    }\n    \n    private fun createConnectionFactory(tenant: Tenant): ConnectionFactory {\n        return ConnectionFactories.get(\n            ConnectionFactoryOptions.builder()\n                .option(DRIVER, \"postgresql\")\n                .option(HOST, tenant.dbHost)\n                .option(PORT, tenant.dbPort)\n                .option(DATABASE, tenant.dbName)\n                .option(USER, tenant.dbUsername)\n                .option(PASSWORD, tenant.dbPassword)\n                .build()\n        )\n    }\n    \n    fun invalidateCache(tenantId: String) {\n        connectionFactories.remove(tenantId)\n    }\n    \n    fun preloadTenants(): Mono<Void> {\n        return tenantRepository.findByStatus(TenantStatus.ACTIVE)\n            .flatMap { tenant -> getConnectionFactory(tenant.id.toString()) }\n            .then()\n    }\n}\n```\n\n2. Add connection pool configuration using r2dbc-pool:\n- Configure ConnectionPoolConfiguration with maxSize, initialSize, maxIdleTime\n- Wrap each ConnectionFactory with ConnectionPool\n\n3. Add health monitoring for tenant connections:\n- Method to validate connection health\n- Automatic reconnection on failure\n\n4. Create `TenantConnectionProperties.kt` for externalized pool configuration.",
+            "status": "pending",
+            "testStrategy": "Write integration tests with TestContainers running multiple PostgreSQL instances: (1) Verify ConnectionFactory is created and cached for valid tenant, (2) Test cache invalidation removes connection, (3) Test inactive tenant returns empty Mono, (4) Verify connection pool configuration is applied correctly, (5) Load test with concurrent access to verify thread safety of ConcurrentHashMap."
+          },
+          {
+            "id": 4,
+            "title": "Implement TenantRoutingConnectionFactory with AbstractRoutingConnectionFactory",
+            "description": "Create TenantRoutingConnectionFactory extending R2DBC AbstractRoutingConnectionFactory to route database connections based on current tenant context from Reactor Context.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Create routing connection factory in `infrastructure/tenant/`:\n\n1. Create `TenantRoutingConnectionFactory.kt`:\n```kotlin\nclass TenantRoutingConnectionFactory(\n    private val tenantRegistry: TenantConnectionRegistry,\n    private val defaultConnectionFactory: ConnectionFactory\n) : AbstractRoutingConnectionFactory() {\n    \n    override fun determineCurrentLookupKey(): Mono<Any> {\n        return TenantContext.getCurrentTenant()\n            .cast(Any::class.java)\n    }\n    \n    override fun determineTargetConnectionFactory(key: Any): Mono<ConnectionFactory> {\n        val tenantId = key as String\n        return if (tenantId == \"default\" || tenantId == \"meta\") {\n            Mono.just(defaultConnectionFactory)\n        } else {\n            tenantRegistry.getConnectionFactory(tenantId)\n                .switchIfEmpty(Mono.error(TenantNotFoundException(\"Tenant not found: $tenantId\")))\n        }\n    }\n}\n```\n\n2. Create `R2dbcMultiTenantConfig.kt` Spring configuration:\n```kotlin\n@Configuration\nclass R2dbcMultiTenantConfig {\n    @Bean\n    @Primary\n    fun connectionFactory(\n        tenantRegistry: TenantConnectionRegistry,\n        @Qualifier(\"metaConnectionFactory\") metaConnectionFactory: ConnectionFactory\n    ): ConnectionFactory {\n        return TenantRoutingConnectionFactory(tenantRegistry, metaConnectionFactory)\n    }\n    \n    @Bean(\"metaConnectionFactory\")\n    fun metaConnectionFactory(\n        @Value(\"\\${meta.db.host}\") host: String,\n        @Value(\"\\${meta.db.port}\") port: Int,\n        @Value(\"\\${meta.db.name}\") database: String,\n        @Value(\"\\${meta.db.username}\") username: String,\n        @Value(\"\\${meta.db.password}\") password: String\n    ): ConnectionFactory {\n        // Create Meta DB connection factory\n    }\n}\n```\n\n3. Configure R2DBC DatabaseClient and TransactionManager to use the routing ConnectionFactory.\n\n4. Add application.yml configuration for Meta DB connection properties.",
+            "status": "pending",
+            "testStrategy": "Write integration tests: (1) Verify default tenant routes to default ConnectionFactory, (2) Verify specific tenant ID routes to correct tenant database, (3) Test TenantNotFoundException is thrown for unknown tenant, (4) Test concurrent requests with different tenants route correctly, (5) Verify transaction management works across tenant context switches."
+          },
+          {
+            "id": 5,
+            "title": "Implement TenantWebFilter for Request-Level Tenant Extraction",
+            "description": "Create TenantWebFilter as a Spring WebFlux WebFilter that extracts tenant ID from JWT claims or X-Tenant-ID header and injects it into the Reactor Context for downstream processing.",
+            "dependencies": [
+              2,
+              4
+            ],
+            "details": "Create web filter in `adapter/inbound/web/filter/`:\n\n1. Create `TenantWebFilter.kt`:\n```kotlin\n@Component\n@Order(Ordered.HIGHEST_PRECEDENCE + 10)  // After security filter\nclass TenantWebFilter(\n    private val jwtDecoder: ReactiveJwtDecoder,\n    private val tenantRepository: TenantRepository\n) : WebFilter {\n    \n    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {\n        return extractTenantId(exchange)\n            .flatMap { tenantId -> validateTenant(tenantId) }\n            .flatMap { tenantId ->\n                chain.filter(exchange)\n                    .contextWrite(TenantContext.contextModifier(tenantId))\n            }\n            .switchIfEmpty(chain.filter(exchange))  // No tenant for public endpoints\n    }\n    \n    private fun extractTenantId(exchange: ServerWebExchange): Mono<String> {\n        // 1. Try X-Tenant-ID header first (for admin/internal calls)\n        val headerTenant = exchange.request.headers.getFirst(\"X-Tenant-ID\")\n        if (!headerTenant.isNullOrBlank()) {\n            return Mono.just(headerTenant)\n        }\n        \n        // 2. Try JWT claim\n        return extractFromJwt(exchange)\n    }\n    \n    private fun extractFromJwt(exchange: ServerWebExchange): Mono<String> {\n        val authHeader = exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)\n        if (authHeader == null || !authHeader.startsWith(\"Bearer \")) {\n            return Mono.empty()\n        }\n        val token = authHeader.substring(7)\n        return jwtDecoder.decode(token)\n            .mapNotNull { jwt -> jwt.getClaimAsString(\"tenantId\") }\n    }\n    \n    private fun validateTenant(tenantId: String): Mono<String> {\n        return tenantRepository.findById(UUID.fromString(tenantId))\n            .filter { it.status == TenantStatus.ACTIVE }\n            .map { tenantId }\n            .switchIfEmpty(Mono.error(TenantNotFoundException(\"Invalid or inactive tenant\")))\n    }\n}\n```\n\n2. Create `TenantExtractionStrategy.kt` interface for pluggable extraction strategies.\n\n3. Configure filter exclusion patterns for public endpoints (customer join, health checks).\n\n4. Add error handling for invalid tenant scenarios with appropriate HTTP status codes (401/403).\n\n5. Update SecurityConfig to ensure TenantWebFilter runs after authentication but before business logic.",
+            "status": "pending",
+            "testStrategy": "Write integration tests with @WebFluxTest: (1) Test tenant extraction from X-Tenant-ID header, (2) Test tenant extraction from JWT tenantId claim, (3) Test request without tenant passes through for public endpoints, (4) Test invalid tenant returns 403 Forbidden, (5) Test inactive tenant returns 403 Forbidden, (6) Verify tenant context is available in downstream handlers, (7) Test concurrent requests with different tenants maintain isolation."
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Implement JWT Authentication with Redis",
+        "description": "Build JWT-based authentication system with access/refresh tokens and Redis for token blacklisting.",
+        "details": "Implement JWT authentication service:\n\n```kotlin\n// JwtTokenService.kt\n@Service\nclass JwtTokenService(\n    private val redisTemplate: ReactiveRedisTemplate<String, String>,\n    @Value(\"\\${jwt.secret}\") private val secret: String,\n    @Value(\"\\${jwt.access-expiration}\") private val accessExp: Long,\n    @Value(\"\\${jwt.refresh-expiration}\") private val refreshExp: Long\n) {\n    fun generateTokenPair(user: User, tenantId: String): TokenPair {\n        val accessToken = Jwts.builder()\n            .subject(user.id.toString())\n            .claim(\"role\", user.role.name)\n            .claim(\"tenantId\", tenantId)\n            .issuedAt(Date())\n            .expiration(Date(System.currentTimeMillis() + accessExp))\n            .signWith(Keys.hmacShaKeyFor(secret.toByteArray()))\n            .compact()\n        // Similar for refresh token\n        return TokenPair(accessToken, refreshToken)\n    }\n    \n    fun validateToken(token: String): Mono<Boolean> {\n        return redisTemplate.hasKey(\"blacklist:$token\")\n            .map { blacklisted -> !blacklisted && parseToken(token) != null }\n    }\n    \n    fun blacklistToken(token: String): Mono<Boolean> {\n        val expiry = getRemainingExpiry(token)\n        return redisTemplate.opsForValue()\n            .set(\"blacklist:$token\", \"1\", Duration.ofMillis(expiry))\n    }\n}\n\n// SecurityConfig.kt\n@Configuration\n@EnableWebFluxSecurity\nclass SecurityConfig {\n    @Bean\n    fun securityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {\n        return http\n            .csrf { it.disable() }\n            .authorizeExchange { auth ->\n                auth.pathMatchers(\"/api/auth/**\", \"/api/customer/join\").permitAll()\n                auth.pathMatchers(\"/api/**\").authenticated()\n            }\n            .oauth2ResourceServer { it.jwt {} }\n            .build()\n    }\n}\n```\n\nEndpoints:\n- POST /api/auth/login - Agent login\n- POST /api/auth/logout - Logout (blacklist token)\n- POST /api/auth/refresh - Refresh access token\n- PUT /api/auth/password - Change password",
+        "testStrategy": "Test token generation with proper claims. Verify token validation rejects blacklisted tokens. Test refresh token rotation. Load test concurrent authentication requests. Verify Redis TTL matches token expiration.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create JWT Token Domain Models and Configuration",
+            "description": "Define JWT-related domain models (TokenPair, JwtClaims, TokenType) and configuration properties for JWT secrets and expiration times in the be/api module.",
+            "dependencies": [],
+            "details": "Create domain models in be/api/src/main/kotlin/com/counseling/api/domain/model/:\n1. TokenPair.kt - Data class with accessToken and refreshToken strings\n2. JwtClaims.kt - Data class representing JWT payload (subject, role, tenantId, issuedAt, expiration)\n3. TokenType.kt - Enum with ACCESS and REFRESH values\n\nCreate configuration in be/api/src/main/kotlin/com/counseling/api/config/:\n1. JwtProperties.kt - @ConfigurationProperties class with:\n   - secret: String (JWT signing key)\n   - accessExpiration: Long (default 3600000ms = 1 hour)\n   - refreshExpiration: Long (default 604800000ms = 7 days)\n\nUpdate application.yml with jwt.* properties mapped from environment variables (JWT_SECRET, JWT_ACCESS_EXPIRATION, JWT_REFRESH_EXPIRATION).",
+            "status": "pending",
+            "testStrategy": "Write Kotest unit tests validating JwtProperties loads correctly from configuration. Test TokenPair data class equality and copy functions. Verify JwtClaims properly handles Instant timestamps."
+          },
+          {
+            "id": 2,
+            "title": "Implement JwtTokenService with JJWT Library",
+            "description": "Create JwtTokenService component for JWT token generation, parsing, and validation using the JJWT library (jjwt-api 0.12.6) with HMAC-SHA signing.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create be/api/src/main/kotlin/com/counseling/api/application/service/JwtTokenService.kt:\n\n@Service\nclass JwtTokenService(\n    private val jwtProperties: JwtProperties\n) {\n    private val signingKey by lazy { Keys.hmacShaKeyFor(jwtProperties.secret.toByteArray()) }\n    \n    fun generateTokenPair(userId: UUID, role: String, tenantId: String): TokenPair {\n        val accessToken = generateToken(userId, role, tenantId, jwtProperties.accessExpiration, TokenType.ACCESS)\n        val refreshToken = generateToken(userId, role, tenantId, jwtProperties.refreshExpiration, TokenType.REFRESH)\n        return TokenPair(accessToken, refreshToken)\n    }\n    \n    private fun generateToken(...): String using Jwts.builder() with:\n        - subject: userId\n        - claims: role, tenantId, tokenType\n        - issuedAt: Date()\n        - expiration: Date(System.currentTimeMillis() + expiration)\n        - signWith(signingKey, Jwts.SIG.HS256)\n    \n    fun parseToken(token: String): JwtClaims? - Parse and validate token, return null if invalid/expired\n    fun getRemainingExpiry(token: String): Long - Calculate milliseconds until token expires\n    fun isTokenExpired(token: String): Boolean - Check if token has expired",
+            "status": "pending",
+            "testStrategy": "Write Kotest unit tests: (1) generateTokenPair creates valid tokens with correct claims, (2) parseToken returns claims for valid token, (3) parseToken returns null for expired token, (4) parseToken returns null for invalid signature, (5) getRemainingExpiry returns correct duration, (6) Access and refresh tokens have different expiration times."
+          },
+          {
+            "id": 3,
+            "title": "Implement Redis Token Blacklist Service",
+            "description": "Create ReactiveRedisTemplate-based service for managing JWT token blacklist with automatic TTL based on token expiration time.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create be/api/src/main/kotlin/com/counseling/api/infrastructure/redis/TokenBlacklistService.kt:\n\n@Service\nclass TokenBlacklistService(\n    private val redisTemplate: ReactiveRedisTemplate<String, String>,\n    private val jwtTokenService: JwtTokenService\n) {\n    companion object {\n        private const val BLACKLIST_PREFIX = \"blacklist:\"\n    }\n    \n    fun blacklistToken(token: String): Mono<Boolean> {\n        val expiry = jwtTokenService.getRemainingExpiry(token)\n        if (expiry <= 0) return Mono.just(true) // Already expired\n        return redisTemplate.opsForValue()\n            .set(\"$BLACKLIST_PREFIX$token\", \"1\", Duration.ofMillis(expiry))\n    }\n    \n    fun isBlacklisted(token: String): Mono<Boolean> {\n        return redisTemplate.hasKey(\"$BLACKLIST_PREFIX$token\")\n    }\n    \n    fun blacklistAllUserTokens(userId: UUID): Mono<Long> - For password change scenarios\n}\n\nCreate Redis configuration in config/RedisConfig.kt:\n- Configure ReactiveRedisTemplate<String, String>\n- Set up ReactiveRedisConnectionFactory with connection pool\n- Configure serializers for String key/value pairs",
+            "status": "pending",
+            "testStrategy": "Write integration tests with embedded Redis or TestContainers: (1) blacklistToken stores key with correct TTL, (2) isBlacklisted returns true for blacklisted token, (3) isBlacklisted returns false for non-blacklisted token, (4) Expired blacklist entries are automatically removed by Redis TTL, (5) Verify concurrent blacklist operations are thread-safe."
+          },
+          {
+            "id": 4,
+            "title": "Implement Authentication REST Endpoints",
+            "description": "Create AuthController with login, logout, refresh, and password change endpoints using Spring WebFlux, including bcrypt password hashing.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Create DTOs in adapter/inbound/web/dto/:\n- LoginRequest(username: String, password: String)\n- LoginResponse(accessToken: String, refreshToken: String, expiresIn: Long, user: UserInfo)\n- RefreshTokenRequest(refreshToken: String)\n- ChangePasswordRequest(currentPassword: String, newPassword: String)\n\nCreate adapter/inbound/web/AuthController.kt:\n@RestController\n@RequestMapping(\"/api/auth\")\nclass AuthController(\n    private val authService: AuthService,\n    private val jwtTokenService: JwtTokenService,\n    private val tokenBlacklistService: TokenBlacklistService\n) {\n    @PostMapping(\"/login\")\n    fun login(@RequestBody request: LoginRequest): Mono<LoginResponse>\n    \n    @PostMapping(\"/logout\")\n    fun logout(@RequestHeader(\"Authorization\") authHeader: String): Mono<ResponseEntity<Void>>\n    - Extract token, add to blacklist\n    \n    @PostMapping(\"/refresh\")\n    fun refresh(@RequestBody request: RefreshTokenRequest): Mono<LoginResponse>\n    - Validate refresh token, check blacklist, generate new token pair, blacklist old refresh token\n    \n    @PutMapping(\"/password\")\n    fun changePassword(@RequestBody request: ChangePasswordRequest, principal: Principal): Mono<ResponseEntity<Void>>\n}\n\nCreate application/service/AuthService.kt with BCryptPasswordEncoder for password verification and hashing.",
+            "status": "pending",
+            "testStrategy": "Write @WebFluxTest integration tests: (1) Login with valid credentials returns token pair, (2) Login with invalid password returns 401, (3) Logout blacklists token successfully, (4) Refresh with valid refresh token returns new token pair, (5) Refresh with blacklisted token returns 401, (6) Password change validates current password, (7) Password change updates hash with bcrypt."
+          },
+          {
+            "id": 5,
+            "title": "Configure Spring Security WebFlux with JWT Validation",
+            "description": "Set up SecurityConfig with Spring Security WebFlux, JWT validation filter, and proper endpoint authorization rules for public and authenticated routes.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Create/update config/SecurityConfig.kt:\n@Configuration\n@EnableWebFluxSecurity\nclass SecurityConfig(\n    private val jwtTokenService: JwtTokenService,\n    private val tokenBlacklistService: TokenBlacklistService\n) {\n    @Bean\n    fun securityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {\n        return http\n            .csrf { it.disable() }\n            .httpBasic { it.disable() }\n            .formLogin { it.disable() }\n            .authorizeExchange { auth ->\n                auth.pathMatchers(\"/api/auth/login\", \"/api/auth/refresh\", \"/api/customer/join\").permitAll()\n                auth.pathMatchers(\"/actuator/health\").permitAll()\n                auth.pathMatchers(\"/api/**\").authenticated()\n            }\n            .addFilterBefore(jwtAuthenticationFilter(), SecurityWebFiltersOrder.AUTHENTICATION)\n            .exceptionHandling { ... }\n            .build()\n    }\n    \n    @Bean\n    fun jwtAuthenticationFilter(): JwtAuthenticationWebFilter - Custom WebFilter that:\n        1. Extracts Bearer token from Authorization header\n        2. Validates token signature and expiration\n        3. Checks token blacklist via TokenBlacklistService\n        4. Sets SecurityContext with UsernamePasswordAuthenticationToken including role\n}\n\nCreate adapter/inbound/web/filter/JwtAuthenticationWebFilter.kt implementing WebFilter with reactive flow.",
+            "status": "pending",
+            "testStrategy": "Write @WebFluxTest integration tests: (1) Public endpoints accessible without token, (2) Protected endpoints return 401 without token, (3) Protected endpoints accessible with valid token, (4) Blacklisted tokens are rejected with 401, (5) Expired tokens are rejected, (6) Invalid signature tokens are rejected, (7) Role from token is available in SecurityContext, (8) Verify concurrent authentication requests perform correctly."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Implement Domain Models and Repositories",
+        "description": "Create domain entities, value objects, and repository interfaces following DDD and hexagonal architecture.",
+        "details": "Domain entities (be/common/domain/):\n\n```kotlin\n// User.kt (Agent/Admin)\n@Entity\ndata class User(\n    @Id val id: UUID = UUID.randomUUID(),\n    val username: String,\n    var passwordHash: String,\n    val name: String,\n    val role: UserRole,\n    val groupId: UUID?,\n    var agentStatus: AgentStatus = AgentStatus.OFFLINE,\n    var status: AccountStatus = AccountStatus.ACTIVE\n)\n\nenum class UserRole { AGENT, COMPANY_ADMIN, GROUP_ADMIN }\nenum class AgentStatus { ONLINE, OFFLINE, BUSY, AWAY, WRAP_UP }\nenum class AccountStatus { ACTIVE, INACTIVE }\n\n// Channel.kt\n@Entity\ndata class Channel(\n    @Id val id: UUID = UUID.randomUUID(),\n    val agentId: UUID,\n    var status: ChannelStatus = ChannelStatus.WAITING,\n    val startedAt: Instant = Instant.now(),\n    var endedAt: Instant? = null,\n    var recordingPath: String? = null\n)\n\nenum class ChannelStatus { WAITING, IN_PROGRESS, CLOSED }\n\n// Endpoint.kt\n@Entity\ndata class Endpoint(\n    @Id val id: UUID = UUID.randomUUID(),\n    val channelId: UUID,\n    val type: EndpointType,\n    val customerName: String?,\n    val customerContact: String?,\n    val joinedAt: Instant = Instant.now(),\n    var leftAt: Instant? = null\n)\n\n// ChatMessage.kt, CounselNote.kt, Feedback.kt, Group.kt, Company.kt\n```\n\nRepository interfaces (ports):\n```kotlin\ninterface UserRepository {\n    fun findById(id: UUID): Mono<User>\n    fun findByUsername(username: String): Mono<User>\n    fun save(user: User): Mono<User>\n}\n\ninterface ChannelRepository {\n    fun findById(id: UUID): Mono<Channel>\n    fun findByAgentId(agentId: UUID): Flux<Channel>\n    fun save(channel: Channel): Mono<Channel>\n}\n```\n\nR2DBC implementations in infrastructure layer.",
+        "testStrategy": "Write Kotest unit tests for domain entity validation logic. Integration tests with TestContainers for repository operations. Verify CQRS separation with write tests to PostgreSQL and read tests from MongoDB.",
+        "priority": "high",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Core Domain Entities for Tenant DB (User, Group, Company)",
+            "description": "Implement the foundational domain entities for tenant-specific data including User (Agent/Admin), Group, and Company following DDD principles with R2DBC annotations for PostgreSQL.",
+            "dependencies": [],
+            "details": "Create domain entities in be/common/domain/ directory:\n\n1. **User.kt** - Agent and Admin entity:\n```kotlin\n@Table(\"users\")\ndata class User(\n    @Id val id: UUID = UUID.randomUUID(),\n    val username: String,\n    var passwordHash: String,\n    val name: String,\n    val role: UserRole,\n    val groupId: UUID?,\n    var agentStatus: AgentStatus = AgentStatus.OFFLINE,\n    var status: AccountStatus = AccountStatus.ACTIVE,\n    val createdAt: Instant = Instant.now(),\n    var updatedAt: Instant = Instant.now()\n)\n\nenum class UserRole { AGENT, COMPANY_ADMIN, GROUP_ADMIN }\nenum class AgentStatus { ONLINE, OFFLINE, BUSY, AWAY, WRAP_UP }\nenum class AccountStatus { ACTIVE, INACTIVE }\n```\n\n2. **Group.kt** - Counseling group:\n```kotlin\n@Table(\"groups\")\ndata class Group(\n    @Id val id: UUID = UUID.randomUUID(),\n    val name: String,\n    var status: GroupStatus = GroupStatus.ACTIVE\n)\n\nenum class GroupStatus { ACTIVE, INACTIVE }\n```\n\n3. **Company.kt** - Tenant company info:\n```kotlin\n@Table(\"companies\")\ndata class Company(\n    @Id val id: UUID = UUID.randomUUID(),\n    val name: String,\n    var contact: String?,\n    var address: String?,\n    var updatedAt: Instant = Instant.now()\n)\n```\n\nInclude validation annotations (@field:NotBlank, @field:Size) and domain logic methods (e.g., User.canAcceptCounseling(), User.changeStatus()).",
+            "status": "pending",
+            "testStrategy": "Write Kotest unit tests for: (1) User entity validation - username required, role valid enum, (2) User.canAcceptCounseling() returns true only when ONLINE status, (3) User.changeStatus() transitions follow valid state machine (cannot go from OFFLINE to BUSY directly), (4) Group entity validation, (5) Company entity optional field handling."
+          },
+          {
+            "id": 2,
+            "title": "Create Channel and Endpoint Domain Entities with Value Objects",
+            "description": "Implement Channel (counseling session) and Endpoint (participant connection) domain entities along with value objects for type-safe domain modeling.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create counseling session domain entities in be/common/domain/:\n\n1. **Channel.kt** - Counseling session:\n```kotlin\n@Table(\"channels\")\ndata class Channel(\n    @Id val id: UUID = UUID.randomUUID(),\n    val agentId: UUID,\n    var status: ChannelStatus = ChannelStatus.WAITING,\n    val startedAt: Instant = Instant.now(),\n    var endedAt: Instant? = null,\n    var recordingPath: String? = null\n) {\n    fun close(): Channel = copy(status = ChannelStatus.CLOSED, endedAt = Instant.now())\n    fun startSession(): Channel = copy(status = ChannelStatus.IN_PROGRESS)\n}\n\nenum class ChannelStatus { WAITING, IN_PROGRESS, CLOSED }\n```\n\n2. **Endpoint.kt** - Participant connection:\n```kotlin\n@Table(\"endpoints\")\ndata class Endpoint(\n    @Id val id: UUID = UUID.randomUUID(),\n    val channelId: UUID,\n    val type: EndpointType,\n    val customerName: String?,\n    val customerContact: String?,\n    val joinedAt: Instant = Instant.now(),\n    var leftAt: Instant? = null\n) {\n    fun leave(): Endpoint = copy(leftAt = Instant.now())\n}\n\nenum class EndpointType { AGENT, CUSTOMER }\n```\n\n3. **Value Objects** in be/common/domain/vo/:\n- CustomerInfo.kt: data class CustomerInfo(val name: String, val contact: String)\n- SessionDuration.kt: value object for calculating session length\n- RecordingPath.kt: value object with path validation following /{tenant_id}/{channel_id}/{timestamp}.{ext} format",
+            "status": "pending",
+            "testStrategy": "Write Kotest unit tests: (1) Channel state transitions (WAITING -> IN_PROGRESS -> CLOSED), (2) Channel.close() sets endedAt timestamp, (3) Endpoint.leave() sets leftAt, (4) CustomerInfo value object immutability, (5) RecordingPath validates path format pattern, (6) SessionDuration calculates correctly from start/end times."
+          },
+          {
+            "id": 3,
+            "title": "Create ChatMessage, CounselNote, and Feedback Domain Entities",
+            "description": "Implement remaining domain entities for chat messages, counseling notes, and customer feedback following the data model specification from PRD.",
+            "dependencies": [
+              2
+            ],
+            "details": "Create additional domain entities in be/common/domain/:\n\n1. **ChatMessage.kt** - Real-time chat:\n```kotlin\n@Table(\"chat_messages\")\ndata class ChatMessage(\n    @Id val id: UUID = UUID.randomUUID(),\n    val channelId: UUID,\n    val senderType: SenderType,\n    val senderId: String,\n    val content: String,\n    val createdAt: Instant = Instant.now()\n)\n\nenum class SenderType { AGENT, CUSTOMER }\n```\n\n2. **CounselNote.kt** - Agent notes:\n```kotlin\n@Table(\"counsel_notes\")\ndata class CounselNote(\n    @Id val id: UUID = UUID.randomUUID(),\n    val channelId: UUID,\n    val agentId: UUID,\n    var content: String,\n    val createdAt: Instant = Instant.now(),\n    var updatedAt: Instant = Instant.now()\n) {\n    fun updateContent(newContent: String): CounselNote = copy(content = newContent, updatedAt = Instant.now())\n}\n```\n\n3. **Feedback.kt** - Customer feedback:\n```kotlin\n@Table(\"feedbacks\")\ndata class Feedback(\n    @Id val id: UUID = UUID.randomUUID(),\n    val channelId: UUID,\n    val rating: Int, // 1-5\n    val comment: String?,\n    val createdAt: Instant = Instant.now()\n) {\n    init {\n        require(rating in 1..5) { \"Rating must be between 1 and 5\" }\n    }\n}\n```\n\n4. **Domain Events** in be/common/domain/event/:\n- ChannelCreatedEvent, ChannelClosedEvent\n- FeedbackSubmittedEvent\n- AgentStatusChangedEvent\nThese events enable CQRS synchronization from Command (PostgreSQL) to Query (MongoDB) side.",
+            "status": "pending",
+            "testStrategy": "Write Kotest unit tests: (1) ChatMessage sender type validation, (2) CounselNote.updateContent() updates timestamp, (3) Feedback rating constraint 1-5 throws exception for invalid values, (4) Feedback with null comment is valid, (5) Domain events contain proper aggregate IDs and timestamps, (6) ChannelClosedEvent includes duration calculation."
+          },
+          {
+            "id": 4,
+            "title": "Define Repository Port Interfaces (Hexagonal Architecture)",
+            "description": "Create repository port interfaces in the domain layer following hexagonal architecture, defining contracts for both command (PostgreSQL) and query (MongoDB) operations.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Create repository port interfaces in be/common/domain/port/:\n\n1. **Command Repositories** (PostgreSQL - Write operations):\n```kotlin\n// UserRepository.kt\ninterface UserRepository {\n    fun findById(id: UUID): Mono<User>\n    fun findByUsername(username: String): Mono<User>\n    fun findByGroupId(groupId: UUID): Flux<User>\n    fun save(user: User): Mono<User>\n    fun updateStatus(id: UUID, status: AgentStatus): Mono<Void>\n}\n\n// ChannelRepository.kt\ninterface ChannelRepository {\n    fun findById(id: UUID): Mono<Channel>\n    fun findByAgentId(agentId: UUID): Flux<Channel>\n    fun findActiveByAgentId(agentId: UUID): Mono<Channel>\n    fun save(channel: Channel): Mono<Channel>\n}\n\n// Similar interfaces for: EndpointRepository, GroupRepository, CompanyRepository, ChatMessageRepository, CounselNoteRepository, FeedbackRepository\n```\n\n2. **Query Repositories** (MongoDB - Read-optimized):\n```kotlin\n// ChannelQueryRepository.kt\ninterface ChannelQueryRepository {\n    fun findByAgentIdWithPagination(agentId: UUID, pageable: Pageable): Flux<ChannelReadModel>\n    fun findByDateRange(start: Instant, end: Instant): Flux<ChannelReadModel>\n    fun countByStatus(status: ChannelStatus): Mono<Long>\n}\n\n// StatsQueryRepository.kt - For admin statistics\ninterface StatsQueryRepository {\n    fun getSessionStatsByDateRange(start: Instant, end: Instant): Mono<SessionStats>\n    fun getAgentPerformanceStats(agentId: UUID): Mono<AgentStats>\n}\n```\n\n3. **Read Models** in be/common/domain/readmodel/:\n- ChannelReadModel, FeedbackReadModel, SessionStats, AgentStats",
+            "status": "pending",
+            "testStrategy": "Write Kotest unit tests verifying: (1) Repository interfaces compile correctly with reactive return types, (2) Read model data classes have proper fields matching MongoDB documents, (3) All repository methods have appropriate return types (Mono for single, Flux for multiple), (4) Verify interface segregation - command repos don't have query methods and vice versa."
+          },
+          {
+            "id": 5,
+            "title": "Implement R2DBC Repository Adapters for PostgreSQL",
+            "description": "Create infrastructure layer implementations of repository ports using Spring Data R2DBC for PostgreSQL command-side persistence.",
+            "dependencies": [
+              4
+            ],
+            "details": "Create R2DBC repository implementations in be/common/infrastructure/persistence/:\n\n1. **Spring Data R2DBC Repositories**:\n```kotlin\n// R2dbcUserRepository.kt\ninterface R2dbcUserRepository : ReactiveCrudRepository<User, UUID> {\n    fun findByUsername(username: String): Mono<User>\n    fun findByGroupId(groupId: UUID): Flux<User>\n    @Modifying\n    @Query(\"UPDATE users SET agent_status = :status, updated_at = :now WHERE id = :id\")\n    fun updateAgentStatus(id: UUID, status: AgentStatus, now: Instant): Mono<Void>\n}\n\n// Similar for: R2dbcChannelRepository, R2dbcEndpointRepository, R2dbcGroupRepository, R2dbcChatMessageRepository, R2dbcCounselNoteRepository, R2dbcFeedbackRepository\n```\n\n2. **Port Adapter Implementations**:\n```kotlin\n// UserRepositoryAdapter.kt\n@Repository\nclass UserRepositoryAdapter(\n    private val r2dbcRepository: R2dbcUserRepository,\n    private val eventPublisher: ApplicationEventPublisher\n) : UserRepository {\n    override fun save(user: User): Mono<User> =\n        r2dbcRepository.save(user)\n            .doOnSuccess { eventPublisher.publishEvent(UserSavedEvent(it)) }\n    // ... other method implementations\n}\n```\n\n3. **Database Schema** - Create Flyway migrations in be/api/src/main/resources/db/migration/:\n- V1__create_users_table.sql\n- V2__create_groups_table.sql\n- V3__create_channels_table.sql\n- V4__create_endpoints_table.sql\n- V5__create_chat_messages_table.sql\n- V6__create_counsel_notes_table.sql\n- V7__create_feedbacks_table.sql\n\n4. **R2DBC Configuration** for tenant-aware connection in TenantDatabaseConfig.kt",
+            "status": "pending",
+            "testStrategy": "Write integration tests with TestContainers PostgreSQL: (1) UserRepositoryAdapter.save() persists and retrieves user, (2) UserRepositoryAdapter.findByUsername() returns correct user, (3) ChannelRepositoryAdapter handles status updates correctly, (4) Verify Flyway migrations run successfully, (5) Test concurrent save operations don't cause conflicts, (6) Verify event publishing on save operations, (7) Test repository operations work with TenantRoutingConnectionFactory from Task 4."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Implement Customer Queue Management",
+        "description": "Build the customer waiting queue system with Redis for real-time queue state and WebSocket notifications.",
+        "details": "Queue management service:\n\n```kotlin\n// QueueService.kt\n@Service\nclass QueueService(\n    private val redisTemplate: ReactiveRedisTemplate<String, String>,\n    private val objectMapper: ObjectMapper,\n    private val notificationService: NotificationService\n) {\n    private val queueKey = \"counseling:queue\"\n    \n    fun enterQueue(customer: CustomerInfo): Mono<QueueEntry> {\n        val entry = QueueEntry(\n            id = UUID.randomUUID(),\n            customerName = customer.name,\n            customerContact = customer.contact,\n            enteredAt = Instant.now()\n        )\n        return redisTemplate.opsForZSet()\n            .add(queueKey, objectMapper.writeValueAsString(entry), entry.enteredAt.toEpochMilli().toDouble())\n            .then(notifyQueueUpdate())\n            .thenReturn(entry)\n    }\n    \n    fun leaveQueue(entryId: UUID): Mono<Void> {\n        return getQueueEntries()\n            .filter { it.id == entryId }\n            .flatMap { redisTemplate.opsForZSet().remove(queueKey, objectMapper.writeValueAsString(it)) }\n            .then(notifyQueueUpdate())\n    }\n    \n    fun acceptCustomer(entryId: UUID, agentId: UUID): Mono<Channel> {\n        // Remove from queue, create channel, update agent status\n    }\n    \n    fun getQueueEntries(): Flux<QueueEntry> {\n        return redisTemplate.opsForZSet()\n            .range(queueKey, Range.unbounded())\n            .map { objectMapper.readValue(it, QueueEntry::class.java) }\n    }\n    \n    fun getQueuePosition(entryId: UUID): Mono<Int> {\n        // Calculate position in queue\n    }\n}\n```\n\nWebSocket endpoint for queue updates:\n```kotlin\n@Controller\nclass QueueWebSocketHandler(\n    private val queueService: QueueService\n) {\n    @MessageMapping(\"queue.subscribe\")\n    fun subscribeToQueue(): Flux<QueueUpdate> {\n        return queueService.getQueueUpdates()\n    }\n}\n```\n\nAPI Endpoints:\n- POST /api/queue/enter - Customer enters queue\n- DELETE /api/queue/leave - Customer leaves queue\n- GET /api/queue - Agent views queue\n- POST /api/queue/{id}/accept - Agent accepts customer",
+        "testStrategy": "Test queue ordering by entry time. Verify concurrent entry/leave operations maintain consistency. Test WebSocket notifications on queue changes. Performance test with 500+ simultaneous queue entries.",
+        "priority": "high",
+        "dependencies": [
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Queue Domain Models and DTOs",
+            "description": "Define QueueEntry, CustomerInfo, QueueUpdate domain models and related DTOs for the queue management system with proper validation annotations.",
+            "dependencies": [],
+            "details": "Create domain models in be/api/src/main/kotlin/domain/queue/ directory:\n\n1. QueueEntry.kt:\n- id: UUID (unique identifier for queue entry)\n- customerName: String (customer display name)\n- customerContact: String (phone or email)\n- enteredAt: Instant (timestamp when customer entered queue)\n- groupId: UUID? (optional target counseling group)\n\n2. CustomerInfo.kt:\n- name: String (validated, non-blank, max 50 chars)\n- contact: String (validated phone/email pattern)\n- groupId: UUID? (optional counseling group preference)\n\n3. QueueUpdate.kt (for WebSocket notifications):\n- type: QueueUpdateType enum (CUSTOMER_ENTERED, CUSTOMER_LEFT, CUSTOMER_ACCEPTED, POSITION_CHANGED)\n- entry: QueueEntry? (the affected entry)\n- queueSize: Int (current total queue size)\n- timestamp: Instant\n\n4. DTOs:\n- EnterQueueRequest (name, contact, groupId?)\n- EnterQueueResponse (entryId, position, estimatedWaitTime)\n- QueuePositionResponse (position, estimatedWaitTime, queueSize)\n- QueueEntryDto (for agent view with wait duration calculated)\n\nUse Jackson annotations for JSON serialization and Jakarta validation annotations.",
+            "status": "pending",
+            "testStrategy": "Write Kotest unit tests to verify: 1) QueueEntry serialization/deserialization with ObjectMapper, 2) Validation constraints on CustomerInfo reject invalid input, 3) QueueUpdate enum values serialize correctly, 4) DTOs map correctly from domain models."
+          },
+          {
+            "id": 2,
+            "title": "Implement QueueService with Redis Sorted Set Operations",
+            "description": "Build the core QueueService using ReactiveRedisTemplate with sorted set operations for queue ordering by entry time.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create QueueService.kt in be/api/src/main/kotlin/service/queue/ directory:\n\n1. Dependencies:\n- ReactiveRedisTemplate<String, String> (for Redis operations)\n- ObjectMapper (for JSON serialization)\n- NotificationService (for WebSocket notifications - can be placeholder initially)\n\n2. Redis Key Structure:\n- Queue key: 'tenant:{tenantId}:counseling:queue' (tenant-specific)\n- Score: entry timestamp in epoch milliseconds for FIFO ordering\n\n3. Core Methods:\n- enterQueue(tenantId: String, customer: CustomerInfo): Mono<QueueEntry>\n  * Generate UUID, create QueueEntry with current timestamp\n  * Add to sorted set with ZADD (score = enteredAt.toEpochMilli)\n  * Trigger queue update notification\n  * Return created entry\n\n- leaveQueue(tenantId: String, entryId: UUID): Mono<Boolean>\n  * Find entry by scanning queue (ZRANGE with pattern match)\n  * Remove entry with ZREM\n  * Trigger queue update notification\n  * Return success boolean\n\n- getQueueEntries(tenantId: String): Flux<QueueEntry>\n  * Use ZRANGE to get all entries ordered by score (earliest first)\n  * Deserialize JSON strings to QueueEntry objects\n\n- getQueuePosition(tenantId: String, entryId: UUID): Mono<Int>\n  * Use ZRANK to get 0-based position, add 1 for 1-based\n\n- getQueueSize(tenantId: String): Mono<Long>\n  * Use ZCARD to get total queue size\n\n4. Configure Redis connection in application.yml with connection pool settings.",
+            "status": "pending",
+            "testStrategy": "Write integration tests using @SpringBootTest with embedded Redis (Testcontainers): 1) Test enterQueue adds entry and returns correct position, 2) Test leaveQueue removes entry correctly, 3) Test queue ordering maintains FIFO by entry time, 4) Test getQueuePosition returns correct 1-based position, 5) Test concurrent enter operations maintain consistency with 50+ simultaneous requests."
+          },
+          {
+            "id": 3,
+            "title": "Implement Agent Accept Customer and Channel Creation Flow",
+            "description": "Add acceptCustomer method to QueueService that removes customer from queue, creates a new Channel, and updates agent status to Busy.",
+            "dependencies": [
+              2
+            ],
+            "details": "Extend QueueService with accept flow in be/api/src/main/kotlin/service/queue/:\n\n1. Add acceptCustomer method:\n- acceptCustomer(tenantId: String, entryId: UUID, agentId: UUID): Mono<Channel>\n  * Validate entry exists in queue (return error if not found)\n  * Remove entry from Redis queue atomically\n  * Create new Channel entity:\n    - Generate channelId (UUID)\n    - Set agentId, status=WAITING\n    - Set startedAt timestamp\n  * Create Endpoint for customer:\n    - type=CUSTOMER, customerName, customerContact from QueueEntry\n  * Create Endpoint for agent:\n    - type=AGENT, userId=agentId\n  * Update agent status to BUSY via AgentStatusService\n  * Trigger notifications: queue update + customer matched notification\n  * Return created Channel\n\n2. Create AgentStatusService.kt (or extend existing):\n- updateStatus(agentId: UUID, status: AgentStatus): Mono<Void>\n- AgentStatus enum: ONLINE, OFFLINE, BUSY, AWAY, WRAPUP\n- Store status in Redis with key 'tenant:{tenantId}:agent:{agentId}:status'\n- Broadcast status change to monitoring subscribers\n\n3. Transaction handling:\n- Use Redis transaction (MULTI/EXEC) for atomic queue removal + status update\n- Implement compensating action if channel creation fails\n\n4. Validation:\n- Agent must be ONLINE to accept customers\n- Agent cannot accept if already BUSY\n- Entry must exist and not be already accepted",
+            "status": "pending",
+            "testStrategy": "Write integration tests: 1) Test acceptCustomer removes entry from queue and creates channel, 2) Test agent status changes to BUSY after accept, 3) Test concurrent accept of same entry fails for second agent, 4) Test accept fails if agent is not ONLINE, 5) Test accept fails if entry doesn't exist, 6) Verify channel and endpoints are created correctly."
+          },
+          {
+            "id": 4,
+            "title": "Implement Queue REST API Controllers",
+            "description": "Create QueueController with REST endpoints for queue enter, leave, list, and accept operations with proper error handling and validation.",
+            "dependencies": [
+              3
+            ],
+            "details": "Create QueueController.kt in be/api/src/main/kotlin/controller/:\n\n1. Customer Endpoints:\n- POST /api/queue/enter\n  * Request: EnterQueueRequest (name, contact, groupId?)\n  * Response: EnterQueueResponse (entryId, position, estimatedWaitTime)\n  * No authentication required (customer is anonymous)\n  * Validate input, call queueService.enterQueue()\n\n- DELETE /api/queue/leave\n  * Query param: entryId (UUID)\n  * Response: 204 No Content on success\n  * Call queueService.leaveQueue()\n\n- GET /api/queue/position\n  * Query param: entryId (UUID)\n  * Response: QueuePositionResponse (position, estimatedWaitTime)\n  * Customer can poll this endpoint for position updates\n\n2. Agent Endpoints (require JWT authentication):\n- GET /api/queue\n  * Response: List<QueueEntryDto> with wait duration\n  * Only ONLINE agents can view queue\n  * Filter by agent's group if applicable\n\n- POST /api/queue/{entryId}/accept\n  * Path param: entryId (UUID)\n  * Response: ChannelResponse (channelId, livekitToken, etc.)\n  * Extract agentId from JWT principal\n  * Call queueService.acceptCustomer()\n\n3. Error Handling:\n- Use @ControllerAdvice for global exception handling\n- QueueEntryNotFoundException -> 404\n- AgentNotAvailableException -> 409 Conflict\n- InvalidAgentStatusException -> 400\n\n4. Response DTOs:\n- Include hypermedia links for queue status polling (HATEOAS optional)",
+            "status": "pending",
+            "testStrategy": "Write @WebFluxTest controller tests: 1) Test POST /api/queue/enter with valid input returns 201 with entry details, 2) Test DELETE /api/queue/leave returns 204, 3) Test GET /api/queue returns sorted list for authenticated agent, 4) Test POST /api/queue/{id}/accept returns channel info, 5) Test validation errors return 400 with details, 6) Test unauthorized access to agent endpoints returns 401."
+          },
+          {
+            "id": 5,
+            "title": "Implement WebSocket Queue Updates with RSocket or SSE",
+            "description": "Build real-time queue notification system using WebSocket/RSocket for agents and SSE for customers to receive queue position updates.",
+            "dependencies": [
+              4
+            ],
+            "details": "Create WebSocket infrastructure in be/api/src/main/kotlin/websocket/:\n\n1. QueueWebSocketHandler.kt (RSocket or WebSocket):\n- subscribeToQueue(): Flux<QueueUpdate>\n  * Agents subscribe to receive all queue changes\n  * Filter updates by agent's group if applicable\n  * Use Sinks.Many for broadcasting to multiple subscribers\n\n2. NotificationService.kt enhancement:\n- Private field: queueSinks: ConcurrentHashMap<String, Sinks.Many<QueueUpdate>>\n  * Key: tenantId (or tenantId:groupId for group-specific)\n- notifyQueueUpdate(tenantId: String, update: QueueUpdate): Mono<Void>\n  * Emit update to all subscribers for that tenant\n- subscribeToQueueUpdates(tenantId: String): Flux<QueueUpdate>\n  * Return hot flux from sink for subscription\n\n3. Customer Position Updates (SSE recommended for simplicity):\n- GET /api/queue/stream?entryId={id} (SSE endpoint)\n  * Return Flux<QueuePositionResponse> with periodic updates\n  * Push new position when queue changes\n  * Complete stream when customer is accepted or leaves\n\n4. CustomerNotificationSink:\n- customerSinks: ConcurrentHashMap<UUID, Sinks.One<QueueUpdate>>\n- notifyCustomerMatched(entryId: UUID, channelId: UUID): Mono<Void>\n  * Notify specific customer when agent accepts\n  * Include channel details for redirect to video call\n\n5. Configuration:\n- WebSocket message broker config with tenant-aware topics\n- SSE timeout and heartbeat settings\n- Connection cleanup on disconnect\n\n6. Message Format:\n- QueueUpdate JSON with type discriminator for frontend handling",
+            "status": "pending",
+            "testStrategy": "Write integration tests: 1) Test WebSocket subscription receives queue updates when customer enters/leaves, 2) Test SSE endpoint streams position updates to customer, 3) Test customer receives notification when accepted with channel info, 4) Verify update latency is under 1 second, 5) Load test with 100+ concurrent WebSocket subscribers, 6) Test connection cleanup when customer disconnects."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Integrate LiveKit for WebRTC",
+        "description": "Implement LiveKit SDK integration for video/audio calls, room management, and media controls.",
+        "details": "LiveKit service integration:\n\n```kotlin\n// LiveKitService.kt\n@Service\nclass LiveKitService(\n    @Value(\"\\${livekit.api-key}\") private val apiKey: String,\n    @Value(\"\\${livekit.api-secret}\") private val apiSecret: String,\n    @Value(\"\\${livekit.url}\") private val livekitUrl: String\n) {\n    private val roomServiceClient = RoomServiceClient.create(livekitUrl, apiKey, apiSecret)\n    \n    fun createRoom(channelId: String): Mono<Room> {\n        val request = CreateRoomRequest.newBuilder()\n            .setName(channelId)\n            .setEmptyTimeout(300)  // 5 min empty timeout\n            .setMaxParticipants(2)\n            .build()\n        return Mono.fromCompletionStage(roomServiceClient.createRoom(request))\n    }\n    \n    fun generateToken(roomName: String, participantId: String, participantName: String): String {\n        val token = AccessToken(apiKey, apiSecret)\n        token.name = participantName\n        token.identity = participantId\n        token.addGrants(RoomJoin(true), RoomName(roomName))\n        return token.toJwt()\n    }\n    \n    fun closeRoom(channelId: String): Mono<Void> {\n        return Mono.fromCompletionStage(\n            roomServiceClient.deleteRoom(DeleteRoomRequest.newBuilder().setRoom(channelId).build())\n        ).then()\n    }\n}\n\n// ChannelService.kt - orchestrates channel lifecycle\n@Service\nclass ChannelService(\n    private val channelRepository: ChannelRepository,\n    private val liveKitService: LiveKitService,\n    private val userRepository: UserRepository\n) {\n    fun createChannel(agentId: UUID, customerId: UUID): Mono<ChannelResponse> {\n        return channelRepository.save(Channel(agentId = agentId))\n            .flatMap { channel ->\n                liveKitService.createRoom(channel.id.toString())\n                    .map { room -> ChannelResponse(\n                        channelId = channel.id,\n                        agentToken = liveKitService.generateToken(room.name, agentId.toString(), \"Agent\"),\n                        customerToken = liveKitService.generateToken(room.name, customerId.toString(), \"Customer\")\n                    )}\n            }\n    }\n}\n```\n\nEndpoints:\n- GET /api/channels/{id}/token - Get LiveKit access token\n- POST /api/channels/{id}/close - End call and close room",
+        "testStrategy": "Integration test with LiveKit container. Verify room creation/deletion lifecycle. Test token generation with correct permissions. Test concurrent room creation under load.",
+        "priority": "high",
+        "dependencies": [
+          6,
+          7
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create LiveKit Configuration and Properties",
+            "description": "Set up LiveKit configuration properties class and application.yml settings for LiveKit server connection with API key, secret, and URL.",
+            "dependencies": [],
+            "details": "Create LiveKitProperties.kt configuration class in be/api/src/main/kotlin/com/counseling/api/config/ using @ConfigurationProperties:\n\n1. LiveKitProperties.kt:\n- apiKey: String (from LIVEKIT_API_KEY env)\n- apiSecret: String (from LIVEKIT_API_SECRET env)\n- url: String (from LIVEKIT_URL env, e.g., ws://localhost:7880)\n- defaultRoomOptions: RoomOptions class with:\n  - emptyTimeout: Duration (default 5 minutes)\n  - maxParticipants: Int (default 2 for 1:1 counseling)\n\n2. Update application.yml with livekit.* property mappings:\n```yaml\nlivekit:\n  api-key: ${LIVEKIT_API_KEY:devkey}\n  api-secret: ${LIVEKIT_API_SECRET:secret}\n  url: ${LIVEKIT_URL:ws://localhost:7880}\n  default-room-options:\n    empty-timeout: 300s\n    max-participants: 2\n```\n\n3. Create LiveKitConfig.kt @Configuration class to instantiate RoomServiceClient bean from livekit-server-sdk with proper connection settings.\n\n4. Add validation annotations to ensure required properties are present on startup.",
+            "status": "pending",
+            "testStrategy": "Write Kotest unit tests to verify: (1) LiveKitProperties loads correctly from application.yml, (2) Validation fails when required properties are missing, (3) RoomServiceClient bean is created successfully with configured URL and credentials."
+          },
+          {
+            "id": 2,
+            "title": "Implement LiveKitService for Room Management",
+            "description": "Create LiveKitService component with methods for creating and deleting LiveKit rooms using the RoomServiceClient from livekit-server-sdk.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create LiveKitService.kt in be/api/src/main/kotlin/com/counseling/api/application/service/:\n\n1. Service implementation:\n```kotlin\n@Service\nclass LiveKitService(\n    private val roomServiceClient: RoomServiceClient,\n    private val liveKitProperties: LiveKitProperties\n) {\n    fun createRoom(channelId: String): Mono<Room> {\n        val request = CreateRoomRequest.newBuilder()\n            .setName(channelId)\n            .setEmptyTimeout(liveKitProperties.defaultRoomOptions.emptyTimeout.seconds.toInt())\n            .setMaxParticipants(liveKitProperties.defaultRoomOptions.maxParticipants)\n            .build()\n        return Mono.fromCompletionStage(roomServiceClient.createRoom(request))\n            .onErrorMap { LiveKitRoomCreationException(channelId, it) }\n    }\n    \n    fun deleteRoom(channelId: String): Mono<Void> {\n        val request = DeleteRoomRequest.newBuilder()\n            .setRoom(channelId)\n            .build()\n        return Mono.fromCompletionStage(roomServiceClient.deleteRoom(request))\n            .then()\n            .onErrorResume(RoomNotFoundException::class.java) { Mono.empty() }\n    }\n    \n    fun listParticipants(roomName: String): Flux<ParticipantInfo>\n    fun removeParticipant(roomName: String, identity: String): Mono<Void>\n}\n```\n\n2. Create custom exceptions in domain/exception/:\n- LiveKitRoomCreationException\n- LiveKitRoomNotFoundException\n- LiveKitConnectionException\n\n3. Handle CompletionStage to Mono conversion with proper error handling for gRPC errors from LiveKit server.",
+            "status": "pending",
+            "testStrategy": "Write integration tests with LiveKit TestContainers: (1) createRoom successfully creates room and returns Room object, (2) deleteRoom removes existing room without error, (3) deleteRoom on non-existent room completes without error, (4) Test concurrent room creation with same channelId fails appropriately, (5) Test network failure handling with mock RoomServiceClient."
+          },
+          {
+            "id": 3,
+            "title": "Implement JWT Token Generation for LiveKit Access",
+            "description": "Add token generation methods to LiveKitService using LiveKit AccessToken API with proper grants for room join, publish, and subscribe permissions.",
+            "dependencies": [
+              1
+            ],
+            "details": "Extend LiveKitService with token generation capabilities:\n\n1. Add token generation methods:\n```kotlin\nfun generateToken(\n    roomName: String,\n    participantId: String,\n    participantName: String,\n    grants: LiveKitGrants\n): String {\n    val token = AccessToken(liveKitProperties.apiKey, liveKitProperties.apiSecret)\n    token.identity = participantId\n    token.name = participantName\n    token.addGrants(\n        RoomJoin(true),\n        RoomName(roomName),\n        CanPublish(grants.canPublish),\n        CanSubscribe(grants.canSubscribe),\n        CanPublishData(grants.canPublishData)\n    )\n    token.ttl = Duration.ofHours(4)  // Token valid for 4 hours\n    return token.toJwt()\n}\n\nfun generateAgentToken(roomName: String, agentId: UUID, agentName: String): String {\n    return generateToken(roomName, agentId.toString(), agentName,\n        LiveKitGrants(canPublish = true, canSubscribe = true, canPublishData = true))\n}\n\nfun generateCustomerToken(roomName: String, customerId: String, customerName: String): String {\n    return generateToken(roomName, customerId, customerName,\n        LiveKitGrants(canPublish = true, canSubscribe = true, canPublishData = true))\n}\n```\n\n2. Create LiveKitGrants data class:\n- canPublish: Boolean (camera/mic publish)\n- canSubscribe: Boolean (receive streams)\n- canPublishData: Boolean (data channel for chat)\n\n3. Token configuration:\n- Set appropriate TTL (4 hours default, configurable)\n- Include metadata in token if needed (role, tenant)\n\n4. Handle token expiration and refresh scenarios.",
+            "status": "pending",
+            "testStrategy": "Write Kotest unit tests: (1) generateToken creates valid JWT with correct claims, (2) Agent token has all publish/subscribe permissions, (3) Customer token has appropriate permissions, (4) Token TTL is set correctly, (5) Verify token can be decoded and contains expected grants, (6) Test token generation with special characters in participant name."
+          },
+          {
+            "id": 4,
+            "title": "Implement ChannelService for Call Lifecycle Orchestration",
+            "description": "Create ChannelService that orchestrates the complete video call lifecycle - creating channels with LiveKit rooms, generating tokens for participants, and handling call termination.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Create ChannelService.kt in be/api/src/main/kotlin/com/counseling/api/application/service/:\n\n1. Service implementation:\n```kotlin\n@Service\nclass ChannelService(\n    private val channelRepository: ChannelRepository,\n    private val endpointRepository: EndpointRepository,\n    private val liveKitService: LiveKitService,\n    private val userRepository: UserRepository,\n    private val eventPublisher: ApplicationEventPublisher\n) {\n    @Transactional\n    fun createChannel(agentId: UUID, customerInfo: CustomerInfo): Mono<ChannelResponse> {\n        return userRepository.findById(agentId)\n            .switchIfEmpty(Mono.error(AgentNotFoundException(agentId)))\n            .flatMap { agent ->\n                val channel = Channel(agentId = agentId, status = ChannelStatus.WAITING)\n                channelRepository.save(channel)\n                    .flatMap { savedChannel ->\n                        liveKitService.createRoom(savedChannel.id.toString())\n                            .flatMap { room ->\n                                createEndpoints(savedChannel, agent, customerInfo)\n                                    .map { (agentEndpoint, customerEndpoint) ->\n                                        ChannelResponse(\n                                            channelId = savedChannel.id,\n                                            livekitUrl = liveKitProperties.url,\n                                            agentToken = liveKitService.generateAgentToken(room.name, agentId, agent.name),\n                                            customerToken = liveKitService.generateCustomerToken(room.name, customerEndpoint.id.toString(), customerInfo.name)\n                                        )\n                                    }\n                            }\n                    }\n            }\n            .doOnSuccess { eventPublisher.publishEvent(ChannelCreatedEvent(it.channelId)) }\n    }\n    \n    @Transactional\n    fun closeChannel(channelId: UUID, agentId: UUID): Mono<Void> {\n        return channelRepository.findById(channelId)\n            .filter { it.agentId == agentId }\n            .switchIfEmpty(Mono.error(ChannelAccessDeniedException(channelId)))\n            .flatMap { channel ->\n                liveKitService.deleteRoom(channelId.toString())\n                    .then(updateChannelStatus(channel, ChannelStatus.CLOSED))\n                    .then(closeAllEndpoints(channelId))\n            }\n            .doOnSuccess { eventPublisher.publishEvent(ChannelClosedEvent(channelId)) }\n    }\n    \n    fun getToken(channelId: UUID, userId: String): Mono<TokenResponse>\n}\n```\n\n2. Create DTOs in adapter/inbound/web/dto/:\n- ChannelResponse (channelId, livekitUrl, agentToken, customerToken)\n- TokenResponse (token, livekitUrl, expiresIn)\n\n3. Implement transactional rollback if LiveKit room creation fails after Channel is saved.",
+            "status": "pending",
+            "testStrategy": "Write integration tests: (1) createChannel saves Channel, creates LiveKit room, creates Endpoints, returns tokens, (2) createChannel rolls back Channel on LiveKit failure, (3) closeChannel deletes room and updates status, (4) closeChannel fails for non-owner agent, (5) Test concurrent channel creation for same agent fails (agent already busy), (6) Verify ChannelCreatedEvent and ChannelClosedEvent are published."
+          },
+          {
+            "id": 5,
+            "title": "Implement Channel REST API Endpoints",
+            "description": "Create ChannelController with REST endpoints for getting LiveKit tokens and closing channels, with proper authentication and error handling.",
+            "dependencies": [
+              4
+            ],
+            "details": "Create ChannelController.kt in be/api/src/main/kotlin/com/counseling/api/adapter/inbound/web/:\n\n1. Controller implementation:\n```kotlin\n@RestController\n@RequestMapping(\"/api/channels\")\nclass ChannelController(\n    private val channelService: ChannelService\n) {\n    @GetMapping(\"/{id}/token\")\n    fun getToken(\n        @PathVariable id: UUID,\n        principal: Principal\n    ): Mono<ResponseEntity<TokenResponse>> {\n        return channelService.getToken(id, principal.name)\n            .map { ResponseEntity.ok(it) }\n            .onErrorResume(ChannelNotFoundException::class.java) {\n                Mono.just(ResponseEntity.notFound().build())\n            }\n    }\n    \n    @PostMapping(\"/{id}/close\")\n    fun closeChannel(\n        @PathVariable id: UUID,\n        principal: Principal\n    ): Mono<ResponseEntity<Void>> {\n        val agentId = UUID.fromString(principal.name)\n        return channelService.closeChannel(id, agentId)\n            .then(Mono.just(ResponseEntity.noContent().build<Void>()))\n    }\n    \n    @GetMapping(\"/{id}\")\n    fun getChannel(@PathVariable id: UUID): Mono<ResponseEntity<ChannelDetailResponse>>\n    \n    @GetMapping\n    fun getMyChannels(principal: Principal): Flux<ChannelSummaryResponse>\n}\n```\n\n2. Response DTOs:\n- TokenResponse (token, livekitUrl, expiresIn)\n- ChannelDetailResponse (channelId, status, startedAt, endedAt, participants)\n- ChannelSummaryResponse (channelId, status, startedAt, customerName)\n\n3. Error handling with @ControllerAdvice:\n- ChannelNotFoundException -> 404\n- ChannelAccessDeniedException -> 403\n- LiveKitConnectionException -> 503\n\n4. Security configuration:\n- GET /api/channels/{id}/token requires authentication (agent or customer with channel access)\n- POST /api/channels/{id}/close requires AGENT role and ownership\n- GET /api/channels requires AGENT role (returns only agent's channels)",
+            "status": "pending",
+            "testStrategy": "Write @WebFluxTest controller tests: (1) GET /api/channels/{id}/token returns token for authorized user, (2) GET /api/channels/{id}/token returns 403 for unauthorized user, (3) POST /api/channels/{id}/close returns 204 and closes room, (4) POST /api/channels/{id}/close returns 403 for non-owner, (5) GET /api/channels returns only authenticated agent's channels, (6) Test error responses for LiveKit connection failures."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement Recording with LiveKit Egress",
+        "description": "Setup LiveKit Egress for session recording with file storage management.",
+        "details": "Recording service implementation:\n\n```kotlin\n// RecordingService.kt\n@Service\nclass RecordingService(\n    private val egressClient: EgressServiceClient,\n    @Value(\"\\${recording.storage-path}\") private val storagePath: String\n) {\n    fun startRecording(channelId: String, tenantId: String): Mono<EgressInfo> {\n        val outputPath = \"$storagePath/$tenantId/$channelId/${Instant.now().toEpochMilli()}.mp4\"\n        \n        val fileOutput = EncodedFileOutput.newBuilder()\n            .setFilepath(outputPath)\n            .setFileType(EncodedFileType.MP4)\n            .build()\n            \n        val request = RoomCompositeEgressRequest.newBuilder()\n            .setRoomName(channelId)\n            .setFile(fileOutput)\n            .build()\n            \n        return Mono.fromCompletionStage(egressClient.startRoomCompositeEgress(request))\n    }\n    \n    fun stopRecording(egressId: String): Mono<EgressInfo> {\n        return Mono.fromCompletionStage(\n            egressClient.stopEgress(StopEgressRequest.newBuilder().setEgressId(egressId).build())\n        )\n    }\n}\n\n// RecordingCleanupScheduler.kt\n@Component\nclass RecordingCleanupScheduler(\n    private val tenantRepository: TenantRepository,\n    private val recordingRepository: RecordingRepository\n) {\n    @Scheduled(cron = \"0 0 2 * * *\")  // Daily at 2 AM\n    fun cleanupExpiredRecordings() {\n        // Fetch tenant retention policies\n        // Delete recordings older than retention period\n    }\n}\n```\n\nStorage path convention: `/{tenant_id}/{channel_id}/{timestamp}.mp4`\n\nUpdate Channel entity to track recording status and path.",
+        "testStrategy": "Test recording start/stop lifecycle. Verify file output path follows convention. Test cleanup scheduler logic with mock data. Verify recording access control respects tenant boundaries.",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Implement Real-time Chat System",
+        "description": "Build real-time chat functionality for in-call messaging with WebSocket support and message persistence.",
+        "details": "Chat service and WebSocket handler:\n\n```kotlin\n// ChatService.kt\n@Service\nclass ChatService(\n    private val chatMessageRepository: ChatMessageRepository,\n    private val mongoTemplate: ReactiveMongoTemplate  // For read-side\n) {\n    fun sendMessage(channelId: UUID, message: ChatMessageRequest): Mono<ChatMessage> {\n        val chatMessage = ChatMessage(\n            channelId = channelId,\n            senderType = message.senderType,\n            senderId = message.senderId,\n            content = message.content\n        )\n        return chatMessageRepository.save(chatMessage)\n    }\n    \n    fun getMessages(channelId: UUID): Flux<ChatMessage> {\n        return mongoTemplate.find(\n            Query.query(Criteria.where(\"channelId\").`is`(channelId))\n                .with(Sort.by(Sort.Direction.ASC, \"createdAt\")),\n            ChatMessage::class.java\n        )\n    }\n}\n\n// ChatWebSocketHandler.kt\n@Controller\nclass ChatController {\n    @MessageMapping(\"chat.{channelId}\")\n    fun handleChatMessage(\n        @DestinationVariable channelId: String,\n        message: ChatMessageRequest\n    ): Mono<ChatMessage> {\n        return chatService.sendMessage(UUID.fromString(channelId), message)\n    }\n    \n    @SubscribeMapping(\"chat.{channelId}\")\n    fun subscribeToChat(@DestinationVariable channelId: String): Flux<ChatMessage> {\n        // Return message stream for the channel\n    }\n}\n```\n\nREST API endpoints:\n- POST /api/channels/{id}/chat - Send message\n- GET /api/channels/{id}/chat - Get message history\n\nCQRS: Write to PostgreSQL, sync to MongoDB for reads.",
+        "testStrategy": "Test message send/receive through WebSocket. Verify message ordering and persistence. Load test with concurrent chat sessions. Test message history retrieval from MongoDB.",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 11,
+        "title": "Implement Admin API Endpoints",
+        "description": "Build admin API for tenant management, user management, group management, and statistics.",
+        "details": "Admin controllers in be/api-admin:\n\n```kotlin\n// TenantController.kt (Super Admin only)\n@RestController\n@RequestMapping(\"/api-adm/tenants\")\n@PreAuthorize(\"hasRole('SUPER_ADMIN')\")\nclass TenantController(\n    private val tenantService: TenantService\n) {\n    @GetMapping\n    fun listTenants(): Flux<TenantResponse> = tenantService.findAll()\n    \n    @PostMapping\n    fun createTenant(@RequestBody request: CreateTenantRequest): Mono<TenantResponse>\n    \n    @PatchMapping(\"/{id}/status\")\n    fun updateTenantStatus(@PathVariable id: UUID, @RequestBody status: TenantStatus): Mono<TenantResponse>\n}\n\n// GroupController.kt\n@RestController\n@RequestMapping(\"/api-adm/groups\")\n@PreAuthorize(\"hasAnyRole('COMPANY_ADMIN')\")\nclass GroupController(\n    private val groupService: GroupService\n) {\n    @GetMapping\n    fun listGroups(): Flux<GroupResponse>\n    \n    @PostMapping\n    fun createGroup(@RequestBody request: CreateGroupRequest): Mono<GroupResponse>\n    \n    @DeleteMapping(\"/{id}\")\n    fun deleteGroup(@PathVariable id: UUID): Mono<Void>\n}\n\n// AgentManagementController.kt\n@RestController\n@RequestMapping(\"/api-adm/agents\")\nclass AgentManagementController {\n    @PostMapping\n    fun createAgent(@RequestBody request: CreateAgentRequest): Mono<AgentResponse>\n    \n    @PostMapping(\"/{id}/reset-password\")\n    fun resetPassword(@PathVariable id: UUID): Mono<Void>\n}\n\n// StatisticsController.kt\n@RestController\n@RequestMapping(\"/api-adm/stats\")\nclass StatisticsController(\n    private val statsService: StatisticsService\n) {\n    @GetMapping(\"/summary\")\n    fun getSummary(\n        @RequestParam from: LocalDate,\n        @RequestParam to: LocalDate\n    ): Mono<StatsSummary>\n    \n    @GetMapping(\"/agents\")\n    fun getAgentStats(): Flux<AgentStats>\n}\n```\n\nRole-based access control:\n- SUPER_ADMIN: All tenants, full platform access\n- COMPANY_ADMIN: Own tenant only, all groups/agents\n- GROUP_ADMIN: Own group only, assigned agents",
+        "testStrategy": "Test role-based access control for each endpoint. Verify tenant isolation in multi-tenant queries. Test password reset flow with email notification. Validate statistics calculations.",
+        "priority": "medium",
+        "dependencies": [
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Tenant Management API Endpoints (Super Admin Only)",
+            "description": "Create TenantController with CRUD endpoints for platform-level tenant management, accessible only to SUPER_ADMIN role users.",
+            "dependencies": [],
+            "details": "Create TenantController.kt in be/api-admin/src/main/kotlin/com/counseling/admin/adapter/inbound/web/ with @PreAuthorize(\"hasRole('SUPER_ADMIN')\") security annotation. Implement endpoints: GET /api-adm/tenants (list all tenants with pagination), POST /api-adm/tenants (create tenant with DB connection info), PUT /api-adm/tenants/{id} (update tenant details), PATCH /api-adm/tenants/{id}/status (activate/deactivate tenant). Create TenantService in application/service/ with business logic for tenant lifecycle management including DB connection validation. Define DTOs: CreateTenantRequest (name, dbHost, dbPort, dbName, dbUsername, dbPassword), UpdateTenantRequest, TenantResponse, TenantListResponse with pagination metadata. Connect to Meta DB TenantRepository from Task 4. Implement proper error handling for duplicate tenant names and invalid DB connections.",
+            "status": "pending",
+            "testStrategy": "Write @WebFluxTest integration tests: (1) Verify SUPER_ADMIN can list/create/update/deactivate tenants, (2) Verify COMPANY_ADMIN and GROUP_ADMIN receive 403 Forbidden, (3) Test tenant creation with valid DB connection info succeeds, (4) Test duplicate tenant name returns 409 Conflict, (5) Test tenant status toggle between ACTIVE and INACTIVE."
+          },
+          {
+            "id": 2,
+            "title": "Implement Group and Company Management API Endpoints",
+            "description": "Create GroupController and CompanyController for managing counseling groups and company information with role-based access control.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create GroupController.kt at /api-adm/groups with @PreAuthorize(\"hasAnyRole('COMPANY_ADMIN', 'GROUP_ADMIN')\"). Implement endpoints: GET /api-adm/groups (list groups filtered by tenant context), POST /api-adm/groups (create group - COMPANY_ADMIN only), PUT /api-adm/groups/{id} (update group), DELETE /api-adm/groups/{id} (soft delete - COMPANY_ADMIN only). Create CompanyController.kt at /api-adm/company for company info management: GET /api-adm/company (get own company info), PUT /api-adm/company (update company info - COMPANY_ADMIN only). Create GroupService and CompanyService with tenant-aware repository operations. Define DTOs: CreateGroupRequest (name), UpdateGroupRequest, GroupResponse with member count, CompanyResponse, UpdateCompanyRequest. GROUP_ADMIN can only view/update their assigned group, COMPANY_ADMIN can manage all groups in their tenant. Use TenantContext from Task 4 for automatic tenant filtering.",
+            "status": "pending",
+            "testStrategy": "Write integration tests: (1) COMPANY_ADMIN can create/delete groups, (2) GROUP_ADMIN cannot create/delete groups but can view/update their own group, (3) Verify tenant isolation - admin cannot see other tenant's groups, (4) Test group deletion fails if agents are still assigned, (5) Test company info update persists correctly."
+          },
+          {
+            "id": 3,
+            "title": "Implement Agent Management API Endpoints",
+            "description": "Create AgentManagementController with endpoints for agent registration, modification, status management, and password reset with email notification integration.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Create AgentManagementController.kt at /api-adm/agents. Implement endpoints: GET /api-adm/agents (list agents with filters: groupId, status, search), POST /api-adm/agents (register new agent with temp password), PUT /api-adm/agents/{id} (update agent info), PATCH /api-adm/agents/{id}/status (activate/deactivate account), POST /api-adm/agents/{id}/reset-password (generate temp password and send email). Create AgentManagementService with business logic: generateTempPassword(), validateAgentCreation(), sendPasswordResetEmail(). Define DTOs: CreateAgentRequest (username, name, groupId, role), UpdateAgentRequest, AgentResponse, AgentListResponse with pagination. Role constraints: COMPANY_ADMIN can manage all agents, GROUP_ADMIN can only manage agents in their group. Integrate with NotificationService (placeholder) for email sending on account creation and password reset. Use BCryptPasswordEncoder for password hashing.",
+            "status": "pending",
+            "testStrategy": "Write tests: (1) Agent creation generates unique username and temp password, (2) GROUP_ADMIN cannot manage agents outside their group, (3) Password reset generates new temp password and triggers email notification, (4) Agent deactivation sets status to INACTIVE, (5) Duplicate username returns 409 Conflict, (6) Verify password is properly hashed with BCrypt."
+          },
+          {
+            "id": 4,
+            "title": "Implement Statistics and Monitoring API Endpoints",
+            "description": "Create StatisticsController and MonitoringController for dashboard statistics, per-agent performance metrics, and real-time monitoring of active sessions and agent status.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Create StatisticsController.kt at /api-adm/stats. Implement endpoints: GET /api-adm/stats/summary (with query params: from, to dates) returning StatsSummary (totalSessions, avgDuration, avgRating, completedCount, abandonedCount), GET /api-adm/stats/agents returning Flux<AgentStats> (agentId, name, sessionCount, avgDuration, avgRating, onlineTime). Create MonitoringController.kt at /api-adm/monitoring with endpoints: GET /api-adm/monitoring/channels returning active channels with agent/customer info and duration, GET /api-adm/monitoring/agents returning real-time agent status summary (online, busy, away, wrapup, offline counts) and individual agent statuses. Create StatisticsService querying MongoDB read models (ChannelQueryRepository, StatsQueryRepository from Task 6). Create MonitoringService reading from Redis for real-time agent status. Apply tenant context filtering and role-based group filtering for GROUP_ADMIN users.",
+            "status": "pending",
+            "testStrategy": "Write tests: (1) Statistics summary calculates correctly for date range, (2) Per-agent stats aggregates sessions and ratings accurately, (3) Monitoring returns only active (IN_PROGRESS) channels, (4) Agent status counts match Redis stored values, (5) GROUP_ADMIN sees only their group's statistics, (6) Verify tenant isolation in all statistics queries."
+          },
+          {
+            "id": 5,
+            "title": "Implement Feedback Management API and Admin Authentication Endpoints",
+            "description": "Create FeedbackController for viewing customer feedback with filtering/pagination, and implement AdminAuthController for admin-specific login, logout, and token refresh endpoints.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Create FeedbackController.kt at /api-adm/feedbacks. Implement endpoints: GET /api-adm/feedbacks (list with filters: agentId, groupId, rating range, date range, pagination), GET /api-adm/feedbacks/{id} (feedback detail with channel/agent info). Create FeedbackQueryService reading from MongoDB FeedbackReadModel. Create AdminAuthController.kt at /api-adm/auth with endpoints: POST /api-adm/auth/login (authenticate admin/superuser, return JWT with role and tenantId claims), POST /api-adm/auth/logout (blacklist token via Redis), POST /api-adm/auth/refresh (refresh token pair). AdminAuthService distinguishes between SuperAdmin (from Meta DB) and tenant admins (from Tenant DB). SuperAdmin JWT contains no tenantId, while tenant admin JWT contains tenantId claim. Reuse JwtTokenService and TokenBlacklistService from Task 5 with admin-specific token configuration. Define DTOs: FeedbackListResponse, FeedbackDetailResponse, AdminLoginRequest, AdminLoginResponse with user role info.",
+            "status": "pending",
+            "testStrategy": "Write tests: (1) Feedback list filters by rating range correctly, (2) Feedback detail includes agent and channel information, (3) SuperAdmin login authenticates against Meta DB without tenantId, (4) Company/Group Admin login authenticates against Tenant DB with tenantId in JWT, (5) Logout blacklists admin token, (6) Refresh token generates new token pair with same claims, (7) GROUP_ADMIN sees only feedback for their group's agents."
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Setup Frontend Customer App (fe/app-customer)",
+        "description": "Initialize Next.js project for customer-facing application with Tailwind CSS and core dependencies.",
+        "details": "Create Next.js app with pnpm:\n\n```bash\ncd fe && pnpm create next-app app-customer --typescript --tailwind --eslint --app --src-dir\n```\n\nInstall dependencies:\n```bash\npnpm add zustand @tanstack/react-query @tanstack/react-query-devtools livekit-client @livekit/components-react axios\npnpm add -D prettier eslint-config-prettier @types/node\n```\n\nProject structure:\n```\nfe/app-customer/\n├── src/\n│   ├── app/\n│   │   ├── page.tsx           # Landing/Join page\n│   │   ├── waiting/page.tsx   # Queue waiting room\n│   │   ├── call/[id]/page.tsx # Video call room\n│   │   └── feedback/page.tsx  # Post-call feedback\n│   ├── components/\n│   │   ├── VideoRoom.tsx\n│   │   ├── WaitingIndicator.tsx\n│   │   └── FeedbackForm.tsx\n│   ├── hooks/\n│   │   ├── useQueue.ts\n│   │   └── useVideoCall.ts\n│   ├── stores/\n│   │   └── customerStore.ts\n│   └── lib/\n│       └── api.ts\n├── tailwind.config.ts\n└── next.config.ts\n```\n\nTailwind config per design-concept.md:\n- Pretendard + Inter fonts\n- Custom color palette (Indigo primary)\n- Dark mode support",
+        "testStrategy": "Verify Next.js dev server starts. Test Tailwind CSS compilation with custom config. Verify LiveKit components render. Check responsive breakpoints match design spec.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Next.js project with pnpm and TypeScript",
+            "description": "Create the fe/app-customer Next.js project using pnpm create next-app with TypeScript, Tailwind CSS, ESLint, App Router, and src directory structure.",
+            "dependencies": [],
+            "details": "Run `mkdir -p fe && cd fe && pnpm create next-app app-customer --typescript --tailwind --eslint --app --src-dir` to scaffold the Next.js project. This creates the base project structure with:\n- TypeScript configuration (tsconfig.json)\n- Tailwind CSS setup (tailwind.config.ts, postcss.config.mjs)\n- ESLint configuration (.eslintrc.json)\n- App Router structure (src/app/)\n- Default Next.js files (next.config.ts, package.json)\n\nVerify the project was created correctly by checking that src/app/page.tsx and tailwind.config.ts exist.",
+            "status": "pending",
+            "testStrategy": "Run `cd fe/app-customer && pnpm dev` and verify the dev server starts on localhost:3000. Check that the default Next.js page renders with Tailwind CSS styles applied."
+          },
+          {
+            "id": 2,
+            "title": "Install project dependencies (Zustand, TanStack Query, LiveKit, Axios)",
+            "description": "Install all required runtime and development dependencies for state management, API calls, video conferencing, and code quality tools.",
+            "dependencies": [
+              1
+            ],
+            "details": "Navigate to fe/app-customer and install dependencies:\n\n**Runtime dependencies:**\n```bash\npnpm add zustand @tanstack/react-query @tanstack/react-query-devtools livekit-client @livekit/components-react axios\n```\n\n**Dev dependencies:**\n```bash\npnpm add -D prettier eslint-config-prettier @types/node\n```\n\nUpdate .eslintrc.json to extend 'prettier' to disable conflicting ESLint formatting rules. Create .prettierrc with project formatting preferences (singleQuote, semi, trailingComma).",
+            "status": "pending",
+            "testStrategy": "Run `pnpm list` to verify all packages are installed. Run `pnpm build` to ensure no TypeScript errors from type definitions. Run `pnpm lint` to verify ESLint configuration works with Prettier."
+          },
+          {
+            "id": 3,
+            "title": "Configure Tailwind CSS with design system (fonts, colors, dark mode)",
+            "description": "Update tailwind.config.ts with custom design system including Pretendard and Inter fonts, Indigo primary color palette, semantic colors, and dark mode support per design-concept.md.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify tailwind.config.ts to extend the theme with:\n\n**Fonts:**\n- fontFamily.sans: ['Pretendard', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif']\n- fontFamily.mono: ['JetBrains Mono', 'monospace']\n\n**Colors:**\n- Primary: Indigo-600 (#4F46E5) / Indigo-400 (#818CF8) for dark\n- Background: White/Gray-900, Surface: Gray-50/Gray-800\n- Semantic: Success (Green), Warning (Amber), Error (Red), Info (Blue)\n- Agent status colors: Online (Green-500), Offline (Gray-400), Busy (Red-500), Away (Amber-500), Wrap-up (Purple-500)\n\n**Dark mode:**\n- Set darkMode: 'class' for manual toggle support\n\n**Border radius:**\n- Add rounded-xl (12px) for cards\n\nUpdate src/app/globals.css to import Pretendard and Inter fonts from CDN or configure @font-face.",
+            "status": "pending",
+            "testStrategy": "Create a test component using custom colors and fonts. Verify dark mode toggle works by adding/removing 'dark' class on <html>. Check browser DevTools to confirm correct CSS custom properties and font-family applied."
+          },
+          {
+            "id": 4,
+            "title": "Create project folder structure and base configuration files",
+            "description": "Create the required directory structure for components, hooks, stores, and lib folders along with base configuration for TanStack Query provider and Zustand store.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Create the following directory structure:\n```\nfe/app-customer/src/\n├── components/\n│   ├── ui/           # Reusable UI components\n│   └── layout/       # Layout components\n├── hooks/\n│   └── .gitkeep\n├── stores/\n│   └── customerStore.ts\n└── lib/\n    ├── api.ts        # Axios instance with base config\n    └── query-client.ts\n```\n\n**Create src/lib/api.ts:**\n- Configure Axios instance with baseURL from env var\n- Add request/response interceptors for error handling\n\n**Create src/lib/query-client.ts:**\n- Export QueryClient with default options (staleTime, retry)\n\n**Create src/stores/customerStore.ts:**\n- Zustand store with customer state (name, contact, queuePosition, connectionStatus)\n\n**Update src/app/layout.tsx:**\n- Add QueryClientProvider wrapper\n- Add ReactQueryDevtools for development",
+            "status": "pending",
+            "testStrategy": "Run `pnpm build` to verify all imports resolve correctly. Check that QueryClientProvider wraps the app in layout.tsx. Verify Zustand store can be imported and used in a test component."
+          },
+          {
+            "id": 5,
+            "title": "Create page stubs and route structure for customer app",
+            "description": "Create the four main page files (landing, waiting, video call, feedback) with basic placeholder content and proper TypeScript types following Next.js App Router conventions.",
+            "dependencies": [
+              4
+            ],
+            "details": "Create the following page files with placeholder content:\n\n**src/app/page.tsx (Landing/Join page):**\n- Server component with metadata export\n- Basic layout with centered card design (rounded-xl, shadow-sm)\n- Placeholder form inputs for name and contact\n\n**src/app/waiting/page.tsx (Queue waiting room):**\n- Client component ('use client')\n- Placeholder for queue position display\n- WaitingIndicator component placeholder\n\n**src/app/call/[id]/page.tsx (Video call room):**\n- Client component for video interface\n- Dynamic route parameter handling\n- Placeholder for LiveKit video components\n\n**src/app/feedback/page.tsx (Post-call feedback):**\n- Client component for feedback form\n- Rating input and comment textarea placeholders\n\nEach page should:\n- Use Tailwind classes per design-concept.md\n- Include proper TypeScript interfaces\n- Follow accessibility guidelines (aria-labels, semantic HTML)\n- Support dark mode with dark: Tailwind classes",
+            "status": "pending",
+            "testStrategy": "Run `pnpm dev` and navigate to each route (/, /waiting, /call/test-id, /feedback). Verify pages render without errors. Run `pnpm build` to ensure all pages compile correctly. Check responsive layout at mobile (375px) and desktop (1280px) widths."
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Implement Customer Video Call Flow",
+        "description": "Build customer join flow, waiting room, and video call interface using LiveKit React components.",
+        "details": "Customer flow implementation:\n\n```tsx\n// src/app/page.tsx - Join form\nexport default function JoinPage() {\n  const { enterQueue } = useQueue()\n  const handleJoin = async (data: JoinFormData) => {\n    const response = await api.post('/api/customer/join', data)\n    await enterQueue(response.queueEntryId)\n    router.push('/waiting')\n  }\n  return <JoinForm onSubmit={handleJoin} />\n}\n\n// src/app/waiting/page.tsx - Waiting room\nexport default function WaitingPage() {\n  const { position, status } = useQueue()\n  useEffect(() => {\n    if (status === 'connected') {\n      router.push(`/call/${channelId}`)\n    }\n  }, [status])\n  return <WaitingIndicator position={position} />\n}\n\n// src/app/call/[id]/page.tsx - Video call\nexport default function CallPage({ params }: { params: { id: string } }) {\n  const { token } = useVideoToken(params.id)\n  return (\n    <LiveKitRoom\n      token={token}\n      serverUrl={LIVEKIT_URL}\n      connect={true}\n    >\n      <VideoConference />\n      <ChatPanel />\n      <ControlBar\n        controls={{ camera: true, microphone: true, screenShare: false }}\n      />\n    </LiveKitRoom>\n  )\n}\n\n// src/hooks/useQueue.ts\nexport function useQueue() {\n  const [socket, setSocket] = useState<WebSocket>()\n  const [position, setPosition] = useState<number>(0)\n  \n  useEffect(() => {\n    const ws = new WebSocket(`${WS_URL}/queue`)\n    ws.onmessage = (event) => {\n      const data = JSON.parse(event.data)\n      setPosition(data.position)\n      if (data.status === 'accepted') {\n        // Transition to call\n      }\n    }\n    return () => ws.close()\n  }, [])\n}\n```",
+        "testStrategy": "E2E test customer join to call flow. Test queue position updates via WebSocket. Verify video/audio works with LiveKit. Test network reconnection handling. Mobile responsive testing.",
+        "priority": "high",
+        "dependencies": [
+          8,
+          12
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Setup Frontend Agent App (fe/app-agent)",
+        "description": "Initialize Next.js project for agent dashboard and call interface.",
+        "details": "Create Next.js app structure:\n\n```bash\ncd fe && pnpm create next-app app-agent --typescript --tailwind --eslint --app --src-dir\n```\n\nProject structure:\n```\nfe/app-agent/\n├── src/\n│   ├── app/\n│   │   ├── login/page.tsx\n│   │   ├── dashboard/page.tsx  # Queue view + status control\n│   │   ├── call/[id]/page.tsx  # Video call with tools\n│   │   └── history/page.tsx    # Counseling history\n│   ├── components/\n│   │   ├── layout/Sidebar.tsx\n│   │   ├── queue/QueueList.tsx\n│   │   ├── call/VideoRoom.tsx\n│   │   ├── call/ChatPanel.tsx\n│   │   ├── call/NotePanel.tsx\n│   │   └── call/ToolBar.tsx\n│   ├── hooks/\n│   │   ├── useAuth.ts\n│   │   ├── useAgentStatus.ts\n│   │   └── useVideoCall.ts\n│   └── stores/\n│       ├── authStore.ts\n│       └── callStore.ts\n```\n\nAgent-specific features:\n- Status toggle (Online/Away/Wrap-up)\n- Queue list with accept action\n- Extended call controls (screen share, document share, capture)\n- Note-taking panel during calls\n- History with recording playback",
+        "testStrategy": "Test agent login flow with JWT storage. Verify status change updates in real-time. Test queue list rendering and accept action. Verify call interface with all agent tools.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Next.js Project with Core Dependencies",
+            "description": "Create the Next.js app using pnpm create next-app with TypeScript, Tailwind CSS, ESLint, App Router, and src directory structure. Install core dependencies including Zustand, TanStack Query, LiveKit client, and axios.",
+            "dependencies": [],
+            "details": "Execute `cd fe && pnpm create next-app app-agent --typescript --tailwind --eslint --app --src-dir` to scaffold the project. Then install runtime dependencies: `pnpm add zustand @tanstack/react-query @tanstack/react-query-devtools livekit-client @livekit/components-react axios`. Install dev dependencies: `pnpm add -D prettier eslint-config-prettier @types/node`. Configure prettier integration with eslint in .eslintrc.json. The resulting structure should have src/app/ directory with App Router setup.",
+            "status": "pending",
+            "testStrategy": "Verify Next.js dev server starts with `pnpm dev`. Check that all dependencies are properly installed in package.json. Ensure TypeScript compilation works with `pnpm build`."
+          },
+          {
+            "id": 2,
+            "title": "Configure Tailwind CSS with Design System Tokens",
+            "description": "Extend Tailwind configuration with custom design tokens from design-concept.md including brand colors, typography scale, fonts (Pretendard/Inter), and agent status colors.",
+            "dependencies": [
+              1
+            ],
+            "details": "Update tailwind.config.ts to extend theme with: colors (primary: indigo-600, semantic colors, agent status colors - Online=green-500, Offline=gray-400, Busy=red-500, Away=amber-500, Wrap-up=purple-500), fontFamily (Pretendard, Inter, JetBrains Mono), typography scale from design spec. Add dark mode support with `darkMode: 'class'`. Configure globals.css with font imports (Pretendard from CDN, Inter from Google Fonts) and base layer styles. Set up CSS custom properties for light/dark theme tokens.",
+            "status": "pending",
+            "testStrategy": "Create a test component using custom colors and verify they render correctly. Test dark mode toggle switches theme properly. Verify fonts load correctly in browser dev tools."
+          },
+          {
+            "id": 3,
+            "title": "Create Application Layout with Sidebar Navigation",
+            "description": "Implement the main layout structure with sidebar navigation pattern for agent dashboard. Build Sidebar component with navigation links, status indicator, and user info section.",
+            "dependencies": [
+              2
+            ],
+            "details": "Create src/components/layout/Sidebar.tsx with: navigation links (Dashboard, Call, History), agent status badge with color indicator, user profile section, dark mode toggle button (Sun/Moon icons from Heroicons). Build src/app/layout.tsx as root layout with sidebar + main content area pattern. Install @heroicons/react for icon system (`pnpm add @heroicons/react`). Implement responsive behavior - collapsible sidebar on mobile. Follow design-concept.md specifications: rounded-xl cards, shadow-sm, p-6 padding, indigo-600 primary buttons.",
+            "status": "pending",
+            "testStrategy": "Navigate between routes and verify sidebar highlights active link. Test responsive behavior at different breakpoints. Verify dark mode toggle persists preference to localStorage."
+          },
+          {
+            "id": 4,
+            "title": "Set Up State Management and Authentication Hooks",
+            "description": "Configure Zustand stores for auth and call state. Create custom hooks for authentication, agent status management, and video call functionality with TanStack Query integration.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create src/stores/authStore.ts with Zustand: user info, JWT token, login/logout actions, persist middleware for token storage. Create src/stores/callStore.ts: current call state, queue data, call controls. Build src/hooks/useAuth.ts: login mutation, logout, token refresh logic, auth state selectors. Build src/hooks/useAgentStatus.ts: status query and mutation (Online/Away/Wrap-up toggle). Build src/hooks/useVideoCall.ts: LiveKit room connection, media controls, call state management. Set up TanStack Query provider in src/app/providers.tsx with QueryClient configuration.",
+            "status": "pending",
+            "testStrategy": "Test auth store persists token to localStorage. Verify status change mutation updates store and triggers re-fetch. Test useVideoCall hook connects to mock LiveKit room."
+          },
+          {
+            "id": 5,
+            "title": "Implement Core Page Routes and Placeholder Components",
+            "description": "Create the main page routes (login, dashboard, call/[id], history) with placeholder components for queue list, video room, chat panel, note panel, and toolbar.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Create page routes: src/app/login/page.tsx (agent login form with JWT auth), src/app/dashboard/page.tsx (queue view with status toggle, uses QueueList component), src/app/call/[id]/page.tsx (video call interface with VideoRoom, ChatPanel, NotePanel, ToolBar), src/app/history/page.tsx (counseling history list with recording playback links). Build placeholder components in src/components/: queue/QueueList.tsx (queue items with accept action button), call/VideoRoom.tsx (LiveKit video container), call/ChatPanel.tsx (real-time chat), call/NotePanel.tsx (note-taking during call), call/ToolBar.tsx (screen share, document share, capture buttons). Each component should have proper TypeScript interfaces and follow accessibility guidelines.",
+            "status": "pending",
+            "testStrategy": "Test agent login flow stores JWT correctly. Verify dashboard renders queue list and status toggle. Navigate to /call/test-id and verify all panels render. Test history page shows sample data."
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Implement Agent Dashboard and Call Interface",
+        "description": "Build agent dashboard with queue management, status control, and full-featured video call interface.",
+        "details": "Agent dashboard and call implementation:\n\n```tsx\n// src/app/dashboard/page.tsx\nexport default function DashboardPage() {\n  const { status, setStatus } = useAgentStatus()\n  const { queue, acceptCustomer } = useQueue()\n  \n  return (\n    <DashboardLayout>\n      <StatusSelector value={status} onChange={setStatus} />\n      <QueueList\n        items={queue}\n        onAccept={(id) => acceptCustomer(id).then(\n          (channel) => router.push(`/call/${channel.id}`)\n        )}\n      />\n    </DashboardLayout>\n  )\n}\n\n// src/app/call/[id]/page.tsx - Agent call with extended tools\nexport default function AgentCallPage({ params }) {\n  const { token, channelId } = useVideoToken(params.id)\n  const [activePanel, setActivePanel] = useState<'chat' | 'notes'>('chat')\n  \n  return (\n    <LiveKitRoom token={token} serverUrl={LIVEKIT_URL}>\n      <div className=\"flex h-screen\">\n        <div className=\"flex-1\">\n          <ParticipantView />\n          <ControlBar\n            controls={{\n              camera: true,\n              microphone: true,\n              screenShare: true\n            }}\n          />\n          <AgentToolBar\n            onCapture={handleCapture}\n            onShareDocument={handleDocShare}\n          />\n        </div>\n        <div className=\"w-96 border-l\">\n          <Tabs value={activePanel} onChange={setActivePanel}>\n            <Tab value=\"chat\">Chat</Tab>\n            <Tab value=\"notes\">Notes</Tab>\n          </Tabs>\n          {activePanel === 'chat' && <ChatPanel channelId={channelId} />}\n          {activePanel === 'notes' && <NotePanel channelId={channelId} />}\n        </div>\n      </div>\n    </LiveKitRoom>\n  )\n}\n\n// src/hooks/useAgentStatus.ts\nexport function useAgentStatus() {\n  const queryClient = useQueryClient()\n  const { data: status } = useQuery(['agentStatus'], fetchStatus)\n  \n  const setStatus = useMutation({\n    mutationFn: (newStatus: AgentStatus) => api.put('/api/agents/me/status', { status: newStatus }),\n    onSuccess: () => queryClient.invalidateQueries(['agentStatus'])\n  })\n  \n  return { status, setStatus: setStatus.mutate }\n}\n```",
+        "testStrategy": "Test agent status changes reflect immediately. Verify queue accept creates channel and redirects. Test all call controls (camera, mic, screen share). Test note-taking persistence. Verify chat synchronization.",
+        "priority": "high",
+        "dependencies": [
+          8,
+          10,
+          14
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 16,
+        "title": "Setup Frontend Admin App (fe/app-admin)",
+        "description": "Initialize Next.js project for admin dashboard with tenant, group, and agent management interfaces.",
+        "details": "Create Next.js admin app:\n\n```bash\ncd fe && pnpm create next-app app-admin --typescript --tailwind --eslint --app --src-dir\n```\n\nProject structure:\n```\nfe/app-admin/\n├── src/\n│   ├── app/\n│   │   ├── login/page.tsx\n│   │   ├── dashboard/page.tsx      # Stats overview\n│   │   ├── tenants/page.tsx        # Super admin only\n│   │   ├── groups/page.tsx\n│   │   ├── agents/page.tsx\n│   │   ├── monitoring/page.tsx\n│   │   └── feedbacks/page.tsx\n│   ├── components/\n│   │   ├── layout/AdminSidebar.tsx\n│   │   ├── stats/StatCard.tsx\n│   │   ├── tables/DataTable.tsx\n│   │   └── modals/CreateModal.tsx\n│   ├── hooks/\n│   │   └── useAdminAuth.ts\n│   └── stores/\n│       └── adminStore.ts\n```\n\nRole-based UI:\n- Super Admin: Tenant management, all features\n- Company Admin: Company settings, groups, agents\n- Group Admin: Assigned agents, group stats",
+        "testStrategy": "Test login with different admin roles. Verify UI shows/hides features based on role. Test CRUD operations for tenants, groups, agents. Verify data table pagination and filtering.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Next.js Project with Core Dependencies",
+            "description": "Create the fe/app-admin Next.js project using pnpm create next-app with TypeScript, Tailwind CSS, ESLint, App Router, and src directory structure. Install core dependencies for state management and API communication.",
+            "dependencies": [],
+            "details": "Execute `cd fe && pnpm create next-app app-admin --typescript --tailwind --eslint --app --src-dir` to scaffold the project. Then install runtime dependencies: `pnpm add zustand @tanstack/react-query @tanstack/react-query-devtools axios`. Install dev dependencies: `pnpm add -D prettier eslint-config-prettier @types/node`. Configure prettier integration with eslint in .eslintrc.json by extending 'prettier'. Create .prettierrc with project formatting preferences (singleQuote: true, semi: false, trailingComma: 'es5'). The resulting structure should have src/app/ directory with App Router setup ready for admin pages.",
+            "status": "pending",
+            "testStrategy": "Verify Next.js dev server starts with `pnpm dev` on localhost:3000. Check that all dependencies are properly listed in package.json. Ensure TypeScript compilation works with `pnpm build`. Run `pnpm lint` to verify ESLint configuration with Prettier integration."
+          },
+          {
+            "id": 2,
+            "title": "Configure Tailwind CSS with Design System Tokens",
+            "description": "Extend Tailwind configuration with custom design tokens from design-concept.md including brand colors (Indigo primary), typography scale, fonts (Pretendard/Inter/JetBrains Mono), and dark mode support.",
+            "dependencies": [
+              1
+            ],
+            "details": "Update tailwind.config.ts to extend theme with: colors (primary indigo-600/#4F46E5, semantic colors for success/warning/error/info, agent status colors - Online=green-500, Offline=gray-400, Busy=red-500, Away=amber-500, Wrap-up=purple-500), fontFamily (sans: Pretendard/Inter, mono: JetBrains Mono), typography scale (Display 30px, Heading L 24px, Heading M 20px, Body L 16px, Body M 14px, Caption 12px). Add dark mode support with `darkMode: 'class'`. Configure src/app/globals.css with font imports (Pretendard from CDN, Inter from Google Fonts) and base layer styles. Set up CSS custom properties for light/dark theme background and text colors per design-concept.md specifications.",
+            "status": "pending",
+            "testStrategy": "Create a test component using custom colors (bg-primary, text-success) and verify they render correctly. Test dark mode toggle by adding 'dark' class to html element and confirming dark: variants apply. Verify fonts load correctly in browser Network tab and font-family is applied in computed styles."
+          },
+          {
+            "id": 3,
+            "title": "Create Admin Layout with Sidebar Navigation",
+            "description": "Implement the main admin layout structure with sidebar navigation pattern. Build AdminSidebar component with navigation links, role-based menu visibility, user info section, and dark mode toggle.",
+            "dependencies": [
+              2
+            ],
+            "details": "Create src/components/layout/AdminSidebar.tsx with: navigation links (Dashboard, Tenants, Groups, Agents, Monitoring, Feedbacks), role-based visibility logic (Tenants menu only for Super Admin), user profile section with name and role badge, dark mode toggle button using Sun/Moon Heroicons. Install @heroicons/react for icon system (`pnpm add @heroicons/react`). Build src/app/layout.tsx as root layout wrapping authenticated pages with sidebar + main content area pattern. Create src/app/(auth)/layout.tsx for login page without sidebar. Implement responsive behavior with collapsible sidebar on mobile (hamburger menu). Follow design-concept.md specifications: sidebar width ~256px, rounded-xl cards, shadow-sm, p-6 padding, indigo-600 primary accent, proper hover states for navigation items.",
+            "status": "pending",
+            "testStrategy": "Navigate between routes and verify sidebar highlights active navigation link. Test responsive behavior at mobile (375px), tablet (768px), and desktop (1280px) breakpoints. Verify dark mode toggle persists preference to localStorage and applies on page reload. Mock different user roles and verify Tenants menu visibility changes appropriately."
+          },
+          {
+            "id": 4,
+            "title": "Set Up State Management and Authentication Infrastructure",
+            "description": "Configure Zustand stores for admin auth state and TanStack Query for server state management. Create useAdminAuth hook with role-based access control and JWT token handling.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create src/stores/adminStore.ts with Zustand: user info (id, username, name, role: SUPER_ADMIN | COMPANY_ADMIN | GROUP_ADMIN), JWT tokens (access/refresh), login/logout actions, persist middleware for token storage in localStorage. Create src/lib/api.ts: Axios instance with baseURL from NEXT_PUBLIC_API_ADMIN_URL env var, request interceptor to attach Authorization header, response interceptor for 401 handling with token refresh logic. Create src/lib/query-client.ts: QueryClient with staleTime: 5 minutes, retry: 1 for failed queries. Create src/hooks/useAdminAuth.ts: login mutation calling /api-adm/auth/login, logout clearing store and blacklisting token, hasRole() and canAccess() helper functions for RBAC, useAuthGuard hook for protecting routes. Set up TanStack Query provider in src/app/providers.tsx wrapping QueryClientProvider with ReactQueryDevtools for development.",
+            "status": "pending",
+            "testStrategy": "Test login flow stores JWT tokens correctly in localStorage via Zustand persist. Verify logout clears auth state and removes tokens. Test hasRole('SUPER_ADMIN') returns correct boolean. Verify Axios interceptor attaches Bearer token to requests. Test 401 response triggers token refresh flow."
+          },
+          {
+            "id": 5,
+            "title": "Implement Core Admin Page Routes with Role-Based Access",
+            "description": "Create the main admin page routes (login, dashboard, tenants, groups, agents, monitoring, feedbacks) with placeholder components including StatCard, DataTable, and CreateModal. Implement role-based route protection.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Create page routes with role-based access: src/app/login/page.tsx (admin login form with username/password, redirects to dashboard on success), src/app/dashboard/page.tsx (stats overview with StatCard components showing total agents, active sessions, average satisfaction, etc.), src/app/tenants/page.tsx (SUPER_ADMIN only - tenant list with DataTable, create/edit with CreateModal), src/app/groups/page.tsx (COMPANY_ADMIN+ - group management with CRUD), src/app/agents/page.tsx (agent list with status indicators, create/deactivate actions), src/app/monitoring/page.tsx (live session monitoring grid), src/app/feedbacks/page.tsx (feedback list with rating filters). Create reusable components: src/components/stats/StatCard.tsx (icon, value, label, trend indicator), src/components/tables/DataTable.tsx (sortable columns, pagination, row actions), src/components/modals/CreateModal.tsx (dialog wrapper for create/edit forms). Implement route middleware in src/middleware.ts to redirect unauthenticated users to login and check role permissions per route.",
+            "status": "pending",
+            "testStrategy": "Test login redirects to dashboard on success. Navigate to /tenants as COMPANY_ADMIN and verify 403 forbidden or redirect. Verify dashboard StatCards render with placeholder data. Test DataTable pagination and sorting interactions. Verify CreateModal opens/closes correctly. Run `pnpm build` to ensure all pages compile without TypeScript errors."
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Implement Admin Dashboard Features",
+        "description": "Build admin statistics dashboard, agent monitoring, group management, and feedback review interfaces.",
+        "details": "Admin dashboard implementation:\n\n```tsx\n// src/app/dashboard/page.tsx\nexport default function AdminDashboard() {\n  const { data: stats } = useQuery(['stats', 'summary'], fetchStatsSummary)\n  const { data: agentStatus } = useQuery(['monitoring', 'agents'], fetchAgentStatus)\n  \n  return (\n    <AdminLayout>\n      <div className=\"grid grid-cols-4 gap-4\">\n        <StatCard title=\"Total Sessions\" value={stats.totalSessions} />\n        <StatCard title=\"Avg Duration\" value={stats.avgDuration} />\n        <StatCard title=\"Avg Rating\" value={stats.avgRating} icon={<StarIcon />} />\n        <StatCard title=\"Online Agents\" value={stats.onlineAgents} />\n      </div>\n      \n      <div className=\"mt-8 grid grid-cols-2 gap-4\">\n        <SessionChart data={stats.sessionsByDay} />\n        <AgentStatusOverview agents={agentStatus} />\n      </div>\n    </AdminLayout>\n  )\n}\n\n// src/app/agents/page.tsx\nexport default function AgentsPage() {\n  const { data: agents, isLoading } = useQuery(['agents'], fetchAgents)\n  const createMutation = useMutation(createAgent)\n  const resetPasswordMutation = useMutation(resetAgentPassword)\n  \n  return (\n    <AdminLayout>\n      <PageHeader title=\"Agents\">\n        <Button onClick={() => setShowCreateModal(true)}>Add Agent</Button>\n      </PageHeader>\n      \n      <DataTable\n        columns={[\n          { key: 'name', label: 'Name' },\n          { key: 'username', label: 'Username' },\n          { key: 'group', label: 'Group' },\n          { key: 'status', label: 'Status', render: (v) => <StatusBadge status={v} /> },\n          { key: 'actions', render: (_, row) => (\n            <DropdownMenu>\n              <MenuItem onClick={() => editAgent(row.id)}>Edit</MenuItem>\n              <MenuItem onClick={() => resetPasswordMutation.mutate(row.id)}>Reset Password</MenuItem>\n            </DropdownMenu>\n          )}\n        ]}\n        data={agents}\n      />\n      \n      <CreateAgentModal open={showCreateModal} onClose={() => setShowCreateModal(false)} />\n    </AdminLayout>\n  )\n}\n```\n\nImplement similar patterns for Groups, Tenants, Feedbacks pages.",
+        "testStrategy": "Verify statistics accuracy against backend data. Test real-time monitoring updates. Test agent CRUD operations with validation. Verify role-based visibility of pages and actions.",
+        "priority": "medium",
+        "dependencies": [
+          11,
+          16
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 18,
+        "title": "Implement Notification System",
+        "description": "Build in-app real-time notifications via WebSocket and email notifications for critical events.",
+        "details": "Notification service implementation:\n\n```kotlin\n// NotificationService.kt\n@Service\nclass NotificationService(\n    private val sinkMap: ConcurrentHashMap<String, Sinks.Many<NotificationEvent>>,\n    private val emailService: EmailService\n) {\n    fun sendInAppNotification(userId: String, notification: NotificationEvent): Mono<Void> {\n        return Mono.fromRunnable {\n            sinkMap[userId]?.tryEmitNext(notification)\n        }\n    }\n    \n    fun subscribeToNotifications(userId: String): Flux<NotificationEvent> {\n        val sink = Sinks.many().multicast().onBackpressureBuffer<NotificationEvent>()\n        sinkMap[userId] = sink\n        return sink.asFlux()\n            .doOnCancel { sinkMap.remove(userId) }\n    }\n    \n    fun notifyNewCounseling(agentId: String, customerName: String) {\n        sendInAppNotification(agentId, NotificationEvent(\n            type = NotificationType.NEW_COUNSELING_REQUEST,\n            message = \"New counseling request from $customerName\"\n        ))\n    }\n    \n    fun sendPasswordResetEmail(email: String, tempPassword: String): Mono<Void> {\n        return emailService.send(EmailMessage(\n            to = email,\n            subject = \"Password Reset\",\n            template = \"password-reset\",\n            variables = mapOf(\"tempPassword\" to tempPassword)\n        ))\n    }\n}\n\n// NotificationController.kt\n@Controller\nclass NotificationController(\n    private val notificationService: NotificationService\n) {\n    @GetMapping(\"/api/notifications/stream\", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])\n    fun streamNotifications(@AuthenticationPrincipal user: User): Flux<NotificationEvent> {\n        return notificationService.subscribeToNotifications(user.id.toString())\n    }\n}\n```\n\nNotification types from PRD:\n- NTF-1: New counseling request (agent, in-app)\n- NTF-2: Queue position change (customer, in-app)\n- NTF-3: Connection complete (customer, in-app)\n- NTF-4: New feedback (agent, in-app)\n- NTF-5: Recording expiry warning (company admin, email)\n- NTF-6: Account created/password reset (agent, email)",
+        "testStrategy": "Test SSE notification delivery. Verify notification routing to correct user. Test email sending with template rendering. Load test with many concurrent notification streams.",
+        "priority": "medium",
+        "dependencies": [
+          7,
+          10
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 19,
+        "title": "Implement Customer Feedback System",
+        "description": "Build post-call feedback collection with rating and comments, and admin feedback review interface.",
+        "details": "Feedback service and endpoints:\n\n```kotlin\n// FeedbackService.kt\n@Service\nclass FeedbackService(\n    private val feedbackRepository: FeedbackRepository,\n    private val notificationService: NotificationService,\n    private val channelRepository: ChannelRepository\n) {\n    fun submitFeedback(channelId: UUID, request: FeedbackRequest): Mono<Feedback> {\n        return channelRepository.findById(channelId)\n            .flatMap { channel ->\n                val feedback = Feedback(\n                    channelId = channelId,\n                    rating = request.rating,\n                    comment = request.comment\n                )\n                feedbackRepository.save(feedback)\n                    .doOnSuccess {\n                        notificationService.notifyFeedbackReceived(\n                            channel.agentId.toString(),\n                            request.rating\n                        )\n                    }\n            }\n    }\n    \n    fun getFeedbackForChannel(channelId: UUID): Mono<Feedback> {\n        return feedbackRepository.findByChannelId(channelId)\n    }\n    \n    fun getFeedbackStats(from: LocalDate, to: LocalDate): Mono<FeedbackStats> {\n        // Aggregate statistics from MongoDB read-side\n    }\n}\n\n// FeedbackController.kt\n@RestController\n@RequestMapping(\"/api/channels/{channelId}/feedback\")\nclass FeedbackController(\n    private val feedbackService: FeedbackService\n) {\n    @PostMapping\n    fun submitFeedback(\n        @PathVariable channelId: UUID,\n        @RequestBody request: FeedbackRequest\n    ): Mono<FeedbackResponse> {\n        return feedbackService.submitFeedback(channelId, request)\n            .map { it.toResponse() }\n    }\n    \n    @GetMapping\n    fun getFeedback(@PathVariable channelId: UUID): Mono<FeedbackResponse> {\n        return feedbackService.getFeedbackForChannel(channelId)\n            .map { it.toResponse() }\n    }\n}\n```\n\nFrontend feedback form:\n```tsx\n// fe/app-customer/src/app/feedback/page.tsx\nexport default function FeedbackPage() {\n  const { channelId } = useSearchParams()\n  const submitMutation = useMutation(submitFeedback)\n  \n  return (\n    <div className=\"max-w-md mx-auto p-6\">\n      <h1>How was your experience?</h1>\n      <StarRating value={rating} onChange={setRating} />\n      <Textarea\n        value={comment}\n        onChange={(e) => setComment(e.target.value)}\n        placeholder=\"Share your thoughts...\"\n      />\n      <Button onClick={() => submitMutation.mutate({ channelId, rating, comment })}>\n        Submit Feedback\n      </Button>\n    </div>\n  )\n}\n```",
+        "testStrategy": "Test feedback submission flow end-to-end. Verify notification sent to agent. Test rating validation (1-5). Verify feedback appears in admin dashboard. Test statistics aggregation.",
+        "priority": "medium",
+        "dependencies": [
+          8,
+          13
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 20,
+        "title": "Implement History and Recording Playback",
+        "description": "Build counseling history view with filtering, search, and secure recording playback functionality.",
+        "details": "History service and streaming:\n\n```kotlin\n// HistoryService.kt\n@Service\nclass HistoryService(\n    private val mongoTemplate: ReactiveMongoTemplate,\n    private val channelRepository: ChannelRepository\n) {\n    fun getHistory(\n        agentId: UUID?,\n        groupId: UUID?,\n        from: LocalDate?,\n        to: LocalDate?,\n        pageable: Pageable\n    ): Flux<ChannelHistoryView> {\n        val query = Query()\n        agentId?.let { query.addCriteria(Criteria.where(\"agentId\").`is`(it)) }\n        groupId?.let { query.addCriteria(Criteria.where(\"groupId\").`is`(it)) }\n        from?.let { query.addCriteria(Criteria.where(\"startedAt\").gte(it)) }\n        to?.let { query.addCriteria(Criteria.where(\"startedAt\").lte(it)) }\n        \n        return mongoTemplate.find(query.with(pageable), ChannelHistoryView::class.java)\n    }\n}\n\n// RecordingStreamController.kt\n@RestController\n@RequestMapping(\"/api/history/{channelId}/recording\")\nclass RecordingStreamController(\n    private val recordingService: RecordingService,\n    private val authorizationService: AuthorizationService\n) {\n    @GetMapping(produces = [\"video/mp4\"])\n    fun streamRecording(\n        @PathVariable channelId: UUID,\n        @AuthenticationPrincipal user: User,\n        @RequestHeader(\"Range\") rangeHeader: String?\n    ): Mono<ResponseEntity<Resource>> {\n        return authorizationService.canAccessRecording(user, channelId)\n            .filter { it }\n            .switchIfEmpty(Mono.error(ForbiddenException()))\n            .flatMap { recordingService.streamRecording(channelId, rangeHeader) }\n    }\n}\n```\n\nFrontend history view:\n```tsx\n// fe/app-agent/src/app/history/page.tsx\nexport default function HistoryPage() {\n  const { data, fetchNextPage, hasNextPage } = useInfiniteQuery(\n    ['history'],\n    ({ pageParam = 0 }) => fetchHistory({ page: pageParam })\n  )\n  \n  return (\n    <DashboardLayout>\n      <FilterBar onFilter={setFilters} />\n      <HistoryList\n        items={data.pages.flatMap(p => p.items)}\n        onViewRecording={(id) => setSelectedRecording(id)}\n      />\n      {hasNextPage && <Button onClick={fetchNextPage}>Load More</Button>}\n      \n      <RecordingModal\n        open={!!selectedRecording}\n        recordingUrl={`/api/history/${selectedRecording}/recording`}\n        onClose={() => setSelectedRecording(null)}\n      />\n    </DashboardLayout>\n  )\n}\n```",
+        "testStrategy": "Test history filtering and pagination. Verify recording access control (only authorized users). Test video streaming with range requests. Test chat history display alongside recordings.",
+        "priority": "medium",
+        "dependencies": [
+          9,
+          15,
+          17
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 21,
+        "title": "Implement Document and File Sharing",
+        "description": "Build document sharing (PDF) and file transfer functionality during counseling sessions.",
+        "details": "File sharing service:\n\n```kotlin\n// FileService.kt\n@Service\nclass FileService(\n    @Value(\"\\${file.storage-path}\") private val storagePath: String,\n    private val notificationService: NotificationService\n) {\n    fun uploadFile(\n        channelId: UUID,\n        file: FilePart,\n        uploaderId: UUID\n    ): Mono<FileMetadata> {\n        val fileId = UUID.randomUUID()\n        val fileName = file.filename()\n        val path = \"$storagePath/files/$channelId/$fileId-$fileName\"\n        \n        return file.transferTo(Path.of(path))\n            .then(saveMetadata(FileMetadata(\n                id = fileId,\n                channelId = channelId,\n                fileName = fileName,\n                uploaderId = uploaderId,\n                path = path\n            )))\n            .doOnSuccess {\n                notificationService.notifyFileShared(channelId, fileName)\n            }\n    }\n    \n    fun downloadFile(fileId: UUID): Mono<Resource> {\n        return getMetadata(fileId)\n            .map { FileSystemResource(it.path) }\n    }\n}\n\n// FileController.kt\n@RestController\n@RequestMapping(\"/api/channels/{channelId}/files\")\nclass FileController(\n    private val fileService: FileService\n) {\n    @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])\n    fun uploadFile(\n        @PathVariable channelId: UUID,\n        @RequestPart file: FilePart,\n        @AuthenticationPrincipal user: User\n    ): Mono<FileMetadataResponse>\n    \n    @GetMapping(\"/{fileId}\")\n    fun downloadFile(@PathVariable fileId: UUID): Mono<ResponseEntity<Resource>>\n}\n```\n\nDocument sharing via LiveKit Data Channel:\n```typescript\n// Agent sends document reference\nconst shareDocument = async (file: File) => {\n  const uploaded = await uploadFile(channelId, file)\n  const room = useLiveKitRoom()\n  room.localParticipant.publishData(\n    JSON.stringify({ type: 'document', fileId: uploaded.id, fileName: file.name }),\n    { reliable: true }\n  )\n}\n\n// Customer receives and displays\nuseEffect(() => {\n  room.on('dataReceived', (payload) => {\n    const data = JSON.parse(decoder.decode(payload))\n    if (data.type === 'document') {\n      setSharedDocument(data)\n    }\n  })\n}, [room])\n```",
+        "testStrategy": "Test file upload with various file types and sizes. Verify file download with proper content-type. Test LiveKit data channel message delivery. Verify file access control.",
+        "priority": "low",
+        "dependencies": [
+          8,
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 22,
+        "title": "Implement Screen Capture and Screen Sharing",
+        "description": "Build screen capture functionality for agents and screen sharing using LiveKit.",
+        "details": "Screen capture service:\n\n```kotlin\n// CaptureService.kt\n@Service\nclass CaptureService(\n    @Value(\"\\${capture.storage-path}\") private val storagePath: String\n) {\n    fun saveCapture(\n        channelId: UUID,\n        imageData: ByteArray\n    ): Mono<CaptureMetadata> {\n        val captureId = UUID.randomUUID()\n        val timestamp = Instant.now()\n        val path = \"$storagePath/captures/$channelId/${timestamp.toEpochMilli()}.png\"\n        \n        return Mono.fromCallable {\n            Files.write(Path.of(path), imageData)\n            CaptureMetadata(\n                id = captureId,\n                channelId = channelId,\n                path = path,\n                createdAt = timestamp\n            )\n        }\n    }\n    \n    fun getCapturesForChannel(channelId: UUID): Flux<CaptureMetadata>\n}\n\n// CaptureController.kt\n@RestController\n@RequestMapping(\"/api/channels/{channelId}/capture\")\nclass CaptureController(\n    private val captureService: CaptureService\n) {\n    @PostMapping(consumes = [MediaType.APPLICATION_OCTET_STREAM_VALUE])\n    fun saveCapture(\n        @PathVariable channelId: UUID,\n        @RequestBody imageData: ByteArray\n    ): Mono<CaptureResponse>\n}\n```\n\nFrontend screen sharing with LiveKit:\n```typescript\n// Screen share toggle in agent app\nconst { screenShareEnabled, toggleScreenShare } = useLocalParticipant()\n\n// Capture current view\nconst captureScreen = async () => {\n  const canvas = document.createElement('canvas')\n  const video = document.querySelector('video') as HTMLVideoElement\n  canvas.width = video.videoWidth\n  canvas.height = video.videoHeight\n  canvas.getContext('2d')?.drawImage(video, 0, 0)\n  \n  const blob = await new Promise<Blob>((resolve) => \n    canvas.toBlob(resolve, 'image/png')\n  )\n  await uploadCapture(channelId, blob)\n}\n```",
+        "testStrategy": "Test screen capture saves correctly. Verify capture retrieval in history. Test LiveKit screen share toggle. Verify screen share track is properly handled by customer.",
+        "priority": "low",
+        "dependencies": [
+          8,
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 23,
+        "title": "Implement Co-Browsing Feature",
+        "description": "Build co-browsing functionality allowing agents to view and interact with customer's browser screen.",
+        "details": "Co-browsing implementation using screen share and LiveKit data channel:\n\n```typescript\n// Customer side - share browser tab\nconst startCoBrowsing = async () => {\n  const stream = await navigator.mediaDevices.getDisplayMedia({\n    video: { displaySurface: 'browser' },\n    audio: false\n  })\n  \n  const track = stream.getVideoTracks()[0]\n  await room.localParticipant.publishTrack(track, {\n    name: 'cobrowse',\n    source: Track.Source.ScreenShare\n  })\n  \n  // Listen for agent guidance\n  room.on('dataReceived', (data) => {\n    const msg = JSON.parse(decoder.decode(data))\n    if (msg.type === 'pointer') {\n      showPointer(msg.x, msg.y)\n    } else if (msg.type === 'highlight') {\n      highlightElement(msg.selector)\n    }\n  })\n}\n\n// Agent side - view and guide\nconst CoBrowseViewer = () => {\n  const { screenShareTracks } = useRemoteParticipantTracks()\n  const cobrowseTrack = screenShareTracks.find(t => t.name === 'cobrowse')\n  \n  const sendPointer = (e: MouseEvent) => {\n    const rect = videoRef.current.getBoundingClientRect()\n    room.localParticipant.publishData(\n      JSON.stringify({\n        type: 'pointer',\n        x: (e.clientX - rect.left) / rect.width,\n        y: (e.clientY - rect.top) / rect.height\n      }),\n      { reliable: false }\n    )\n  }\n  \n  return (\n    <div onMouseMove={sendPointer}>\n      <VideoTrack track={cobrowseTrack} />\n      <OverlayToolbar onHighlight={sendHighlight} />\n    </div>\n  )\n}\n```\n\nNote: Full DOM co-browsing with element highlighting requires customer-side JavaScript injection which is limited. This implementation uses screen share + pointer overlay as a practical approach.",
+        "testStrategy": "Test co-browsing initiation flow. Verify screen share quality is adequate for reading. Test pointer sync latency (should be < 100ms). Test highlighting feature if implemented.",
+        "priority": "low",
+        "dependencies": [
+          8,
+          13,
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 24,
+        "title": "Implement Network Reconnection Handling",
+        "description": "Build robust network reconnection logic for WebRTC calls with graceful degradation and user feedback.",
+        "details": "Reconnection handling with LiveKit:\n\n```typescript\n// useReconnection.ts\nexport function useReconnection() {\n  const room = useRoomContext()\n  const [connectionState, setConnectionState] = useState<ConnectionState>('connected')\n  const [reconnectAttempt, setReconnectAttempt] = useState(0)\n  const MAX_RECONNECT_ATTEMPTS = 3\n  \n  useEffect(() => {\n    const handleDisconnected = () => {\n      setConnectionState('disconnected')\n      setReconnectAttempt(0)\n    }\n    \n    const handleReconnecting = () => {\n      setConnectionState('reconnecting')\n      setReconnectAttempt(prev => prev + 1)\n    }\n    \n    const handleReconnected = () => {\n      setConnectionState('connected')\n      setReconnectAttempt(0)\n    }\n    \n    room.on(RoomEvent.Disconnected, handleDisconnected)\n    room.on(RoomEvent.Reconnecting, handleReconnecting)\n    room.on(RoomEvent.Reconnected, handleReconnected)\n    \n    return () => {\n      room.off(RoomEvent.Disconnected, handleDisconnected)\n      room.off(RoomEvent.Reconnecting, handleReconnecting)\n      room.off(RoomEvent.Reconnected, handleReconnected)\n    }\n  }, [room])\n  \n  return { connectionState, reconnectAttempt, maxAttempts: MAX_RECONNECT_ATTEMPTS }\n}\n\n// ConnectionStatus.tsx\nexport function ConnectionStatus() {\n  const { connectionState, reconnectAttempt, maxAttempts } = useReconnection()\n  \n  if (connectionState === 'connected') return null\n  \n  return (\n    <div className=\"fixed top-4 left-1/2 -translate-x-1/2 bg-amber-100 p-4 rounded-lg\">\n      {connectionState === 'reconnecting' && (\n        <>\n          <Spinner /> Reconnecting... ({reconnectAttempt}/{maxAttempts})\n        </>\n      )}\n      {connectionState === 'disconnected' && (\n        <>\n          <AlertIcon /> Connection lost\n          <Button onClick={() => room.connect()}>Retry</Button>\n        </>\n      )}\n    </div>\n  )\n}\n```\n\nLiveKit room options for reconnection:\n```typescript\nconst roomOptions: RoomOptions = {\n  reconnectPolicy: {\n    maxRetries: 3,\n    nextRetryDelayInMs: (attempt) => Math.min(1000 * Math.pow(2, attempt), 10000)\n  },\n  disconnectOnPageLeave: false\n}\n```",
+        "testStrategy": "Simulate network interruptions using browser DevTools. Verify reconnection attempts follow exponential backoff. Test UI feedback during reconnection. Verify call resumes successfully after reconnection.",
+        "priority": "medium",
+        "dependencies": [
+          8,
+          13,
+          15
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 25,
+        "title": "End-to-End Testing and Performance Optimization",
+        "description": "Implement comprehensive E2E test suite and optimize performance for production readiness.",
+        "details": "E2E testing with Playwright:\n\n```typescript\n// tests/e2e/customer-flow.spec.ts\ntest.describe('Customer Counseling Flow', () => {\n  test('complete counseling session', async ({ page, context }) => {\n    // Customer joins\n    await page.goto('/customer')\n    await page.fill('[name=name]', 'Test Customer')\n    await page.fill('[name=contact]', '010-1234-5678')\n    await page.click('button:has-text(\"Join\")')\n    \n    // Wait in queue\n    await expect(page.locator('.queue-position')).toBeVisible()\n    \n    // Agent accepts (separate browser context)\n    const agentPage = await context.newPage()\n    await agentPage.goto('/agent/login')\n    await agentPage.fill('[name=username]', 'agent1')\n    await agentPage.fill('[name=password]', 'password')\n    await agentPage.click('button:has-text(\"Login\")')\n    await agentPage.click('button:has-text(\"Accept\")')\n    \n    // Verify video call established\n    await expect(page.locator('video')).toBeVisible()\n    await expect(agentPage.locator('video')).toBeVisible()\n    \n    // End call and submit feedback\n    await agentPage.click('button:has-text(\"End Call\")')\n    await page.click('.star-rating >> nth=4')  // 5 stars\n    await page.click('button:has-text(\"Submit\")')\n  })\n})\n```\n\nPerformance optimizations:\n1. React lazy loading for route-based code splitting\n2. TanStack Query stale time configuration\n3. Redis connection pooling\n4. MongoDB read replica utilization\n5. LiveKit room settings for bandwidth optimization\n\n```kotlin\n// Backend performance config\n@Configuration\nclass PerformanceConfig {\n    @Bean\n    fun redisConnectionFactory(): LettuceConnectionFactory {\n        val config = LettucePoolingClientConfiguration.builder()\n            .poolConfig(GenericObjectPoolConfig<Any>().apply {\n                maxTotal = 50\n                maxIdle = 25\n            })\n            .build()\n        return LettuceConnectionFactory(RedisStandaloneConfiguration(), config)\n    }\n}\n```",
+        "testStrategy": "Run full E2E test suite with Playwright. Load test with k6 for 500 concurrent sessions. Measure API response times against 200ms target. Profile WebRTC connections for media latency < 500ms.",
+        "priority": "high",
+        "dependencies": [
+          13,
+          15,
+          17,
+          18,
+          19,
+          20
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2026-02-26T13:43:47.139Z",
+      "updated": "2026-02-26T13:43:47.139Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
