@@ -2,6 +2,7 @@ package com.counseling.api.adapter.inbound.web
 
 import com.counseling.api.adapter.inbound.web.dto.ErrorResponse
 import com.counseling.api.domain.exception.BadRequestException
+import com.counseling.api.domain.exception.ConflictException
 import com.counseling.api.domain.exception.NotFoundException
 import com.counseling.api.domain.exception.UnauthorizedException
 import org.springframework.http.HttpStatus
@@ -48,6 +49,19 @@ class GlobalExceptionHandler {
             status = HttpStatus.NOT_FOUND.value(),
             error = HttpStatus.NOT_FOUND.reasonPhrase,
             message = ex.message ?: "Not found",
+            path = exchange.request.uri.path,
+        )
+
+    @ExceptionHandler(ConflictException::class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    fun handleConflict(
+        ex: ConflictException,
+        exchange: ServerWebExchange,
+    ): ErrorResponse =
+        ErrorResponse(
+            status = HttpStatus.CONFLICT.value(),
+            error = HttpStatus.CONFLICT.reasonPhrase,
+            message = ex.message ?: "Conflict",
             path = exchange.request.uri.path,
         )
 }

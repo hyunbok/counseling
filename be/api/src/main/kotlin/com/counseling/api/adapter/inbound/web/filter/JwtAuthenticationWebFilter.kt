@@ -27,6 +27,8 @@ class JwtAuthenticationWebFilter(
                 "/api/auth/refresh",
                 "/api/super-admin/",
                 "/actuator/",
+                "/api/queue/enter",
+                "/api/queue/position/",
             )
     }
 
@@ -42,7 +44,7 @@ class JwtAuthenticationWebFilter(
 
         val authHeader = exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
         if (authHeader.isNullOrBlank() || !authHeader.startsWith(BEARER_PREFIX)) {
-            return unauthorized(exchange)
+            return chain.filter(exchange)
         }
 
         val token = authHeader.removePrefix(BEARER_PREFIX)
