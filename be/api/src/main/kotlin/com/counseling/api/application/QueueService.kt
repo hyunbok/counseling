@@ -1,5 +1,6 @@
 package com.counseling.api.application
 
+import com.counseling.api.config.LiveKitProperties
 import com.counseling.api.domain.AgentStatus
 import com.counseling.api.domain.Channel
 import com.counseling.api.domain.ChannelStatus
@@ -19,6 +20,7 @@ import com.counseling.api.port.inbound.QueueUseCase
 import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.EndpointRepository
+import com.counseling.api.port.outbound.LiveKitPort
 import com.counseling.api.port.outbound.QueueNotificationPort
 import com.counseling.api.port.outbound.QueueRepository
 import org.springframework.context.annotation.Profile
@@ -36,6 +38,8 @@ class QueueService(
     private val channelRepository: ChannelRepository,
     private val endpointRepository: EndpointRepository,
     private val agentRepository: AgentRepository,
+    private val liveKitPort: LiveKitPort,
+    private val liveKitProperties: LiveKitProperties,
 ) : QueueUseCase {
     override fun enterQueue(
         name: String,
@@ -151,7 +155,26 @@ class QueueService(
                                 .then(endpointRepository.save(customerEndpoint))
                                 .then(endpointRepository.save(agentEndpoint))
                                 .then(agentRepository.save(agent.updateStatus(AgentStatus.BUSY)))
-                                .flatMap { _ ->
+                                .then(
+                                    liveKitPort
+                                        .createRoom("$tenantId-channel-$channelId")
+                                        .flatMap { roomName ->
+                                            channelRepository.save(channel.withRoomName(roomName))
+                                        },
+                                ).flatMap { savedChannel ->
+                                    val roomName = savedChannel.livekitRoomName!!
+                                    val agentToken =
+                                        liveKitPort.generateToken(
+                                            roomName,
+                                            "agent:$agentId",
+                                            agent.name,
+                                        )
+                                    val customerToken =
+                                        liveKitPort.generateToken(
+                                            roomName,
+                                            "customer:${entry.customerName}",
+                                            entry.customerName,
+                                        )
                                     queueRepository.getSize(tenantId).flatMap { size ->
                                         val queueUpdate =
                                             QueueUpdate(
@@ -172,6 +195,10 @@ class QueueService(
                                                 channelId = channelId,
                                                 customerName = entry.customerName,
                                                 customerContact = entry.customerContact,
+                                                livekitRoomName = roomName,
+                                                livekitUrl = liveKitProperties.url,
+                                                agentToken = agentToken,
+                                                customerToken = customerToken,
                                             ),
                                         )
                                     }
@@ -199,12 +226,13 @@ class QueueService(
 
     override fun getPosition(entryId: UUID): Mono<PositionResult> =
         TenantContext.getTenantId().flatMap { tenantId ->
-            Mono.zip(
-                queueRepository.getPosition(tenantId, entryId),
-                queueRepository.getSize(tenantId),
-            ).map { tuple ->
-                PositionResult(position = tuple.t1, queueSize = tuple.t2)
-            }
+            Mono
+                .zip(
+                    queueRepository.getPosition(tenantId, entryId),
+                    queueRepository.getSize(tenantId),
+                ).map { tuple ->
+                    PositionResult(position = tuple.t1, queueSize = tuple.t2)
+                }
         }
 
     override fun subscribeQueueUpdates(): Flux<QueueUpdate> =

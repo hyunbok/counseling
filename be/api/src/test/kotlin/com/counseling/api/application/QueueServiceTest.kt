@@ -1,5 +1,6 @@
 package com.counseling.api.application
 
+import com.counseling.api.config.LiveKitProperties
 import com.counseling.api.domain.Agent
 import com.counseling.api.domain.AgentRole
 import com.counseling.api.domain.AgentStatus
@@ -16,6 +17,7 @@ import com.counseling.api.domain.exception.ConflictException
 import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.EndpointRepository
+import com.counseling.api.port.outbound.LiveKitPort
 import com.counseling.api.port.outbound.QueueNotificationPort
 import com.counseling.api.port.outbound.QueueRepository
 import io.kotest.core.spec.style.StringSpec
@@ -39,6 +41,14 @@ class QueueServiceTest :
         val channelRepository = mockk<ChannelRepository>()
         val endpointRepository = mockk<EndpointRepository>()
         val agentRepository = mockk<AgentRepository>()
+        val liveKitPort = mockk<LiveKitPort>()
+        val liveKitProperties =
+            LiveKitProperties(
+                url = "wss://livekit.test",
+                apiKey = "test-key",
+                apiSecret = "test-secret",
+                tokenTtlSeconds = 3600L,
+            )
         val queueService =
             QueueService(
                 queueRepository,
@@ -46,6 +56,8 @@ class QueueServiceTest :
                 channelRepository,
                 endpointRepository,
                 agentRepository,
+                liveKitPort,
+                liveKitProperties,
             )
 
         val tenantId = "tenant-test"
@@ -171,13 +183,16 @@ class QueueServiceTest :
         "acceptCustomer creates channel and endpoints when agent is available" {
             val agent = makeAgent(AgentStatus.ONLINE)
             val entry = makeEntry()
-            val savedChannel = slot<Channel>()
+            val savedChannels = mutableListOf<Channel>()
             val savedEndpoints = mutableListOf<Endpoint>()
+            val testRoomName = "$tenantId-channel-test"
 
             every { agentRepository.findByIdAndNotDeleted(agent.id) } returns Mono.just(agent)
             every { queueRepository.removeAtomically(tenantId, entry.id) } returns Mono.just(entry)
-            every { channelRepository.save(capture(savedChannel)) } answers {
-                Mono.just(savedChannel.captured)
+            every { channelRepository.save(any()) } answers {
+                val ch = firstArg<Channel>()
+                savedChannels.add(ch)
+                Mono.just(ch)
             }
             every { endpointRepository.save(any()) } answers {
                 val ep = firstArg<Endpoint>()
@@ -185,6 +200,8 @@ class QueueServiceTest :
                 Mono.just(ep)
             }
             every { agentRepository.save(any()) } returns Mono.just(agent.updateStatus(AgentStatus.BUSY))
+            every { liveKitPort.createRoom(any()) } returns Mono.just(testRoomName)
+            every { liveKitPort.generateToken(any(), any(), any(), any(), any()) } returns "test-jwt-token"
             every { queueRepository.getSize(tenantId) } returns Mono.just(0L)
 
             StepVerifier
@@ -195,10 +212,11 @@ class QueueServiceTest :
                 ).assertNext { result ->
                     result.customerName shouldBe entry.customerName
                     result.customerContact shouldBe entry.customerContact
+                    result.livekitRoomName shouldBe testRoomName
+                    result.livekitUrl shouldBe liveKitProperties.url
                 }.verifyComplete()
 
-            savedChannel.captured.status shouldBe ChannelStatus.IN_PROGRESS
-            savedChannel.captured.agentId shouldBe agent.id
+            savedChannels.any { it.status == ChannelStatus.IN_PROGRESS && it.agentId == agent.id } shouldBe true
             savedEndpoints.any { it.type == EndpointType.CUSTOMER } shouldBe true
             savedEndpoints.any { it.type == EndpointType.AGENT } shouldBe true
             verify { agentRepository.save(match { it.agentStatus == AgentStatus.BUSY }) }

@@ -14,4 +14,9 @@ interface ChannelRepository {
     fun findAllByAgentIdAndNotDeleted(agentId: UUID): Flux<Channel>
 
     fun findAllByStatusAndNotDeleted(status: ChannelStatus): Flux<Channel>
+
+    fun findAllByAgentIdAndStatusAndNotDeleted(
+        agentId: UUID,
+        status: ChannelStatus,
+    ): Flux<Channel>
 }

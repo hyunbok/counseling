@@ -68,7 +68,8 @@ class JjwtTokenProvider(
 
     override fun validateToken(token: String): Boolean =
         try {
-            Jwts.parser()
+            Jwts
+                .parser()
                 .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
@@ -88,7 +89,8 @@ class JjwtTokenProvider(
         issuedAt: Instant,
         expiration: Instant,
     ): String =
-        Jwts.builder()
+        Jwts
+            .builder()
             .id(jti)
             .subject(subject)
             .claim("tid", tenantId)
@@ -105,7 +107,8 @@ class JjwtTokenProvider(
     ): JwtClaims {
         val claims =
             try {
-                Jwts.parser()
+                Jwts
+                    .parser()
                     .verifyWith(signingKey)
                     .build()
                     .parseSignedClaims(token)
@@ -134,8 +137,9 @@ class JjwtTokenProvider(
                 throw UnauthorizedException("Missing or invalid role claim")
             }
 
-        val tenantId = claims.get("tid", String::class.java)
-            ?: throw UnauthorizedException("Missing tenant id claim")
+        val tenantId =
+            claims.get("tid", String::class.java)
+                ?: throw UnauthorizedException("Missing tenant id claim")
 
         return JwtClaims(
             subject = UUID.fromString(claims.subject),

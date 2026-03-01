@@ -18,4 +18,10 @@ sealed class ChannelEvent : DomainEvent {
         val channel: Channel,
         override val occurredAt: Instant = Instant.now(),
     ) : ChannelEvent()
+
+    data class RoomCreated(
+        val channel: Channel,
+        val livekitRoomName: String,
+        override val occurredAt: Instant = Instant.now(),
+    ) : ChannelEvent()
 }

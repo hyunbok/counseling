@@ -15,7 +15,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint
-import reactor.core.publisher.Mono
 
 @Configuration
 @EnableWebFluxSecurity
@@ -39,8 +38,7 @@ class SecurityConfig {
             .logout { it.disable() }
             .exceptionHandling { ex ->
                 ex.authenticationEntryPoint(HttpStatusServerEntryPoint(HttpStatus.UNAUTHORIZED))
-            }
-            .authorizeExchange { auth ->
+            }.authorizeExchange { auth ->
                 auth
                     .pathMatchers(
                         "/api/auth/login",
@@ -50,11 +48,15 @@ class SecurityConfig {
                         "/api/queue/enter",
                         "/api/queue/position/**",
                     ).permitAll()
-                    .pathMatchers(HttpMethod.DELETE, "/api/queue/*").permitAll()
-                    .pathMatchers("/api/**").authenticated()
-                    .anyExchange().permitAll()
-            }
-            .addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+                    .pathMatchers(HttpMethod.DELETE, "/api/queue/*")
+                    .permitAll()
+                    .pathMatchers(HttpMethod.GET, "/api/channels/*/customer-token")
+                    .permitAll()
+                    .pathMatchers("/api/**")
+                    .authenticated()
+                    .anyExchange()
+                    .permitAll()
+            }.addFilterAt(jwtFilter, SecurityWebFiltersOrder.AUTHENTICATION)
             .build()
     }
 

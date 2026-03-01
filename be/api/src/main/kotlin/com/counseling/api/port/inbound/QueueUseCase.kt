@@ -17,6 +17,10 @@ data class AcceptResult(
     val channelId: UUID,
     val customerName: String,
     val customerContact: String,
+    val livekitRoomName: String,
+    val livekitUrl: String,
+    val agentToken: String,
+    val customerToken: String,
 )
 
 data class PositionResult(

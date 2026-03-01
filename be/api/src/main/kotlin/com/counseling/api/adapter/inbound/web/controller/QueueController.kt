@@ -79,6 +79,10 @@ class QueueController(
                         channelId = result.channelId,
                         customerName = result.customerName,
                         customerContact = result.customerContact,
+                        livekitRoomName = result.livekitRoomName,
+                        livekitUrl = result.livekitUrl,
+                        agentToken = result.agentToken,
+                        customerToken = result.customerToken,
                     )
                 }
         }

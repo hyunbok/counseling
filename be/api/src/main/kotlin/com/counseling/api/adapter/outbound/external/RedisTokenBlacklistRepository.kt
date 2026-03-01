@@ -21,7 +21,8 @@ class RedisTokenBlacklistRepository(
         ttlSeconds: Long,
     ): Mono<Void> {
         val key = "$BLACKLIST_KEY_PREFIX$jti"
-        return redisTemplate.opsForValue()
+        return redisTemplate
+            .opsForValue()
             .set(key, "1", Duration.ofSeconds(ttlSeconds))
             .then()
     }

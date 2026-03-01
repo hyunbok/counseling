@@ -16,3 +16,9 @@ jwt:
   secret: test-secret-key-for-jwt-signing-must-be-at-least-256-bits-long-for-hmac-sha256
   access-expiration: 3600000
   refresh-expiration: 604800000
+
+livekit:
+  url: ws://localhost:7880
+  api-key: test-api-key
+  api-secret: test-api-secret
+  token-ttl-seconds: 3600
