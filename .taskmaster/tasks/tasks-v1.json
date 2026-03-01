@@ -666,7 +666,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -674,7 +674,7 @@
             "description": "Create the fe/app-customer Next.js project using pnpm create next-app with TypeScript, Tailwind CSS, ESLint, App Router, and src directory structure.",
             "dependencies": [],
             "details": "Run `mkdir -p fe && cd fe && pnpm create next-app app-customer --typescript --tailwind --eslint --app --src-dir` to scaffold the Next.js project. This creates the base project structure with:\n- TypeScript configuration (tsconfig.json)\n- Tailwind CSS setup (tailwind.config.ts, postcss.config.mjs)\n- ESLint configuration (.eslintrc.json)\n- App Router structure (src/app/)\n- Default Next.js files (next.config.ts, package.json)\n\nVerify the project was created correctly by checking that src/app/page.tsx and tailwind.config.ts exist.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `cd fe/app-customer && pnpm dev` and verify the dev server starts on localhost:3000. Check that the default Next.js page renders with Tailwind CSS styles applied."
           },
           {
@@ -685,7 +685,7 @@
               1
             ],
             "details": "Navigate to fe/app-customer and install dependencies:\n\n**Runtime dependencies:**\n```bash\npnpm add zustand @tanstack/react-query @tanstack/react-query-devtools livekit-client @livekit/components-react axios\n```\n\n**Dev dependencies:**\n```bash\npnpm add -D prettier eslint-config-prettier @types/node\n```\n\nUpdate .eslintrc.json to extend 'prettier' to disable conflicting ESLint formatting rules. Create .prettierrc with project formatting preferences (singleQuote, semi, trailingComma).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `pnpm list` to verify all packages are installed. Run `pnpm build` to ensure no TypeScript errors from type definitions. Run `pnpm lint` to verify ESLint configuration works with Prettier."
           },
           {
@@ -696,7 +696,7 @@
               1
             ],
             "details": "Modify tailwind.config.ts to extend the theme with:\n\n**Fonts:**\n- fontFamily.sans: ['Pretendard', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif']\n- fontFamily.mono: ['JetBrains Mono', 'monospace']\n\n**Colors:**\n- Primary: Indigo-600 (#4F46E5) / Indigo-400 (#818CF8) for dark\n- Background: White/Gray-900, Surface: Gray-50/Gray-800\n- Semantic: Success (Green), Warning (Amber), Error (Red), Info (Blue)\n- Agent status colors: Online (Green-500), Offline (Gray-400), Busy (Red-500), Away (Amber-500), Wrap-up (Purple-500)\n\n**Dark mode:**\n- Set darkMode: 'class' for manual toggle support\n\n**Border radius:**\n- Add rounded-xl (12px) for cards\n\nUpdate src/app/globals.css to import Pretendard and Inter fonts from CDN or configure @font-face.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Create a test component using custom colors and fonts. Verify dark mode toggle works by adding/removing 'dark' class on <html>. Check browser DevTools to confirm correct CSS custom properties and font-family applied."
           },
           {
@@ -708,7 +708,7 @@
               3
             ],
             "details": "Create the following directory structure:\n```\nfe/app-customer/src/\n├── components/\n│   ├── ui/           # Reusable UI components\n│   └── layout/       # Layout components\n├── hooks/\n│   └── .gitkeep\n├── stores/\n│   └── customerStore.ts\n└── lib/\n    ├── api.ts        # Axios instance with base config\n    └── query-client.ts\n```\n\n**Create src/lib/api.ts:**\n- Configure Axios instance with baseURL from env var\n- Add request/response interceptors for error handling\n\n**Create src/lib/query-client.ts:**\n- Export QueryClient with default options (staleTime, retry)\n\n**Create src/stores/customerStore.ts:**\n- Zustand store with customer state (name, contact, queuePosition, connectionStatus)\n\n**Update src/app/layout.tsx:**\n- Add QueryClientProvider wrapper\n- Add ReactQueryDevtools for development",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `pnpm build` to verify all imports resolve correctly. Check that QueryClientProvider wraps the app in layout.tsx. Verify Zustand store can be imported and used in a test component."
           },
           {
@@ -719,7 +719,7 @@
               4
             ],
             "details": "Create the following page files with placeholder content:\n\n**src/app/page.tsx (Landing/Join page):**\n- Server component with metadata export\n- Basic layout with centered card design (rounded-xl, shadow-sm)\n- Placeholder form inputs for name and contact\n\n**src/app/waiting/page.tsx (Queue waiting room):**\n- Client component ('use client')\n- Placeholder for queue position display\n- WaitingIndicator component placeholder\n\n**src/app/call/[id]/page.tsx (Video call room):**\n- Client component for video interface\n- Dynamic route parameter handling\n- Placeholder for LiveKit video components\n\n**src/app/feedback/page.tsx (Post-call feedback):**\n- Client component for feedback form\n- Rating input and comment textarea placeholders\n\nEach page should:\n- Use Tailwind classes per design-concept.md\n- Include proper TypeScript interfaces\n- Follow accessibility guidelines (aria-labels, semantic HTML)\n- Support dark mode with dark: Tailwind classes",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `pnpm dev` and navigate to each route (/, /waiting, /call/test-id, /feedback). Verify pages render without errors. Run `pnpm build` to ensure all pages compile correctly. Check responsive layout at mobile (375px) and desktop (1280px) widths."
           }
         ]

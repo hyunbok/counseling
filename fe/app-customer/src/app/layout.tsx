@@ -1,0 +1,22 @@
+import type { Metadata } from 'next';
+import Providers from '@/components/providers';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: '화상 상담',
+  description: '화상 상담 플랫폼',
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ko" suppressHydrationWarning>
+      <body className="antialiased">
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
