@@ -61,7 +61,7 @@ class LiveKitAdapter(
             AccessToken(liveKitProperties.apiKey, liveKitProperties.apiSecret).apply {
                 this.identity = identity
                 this.name = name
-                this.ttl = liveKitProperties.tokenTtlSeconds * 1000L
+                this.ttl = liveKitProperties.tokenTtlSeconds
                 addGrants(
                     RoomJoin(true),
                     RoomName(roomName),

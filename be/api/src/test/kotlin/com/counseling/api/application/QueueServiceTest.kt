@@ -216,7 +216,10 @@ class QueueServiceTest :
                     result.livekitUrl shouldBe liveKitProperties.url
                 }.verifyComplete()
 
-            savedChannels.any { it.status == ChannelStatus.IN_PROGRESS && it.agentId == agent.id } shouldBe true
+            savedChannels.size shouldBe 1
+            savedChannels[0].status shouldBe ChannelStatus.IN_PROGRESS
+            savedChannels[0].agentId shouldBe agent.id
+            savedChannels[0].livekitRoomName shouldBe testRoomName
             savedEndpoints.any { it.type == EndpointType.CUSTOMER } shouldBe true
             savedEndpoints.any { it.type == EndpointType.AGENT } shouldBe true
             verify { agentRepository.save(match { it.agentStatus == AgentStatus.BUSY }) }

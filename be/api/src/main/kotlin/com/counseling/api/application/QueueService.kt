@@ -150,19 +150,17 @@ class QueueService(
                                     leftAt = null,
                                 )
 
-                            channelRepository
-                                .save(channel)
-                                .then(endpointRepository.save(customerEndpoint))
-                                .then(endpointRepository.save(agentEndpoint))
-                                .then(agentRepository.save(agent.updateStatus(AgentStatus.BUSY)))
-                                .then(
-                                    liveKitPort
-                                        .createRoom("$tenantId-channel-$channelId")
-                                        .flatMap { roomName ->
-                                            channelRepository.save(channel.withRoomName(roomName))
-                                        },
-                                ).flatMap { savedChannel ->
-                                    val roomName = savedChannel.livekitRoomName!!
+                            liveKitPort
+                                .createRoom("$tenantId-channel-$channelId")
+                                .flatMap { roomName ->
+                                    val channelWithRoom = channel.withRoomName(roomName)
+                                    channelRepository
+                                        .save(channelWithRoom)
+                                        .then(endpointRepository.save(customerEndpoint))
+                                        .then(endpointRepository.save(agentEndpoint))
+                                        .then(agentRepository.save(agent.updateStatus(AgentStatus.BUSY)))
+                                        .thenReturn(roomName)
+                                }.flatMap { roomName ->
                                     val agentToken =
                                         liveKitPort.generateToken(
                                             roomName,
