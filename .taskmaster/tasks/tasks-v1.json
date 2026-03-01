@@ -9,7 +9,7 @@
         "testStrategy": "Run `docker-compose up -d` and verify all containers start successfully. Test connectivity to each service using CLI tools (psql, mongosh, redis-cli). Verify LiveKit server responds on HTTP port.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -17,7 +17,7 @@
             "description": "Create docker-compose.yml file at project root with PostgreSQL 16 services for Meta DB (port 5432) and Tenant DB (port 5433) including volume mounts and environment configuration.",
             "dependencies": [],
             "details": "Create docker-compose.yml at project root with two PostgreSQL 16 services:\n\n1. postgres-meta service:\n   - Image: postgres:16\n   - Container name: counseling-postgres-meta\n   - Port mapping: 5432:5432\n   - Environment: POSTGRES_DB=meta_db, POSTGRES_USER=admin, POSTGRES_PASSWORD=admin\n   - Volume: postgres_meta_data:/var/lib/postgresql/data\n   - Health check with pg_isready\n\n2. postgres-tenant service:\n   - Image: postgres:16\n   - Container name: counseling-postgres-tenant\n   - Port mapping: 5433:5432\n   - Environment: POSTGRES_DB=tenant_default, POSTGRES_USER=admin, POSTGRES_PASSWORD=admin\n   - Volume: postgres_tenant_data:/var/lib/postgresql/data\n   - Health check with pg_isready\n\nDefine named volumes at the bottom of the file for data persistence. Use docker-compose version 3.8 format.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `docker-compose up -d postgres-meta postgres-tenant` and verify both containers start. Test connectivity with `psql -h localhost -p 5432 -U admin -d meta_db` and `psql -h localhost -p 5433 -U admin -d tenant_default`. Verify data persists across container restarts."
           },
           {
@@ -28,7 +28,7 @@
               1
             ],
             "details": "Add MongoDB and Redis services to the existing docker-compose.yml:\n\n1. mongodb service:\n   - Image: mongo:7\n   - Container name: counseling-mongodb\n   - Port mapping: 27017:27017\n   - Environment: MONGO_INITDB_DATABASE=counseling_read\n   - Volume: mongodb_data:/data/db\n   - Health check using mongosh ping\n\n2. redis service:\n   - Image: redis:7-alpine\n   - Container name: counseling-redis\n   - Port mapping: 6379:6379\n   - Command: redis-server --appendonly yes (for persistence)\n   - Volume: redis_data:/data\n   - Health check using redis-cli ping\n\nAdd corresponding named volumes (mongodb_data, redis_data) to the volumes section.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `docker-compose up -d mongodb redis` and verify containers start. Test MongoDB with `mongosh mongodb://localhost:27017/counseling_read`. Test Redis with `redis-cli -h localhost ping` expecting PONG response. Verify AOF persistence is enabled."
           },
           {
@@ -39,7 +39,7 @@
               1
             ],
             "details": "Add LiveKit server service to docker-compose.yml:\n\n1. livekit service:\n   - Image: livekit/livekit-server:latest\n   - Container name: counseling-livekit\n   - Port mappings:\n     - 7880:7880 (HTTP/WebSocket signaling)\n     - 7881:7881 (RTC over TCP)\n     - 7882:7882/udp (RTC over UDP)\n   - Command: --dev --bind 0.0.0.0\n   - Environment:\n     - LIVEKIT_KEYS=devkey:secret (development API key)\n   - Health check on HTTP port 7880\n\nNote: In development mode (--dev flag), LiveKit uses simplified authentication suitable for local development. For production, proper key configuration would be required.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `docker-compose up -d livekit` and verify container starts. Test HTTP endpoint with `curl http://localhost:7880` expecting a response. Verify WebSocket is accessible. Check logs for successful startup with `docker-compose logs livekit`."
           },
           {
@@ -52,7 +52,7 @@
               3
             ],
             "details": "Update .env.example file with comprehensive environment variables:\n\n# Database - PostgreSQL Meta DB\nMETA_DB_HOST=localhost\nMETA_DB_PORT=5432\nMETA_DB_NAME=meta_db\nMETA_DB_USER=admin\nMETA_DB_PASSWORD=admin\nMETA_DB_URL=r2dbc:postgresql://localhost:5432/meta_db\n\n# Database - PostgreSQL Tenant DB (Default)\nTENANT_DB_HOST=localhost\nTENANT_DB_PORT=5433\nTENANT_DB_NAME=tenant_default\nTENANT_DB_USER=admin\nTENANT_DB_PASSWORD=admin\nTENANT_DB_URL=r2dbc:postgresql://localhost:5433/tenant_default\n\n# MongoDB (Read-side CQRS)\nMONGODB_URI=mongodb://localhost:27017/counseling_read\n\n# Redis\nREDIS_HOST=localhost\nREDIS_PORT=6379\nREDIS_URL=redis://localhost:6379\n\n# LiveKit\nLIVEKIT_URL=ws://localhost:7880\nLIVEKIT_API_KEY=devkey\nLIVEKIT_API_SECRET=secret\n\n# JWT\nJWT_SECRET=your-jwt-secret-key-change-in-production\nJWT_ACCESS_EXPIRATION=3600000\nJWT_REFRESH_EXPIRATION=604800000\n\n# Server\nAPI_PORT=8080\nAPI_ADMIN_PORT=8081\n\n# Recording Storage\nRECORDING_STORAGE_PATH=./storage/recordings\nFILE_STORAGE_PATH=./storage/files",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify .env.example contains all required variables. Copy to .env.local and verify Spring Boot application can read configuration. Test that connection strings match docker-compose service ports and credentials."
           },
           {
@@ -66,7 +66,7 @@
               4
             ],
             "details": "Final configuration and convenience setup:\n\n1. Update docker-compose.yml:\n   - Add 'depends_on' with health check conditions between services\n   - Add a default network 'counseling-network' for service communication\n   - Add profiles for selective service startup (e.g., 'db', 'all')\n   - Add restart policy: unless-stopped for all services\n\n2. Verify .gitignore includes:\n   - docker-compose.override.yml (already present)\n   - .env and .env.* (except .env.example) (already present)\n\n3. Add helpful labels and comments in docker-compose.yml:\n   - Service descriptions\n   - Port usage documentation\n   - Commands for common operations in comments\n\n4. Create storage directories structure:\n   - storage/recordings (for LiveKit egress)\n   - storage/files (for file uploads)\n   - storage/captures (for screen captures)\n   Add these to .gitignore with placeholder .gitkeep files.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run `docker-compose up -d` to start all services. Verify health checks pass with `docker-compose ps`. Test `docker-compose down -v` removes volumes. Verify storage directories exist. Run `docker-compose config` to validate YAML syntax. Test profile-based startup with `docker-compose --profile db up -d`."
           }
         ]

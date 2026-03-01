@@ -1,0 +1,171 @@
+# =============================================================================
+# Counseling Platform — Local Development Infrastructure
+# =============================================================================
+#
+# Usage:
+#   Start all services:           docker compose --profile all up -d
+#   Start DB services only:       docker compose --profile db up -d
+#   Start LiveKit only:           docker compose --profile livekit up -d
+#   Stop and remove containers:   docker compose down
+#   Stop and remove volumes:      docker compose down -v
+#   Check health status:          docker compose ps
+#   View logs:                    docker compose logs -f [service]
+#
+# Prerequisites: copy .env.example to .env and adjust values if needed.
+# =============================================================================
+
+name: counseling
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Meta DB (port 5432)
+  # Stores: tenants, super-admin accounts, tenant DB routing config
+  # CQRS write-side (Command)
+  # ---------------------------------------------------------------------------
+  postgres-meta:
+    image: postgres:16
+    container_name: counseling-postgres-meta
+    restart: unless-stopped
+    profiles: [db, all]
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: meta_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgres_meta_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d meta_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - counseling-network
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Tenant DB (port 5433)
+  # Stores: per-company data (users, channels, endpoints, chat, feedback, notes)
+  # Default dev tenant. In production each tenant gets its own DB instance.
+  # CQRS write-side (Command)
+  # ---------------------------------------------------------------------------
+  postgres-tenant:
+    image: postgres:16
+    container_name: counseling-postgres-tenant
+    restart: unless-stopped
+    profiles: [db, all]
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: tenant_default
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - postgres_tenant_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d tenant_default"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - counseling-network
+
+  # ---------------------------------------------------------------------------
+  # MongoDB 7 (port 27017)
+  # Stores: read-side query models (CQRS read), counseling history, statistics
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:7
+    container_name: counseling-mongodb
+    restart: unless-stopped
+    profiles: [db, all]
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: counseling_read
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - counseling-network
+
+  # ---------------------------------------------------------------------------
+  # Redis 7-alpine (port 6379)
+  # Stores: JWT token blacklist, agent session state, queue state
+  # AOF persistence enabled for data survival across container restarts.
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: counseling-redis
+    restart: unless-stopped
+    profiles: [db, all]
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - counseling-network
+
+  # ---------------------------------------------------------------------------
+  # LiveKit Server — WebRTC SFU (ports 7880/7881/7882-udp)
+  # 7880: HTTP/WebSocket signaling
+  # 7881: RTC over TCP (fallback)
+  # 7882/udp: RTC over UDP (primary media path)
+  # Dev mode uses simplified key auth (devkey:secret). Do NOT use in production.
+  # ---------------------------------------------------------------------------
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: counseling-livekit
+    restart: unless-stopped
+    profiles: [livekit, all]
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    command: --dev --bind 0.0.0.0
+    environment:
+      LIVEKIT_KEYS: "devkey: secret"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7880 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - counseling-network
+
+# =============================================================================
+# Named Volumes — data persists across `docker compose down` (not `down -v`)
+# =============================================================================
+volumes:
+  postgres_meta_data:
+    name: counseling_postgres_meta_data
+  postgres_tenant_data:
+    name: counseling_postgres_tenant_data
+  mongodb_data:
+    name: counseling_mongodb_data
+  redis_data:
+    name: counseling_redis_data
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  counseling-network:
+    name: counseling-network
+    driver: bridge

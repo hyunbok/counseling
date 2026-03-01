@@ -38,6 +38,12 @@ logs/
 # Docker
 docker-compose.override.yml
 
+# Storage (runtime generated — keep directory placeholders only)
+/storage/**
+!/storage/
+!/storage/*/
+!/storage/**/.gitkeep
+
 # Coverage / Test
 coverage/
 .nyc_output/
