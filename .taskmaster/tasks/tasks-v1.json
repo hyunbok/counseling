@@ -289,7 +289,7 @@
           2,
           3
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -297,7 +297,7 @@
             "description": "Define JWT-related domain models (TokenPair, JwtClaims, TokenType) and configuration properties for JWT secrets and expiration times in the be/api module.",
             "dependencies": [],
             "details": "Create domain models in be/api/src/main/kotlin/com/counseling/api/domain/model/:\n1. TokenPair.kt - Data class with accessToken and refreshToken strings\n2. JwtClaims.kt - Data class representing JWT payload (subject, role, tenantId, issuedAt, expiration)\n3. TokenType.kt - Enum with ACCESS and REFRESH values\n\nCreate configuration in be/api/src/main/kotlin/com/counseling/api/config/:\n1. JwtProperties.kt - @ConfigurationProperties class with:\n   - secret: String (JWT signing key)\n   - accessExpiration: Long (default 3600000ms = 1 hour)\n   - refreshExpiration: Long (default 604800000ms = 7 days)\n\nUpdate application.yml with jwt.* properties mapped from environment variables (JWT_SECRET, JWT_ACCESS_EXPIRATION, JWT_REFRESH_EXPIRATION).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write Kotest unit tests validating JwtProperties loads correctly from configuration. Test TokenPair data class equality and copy functions. Verify JwtClaims properly handles Instant timestamps."
           },
           {
@@ -308,7 +308,7 @@
               1
             ],
             "details": "Create be/api/src/main/kotlin/com/counseling/api/application/service/JwtTokenService.kt:\n\n@Service\nclass JwtTokenService(\n    private val jwtProperties: JwtProperties\n) {\n    private val signingKey by lazy { Keys.hmacShaKeyFor(jwtProperties.secret.toByteArray()) }\n    \n    fun generateTokenPair(userId: UUID, role: String, tenantId: String): TokenPair {\n        val accessToken = generateToken(userId, role, tenantId, jwtProperties.accessExpiration, TokenType.ACCESS)\n        val refreshToken = generateToken(userId, role, tenantId, jwtProperties.refreshExpiration, TokenType.REFRESH)\n        return TokenPair(accessToken, refreshToken)\n    }\n    \n    private fun generateToken(...): String using Jwts.builder() with:\n        - subject: userId\n        - claims: role, tenantId, tokenType\n        - issuedAt: Date()\n        - expiration: Date(System.currentTimeMillis() + expiration)\n        - signWith(signingKey, Jwts.SIG.HS256)\n    \n    fun parseToken(token: String): JwtClaims? - Parse and validate token, return null if invalid/expired\n    fun getRemainingExpiry(token: String): Long - Calculate milliseconds until token expires\n    fun isTokenExpired(token: String): Boolean - Check if token has expired",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write Kotest unit tests: (1) generateTokenPair creates valid tokens with correct claims, (2) parseToken returns claims for valid token, (3) parseToken returns null for expired token, (4) parseToken returns null for invalid signature, (5) getRemainingExpiry returns correct duration, (6) Access and refresh tokens have different expiration times."
           },
           {
@@ -320,7 +320,7 @@
               2
             ],
             "details": "Create be/api/src/main/kotlin/com/counseling/api/infrastructure/redis/TokenBlacklistService.kt:\n\n@Service\nclass TokenBlacklistService(\n    private val redisTemplate: ReactiveRedisTemplate<String, String>,\n    private val jwtTokenService: JwtTokenService\n) {\n    companion object {\n        private const val BLACKLIST_PREFIX = \"blacklist:\"\n    }\n    \n    fun blacklistToken(token: String): Mono<Boolean> {\n        val expiry = jwtTokenService.getRemainingExpiry(token)\n        if (expiry <= 0) return Mono.just(true) // Already expired\n        return redisTemplate.opsForValue()\n            .set(\"$BLACKLIST_PREFIX$token\", \"1\", Duration.ofMillis(expiry))\n    }\n    \n    fun isBlacklisted(token: String): Mono<Boolean> {\n        return redisTemplate.hasKey(\"$BLACKLIST_PREFIX$token\")\n    }\n    \n    fun blacklistAllUserTokens(userId: UUID): Mono<Long> - For password change scenarios\n}\n\nCreate Redis configuration in config/RedisConfig.kt:\n- Configure ReactiveRedisTemplate<String, String>\n- Set up ReactiveRedisConnectionFactory with connection pool\n- Configure serializers for String key/value pairs",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write integration tests with embedded Redis or TestContainers: (1) blacklistToken stores key with correct TTL, (2) isBlacklisted returns true for blacklisted token, (3) isBlacklisted returns false for non-blacklisted token, (4) Expired blacklist entries are automatically removed by Redis TTL, (5) Verify concurrent blacklist operations are thread-safe."
           },
           {
@@ -332,7 +332,7 @@
               3
             ],
             "details": "Create DTOs in adapter/inbound/web/dto/:\n- LoginRequest(username: String, password: String)\n- LoginResponse(accessToken: String, refreshToken: String, expiresIn: Long, user: UserInfo)\n- RefreshTokenRequest(refreshToken: String)\n- ChangePasswordRequest(currentPassword: String, newPassword: String)\n\nCreate adapter/inbound/web/AuthController.kt:\n@RestController\n@RequestMapping(\"/api/auth\")\nclass AuthController(\n    private val authService: AuthService,\n    private val jwtTokenService: JwtTokenService,\n    private val tokenBlacklistService: TokenBlacklistService\n) {\n    @PostMapping(\"/login\")\n    fun login(@RequestBody request: LoginRequest): Mono<LoginResponse>\n    \n    @PostMapping(\"/logout\")\n    fun logout(@RequestHeader(\"Authorization\") authHeader: String): Mono<ResponseEntity<Void>>\n    - Extract token, add to blacklist\n    \n    @PostMapping(\"/refresh\")\n    fun refresh(@RequestBody request: RefreshTokenRequest): Mono<LoginResponse>\n    - Validate refresh token, check blacklist, generate new token pair, blacklist old refresh token\n    \n    @PutMapping(\"/password\")\n    fun changePassword(@RequestBody request: ChangePasswordRequest, principal: Principal): Mono<ResponseEntity<Void>>\n}\n\nCreate application/service/AuthService.kt with BCryptPasswordEncoder for password verification and hashing.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write @WebFluxTest integration tests: (1) Login with valid credentials returns token pair, (2) Login with invalid password returns 401, (3) Logout blacklists token successfully, (4) Refresh with valid refresh token returns new token pair, (5) Refresh with blacklisted token returns 401, (6) Password change validates current password, (7) Password change updates hash with bcrypt."
           },
           {
@@ -345,10 +345,11 @@
               4
             ],
             "details": "Create/update config/SecurityConfig.kt:\n@Configuration\n@EnableWebFluxSecurity\nclass SecurityConfig(\n    private val jwtTokenService: JwtTokenService,\n    private val tokenBlacklistService: TokenBlacklistService\n) {\n    @Bean\n    fun securityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain {\n        return http\n            .csrf { it.disable() }\n            .httpBasic { it.disable() }\n            .formLogin { it.disable() }\n            .authorizeExchange { auth ->\n                auth.pathMatchers(\"/api/auth/login\", \"/api/auth/refresh\", \"/api/customer/join\").permitAll()\n                auth.pathMatchers(\"/actuator/health\").permitAll()\n                auth.pathMatchers(\"/api/**\").authenticated()\n            }\n            .addFilterBefore(jwtAuthenticationFilter(), SecurityWebFiltersOrder.AUTHENTICATION)\n            .exceptionHandling { ... }\n            .build()\n    }\n    \n    @Bean\n    fun jwtAuthenticationFilter(): JwtAuthenticationWebFilter - Custom WebFilter that:\n        1. Extracts Bearer token from Authorization header\n        2. Validates token signature and expiration\n        3. Checks token blacklist via TokenBlacklistService\n        4. Sets SecurityContext with UsernamePasswordAuthenticationToken including role\n}\n\nCreate adapter/inbound/web/filter/JwtAuthenticationWebFilter.kt implementing WebFilter with reactive flow.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write @WebFluxTest integration tests: (1) Public endpoints accessible without token, (2) Protected endpoints return 401 without token, (3) Protected endpoints accessible with valid token, (4) Blacklisted tokens are rejected with 401, (5) Expired tokens are rejected, (6) Invalid signature tokens are rejected, (7) Role from token is available in SecurityContext, (8) Verify concurrent authentication requests perform correctly."
           }
-        ]
+        ],
+        "updatedAt": "2026-03-01T14:01:49.037008+00:00"
       },
       {
         "id": 6,
