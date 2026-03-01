@@ -81,7 +81,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -89,7 +89,7 @@
             "description": "Initialize the be/api/ module directory and create the complete build.gradle.kts file with all required plugins (Kotlin 2.3, Spring Boot 4.0.2, ktlint 12.1.2) and dependencies (WebFlux, R2DBC, MongoDB Reactive, Redis Reactive, Security, JWT, LiveKit SDK, JUnit 5, Kotest).",
             "dependencies": [],
             "details": "Create be/api/ directory at project root. Create build.gradle.kts with:\n- Plugins: kotlin(\"jvm\") version 2.3.0, kotlin(\"plugin.spring\") version 2.3.0, org.springframework.boot version 4.0.2, io.spring.dependency-management version 1.1.6, org.jlleitschuh.gradle.ktlint version 12.1.2\n- kotlin { jvmToolchain(25) }\n- Dependencies: spring-boot-starter-webflux, spring-boot-starter-data-r2dbc, spring-boot-starter-data-mongodb-reactive, spring-boot-starter-data-redis-reactive, spring-boot-starter-security, jjwt-api:0.12.6, jjwt-impl:0.12.6, jjwt-jackson:0.12.6, livekit-server-sdk:0.8.0, spring-boot-starter-test, kotest-runner-junit5:5.9.1, io.projectreactor.kotlin:reactor-kotlin-extensions, kotlin-reflect\n- Create settings.gradle.kts with rootProject.name = \"api\"\n- Create gradle.properties with org.gradle.jvmargs and kotlin.code.style=official",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run './gradlew build' in be/api directory to verify Gradle can resolve all dependencies and compile the empty project successfully."
           },
           {
@@ -100,7 +100,7 @@
               1
             ],
             "details": "Create be/api/.editorconfig file with ktlint_official style settings:\n- root = true\n- [*.{kt,kts}] indent_size = 4, indent_style = space, max_line_length = 120\n- ktlint_standard_package-name = disabled (if needed for package naming)\n- Configure build.gradle.kts ktlint block: configure(\"ktlint\") { version.set(\"1.5.0\") outputColorName.set(\"RED\") reporters { reporter(\"plain\"), reporter(\"checkstyle\") } }\n- Ensure lambdas inside class bodies use 8-space indent as per PRD\n- Add ktlintFormat and ktlintCheck tasks to the build lifecycle",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run './gradlew ktlintCheck' to verify ktlint is properly configured. Create a sample Kotlin file with intentional style violations and verify ktlint detects them."
           },
           {
@@ -111,7 +111,7 @@
               1
             ],
             "details": "Create package structure under be/api/src/main/kotlin/com/counseling/api/:\n- domain/ - Pure business entities and value objects (no framework dependencies)\n- domain/model/ - Domain entities\n- domain/event/ - Domain events\n- port/ - Interface definitions\n- port/inbound/ - Use case interfaces (input ports)\n- port/outbound/ - Repository and external service interfaces (output ports)\n- application/ - Service implementations that orchestrate domain and ports\n- application/service/ - Service classes implementing use cases\n- adapter/ - Framework-specific implementations\n- adapter/inbound/web/ - REST controllers and DTOs\n- adapter/outbound/persistence/ - JPA/R2DBC/MongoDB repository implementations\n- adapter/outbound/external/ - External service adapters (LiveKit, email)\n- config/ - Spring configuration classes\nNote: Use 'inbound' instead of 'in' as 'in' is a Kotlin reserved keyword",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify all packages are created with correct naming. Ensure no 'in' or 'out' package names exist (use 'inbound'/'outbound'). Run './gradlew compileKotlin' to ensure package structure is valid."
           },
           {
@@ -123,7 +123,7 @@
               3
             ],
             "details": "Create be/api/src/main/kotlin/com/counseling/api/ApiApplication.kt:\n- @SpringBootApplication class with main function using runApplication<ApiApplication>(*args)\n\nCreate be/api/src/main/resources/application.yml:\n- server.port: 8080\n- spring.application.name: counseling-api\n- spring.profiles.active: local\n- Placeholder configurations for R2DBC, MongoDB, Redis (to be populated from environment)\n- management.endpoints.web.exposure.include: health,info\n\nCreate application-local.yml for local development with docker-compose connection strings.\n\nCreate config/WebFluxConfig.kt with CORS configuration.\nCreate config/SecurityConfig.kt with basic WebFlux security setup (permitAll for now, to be secured later).\nCreate config/JacksonConfig.kt for JSON serialization with Kotlin module support.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run './gradlew bootRun' and verify application starts successfully on port 8080. Verify /actuator/health endpoint returns 200 OK with UP status."
           },
           {
@@ -134,7 +134,7 @@
               4
             ],
             "details": "Add test dependencies to build.gradle.kts if not already present:\n- testImplementation(\"org.springframework.boot:spring-boot-starter-test\") { exclude(\"org.mockito\") }\n- testImplementation(\"io.kotest:kotest-runner-junit5:5.9.1\")\n- testImplementation(\"io.kotest:kotest-assertions-core:5.9.1\")\n- testImplementation(\"io.kotest.extensions:kotest-extensions-spring:1.3.0\") - Note: May have compatibility issues with Spring Boot 4\n- testImplementation(\"io.mockk:mockk:1.13.13\")\n- testImplementation(\"io.projectreactor:reactor-test\")\n\nCreate test source structure:\n- be/api/src/test/kotlin/com/counseling/api/\n- Create ApiApplicationTests.kt with @SpringBootTest to verify context loads\n- Create a sample Kotest spec (SampleSpec.kt) with StringSpec demonstrating Kotest usage\n- Add JUnit 5 configuration in build.gradle.kts: tasks.withType<Test> { useJUnitPlatform() }",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run './gradlew test' to verify both JUnit 5 and Kotest tests execute successfully. Verify test reports are generated in build/reports/tests/test/."
           }
         ]
