@@ -15,7 +15,7 @@ class WebFluxConfig(
             .addMapping("/api/**")
             .allowedOriginPatterns(*allowedOrigins.split(",").toTypedArray())
             .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-            .allowedHeaders("Authorization", "Content-Type", "X-Requested-With")
+            .allowedHeaders("Authorization", "Content-Type", "X-Requested-With", "X-Tenant-Id")
             .allowCredentials(true)
             .maxAge(3600)
     }
