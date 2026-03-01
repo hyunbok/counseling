@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# fe/app-customer — 고객용 화상 상담 앱
 
-## Getting Started
+고객이 상담을 신청하고 화상 통화에 참여하는 프론트엔드 앱.
 
-First, run the development server:
+## Tech Stack
+
+- Next.js 16 + React 19 + TypeScript
+- Tailwind CSS v4 (@theme 디자인 토큰)
+- Zustand (상태관리) + TanStack Query (서버 상태)
+- LiveKit Client (화상 통화)
+- Axios (API 클라이언트)
+
+## 실행
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 빌드
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm build
+pnpm lint
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 환경 변수
 
-## Learn More
+`.env.example` 참조:
 
-To learn more about Next.js, take a look at the following resources:
+```
+NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_LIVEKIT_URL=ws://localhost:7880
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 페이지
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| 경로 | 설명 |
+|---|---|
+| `/` | 상담 신청 (이름, 연락처 입력) |
+| `/waiting` | 대기열 (순번 표시) |
+| `/call/[id]` | 화상 통화 |
+| `/feedback` | 상담 후 피드백 (별점 + 코멘트) |
 
-## Deploy on Vercel
+## 디렉토리 구조
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/           # 페이지 라우트
+├── components/    # UI 컴포넌트 (providers, button, theme-toggle)
+├── hooks/         # use-queue, use-video-call
+├── stores/        # customer-store (Zustand, sessionStorage)
+└── lib/           # api, query-client
+```
