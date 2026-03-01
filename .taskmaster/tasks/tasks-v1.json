@@ -748,7 +748,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -756,7 +756,7 @@
             "description": "Create the Next.js app using pnpm create next-app with TypeScript, Tailwind CSS, ESLint, App Router, and src directory structure. Install core dependencies including Zustand, TanStack Query, LiveKit client, and axios.",
             "dependencies": [],
             "details": "Execute `cd fe && pnpm create next-app app-agent --typescript --tailwind --eslint --app --src-dir` to scaffold the project. Then install runtime dependencies: `pnpm add zustand @tanstack/react-query @tanstack/react-query-devtools livekit-client @livekit/components-react axios`. Install dev dependencies: `pnpm add -D prettier eslint-config-prettier @types/node`. Configure prettier integration with eslint in .eslintrc.json. The resulting structure should have src/app/ directory with App Router setup.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify Next.js dev server starts with `pnpm dev`. Check that all dependencies are properly installed in package.json. Ensure TypeScript compilation works with `pnpm build`."
           },
           {
@@ -767,7 +767,7 @@
               1
             ],
             "details": "Update tailwind.config.ts to extend theme with: colors (primary: indigo-600, semantic colors, agent status colors - Online=green-500, Offline=gray-400, Busy=red-500, Away=amber-500, Wrap-up=purple-500), fontFamily (Pretendard, Inter, JetBrains Mono), typography scale from design spec. Add dark mode support with `darkMode: 'class'`. Configure globals.css with font imports (Pretendard from CDN, Inter from Google Fonts) and base layer styles. Set up CSS custom properties for light/dark theme tokens.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Create a test component using custom colors and verify they render correctly. Test dark mode toggle switches theme properly. Verify fonts load correctly in browser dev tools."
           },
           {
@@ -778,7 +778,7 @@
               2
             ],
             "details": "Create src/components/layout/Sidebar.tsx with: navigation links (Dashboard, Call, History), agent status badge with color indicator, user profile section, dark mode toggle button (Sun/Moon icons from Heroicons). Build src/app/layout.tsx as root layout with sidebar + main content area pattern. Install @heroicons/react for icon system (`pnpm add @heroicons/react`). Implement responsive behavior - collapsible sidebar on mobile. Follow design-concept.md specifications: rounded-xl cards, shadow-sm, p-6 padding, indigo-600 primary buttons.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Navigate between routes and verify sidebar highlights active link. Test responsive behavior at different breakpoints. Verify dark mode toggle persists preference to localStorage."
           },
           {
@@ -789,7 +789,7 @@
               1
             ],
             "details": "Create src/stores/authStore.ts with Zustand: user info, JWT token, login/logout actions, persist middleware for token storage. Create src/stores/callStore.ts: current call state, queue data, call controls. Build src/hooks/useAuth.ts: login mutation, logout, token refresh logic, auth state selectors. Build src/hooks/useAgentStatus.ts: status query and mutation (Online/Away/Wrap-up toggle). Build src/hooks/useVideoCall.ts: LiveKit room connection, media controls, call state management. Set up TanStack Query provider in src/app/providers.tsx with QueryClient configuration.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test auth store persists token to localStorage. Verify status change mutation updates store and triggers re-fetch. Test useVideoCall hook connects to mock LiveKit room."
           },
           {
@@ -801,7 +801,7 @@
               4
             ],
             "details": "Create page routes: src/app/login/page.tsx (agent login form with JWT auth), src/app/dashboard/page.tsx (queue view with status toggle, uses QueueList component), src/app/call/[id]/page.tsx (video call interface with VideoRoom, ChatPanel, NotePanel, ToolBar), src/app/history/page.tsx (counseling history list with recording playback links). Build placeholder components in src/components/: queue/QueueList.tsx (queue items with accept action button), call/VideoRoom.tsx (LiveKit video container), call/ChatPanel.tsx (real-time chat), call/NotePanel.tsx (note-taking during call), call/ToolBar.tsx (screen share, document share, capture buttons). Each component should have proper TypeScript interfaces and follow accessibility guidelines.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test agent login flow stores JWT correctly. Verify dashboard renders queue list and status toggle. Navigate to /call/test-id and verify all panels render. Test history page shows sample data."
           }
         ]
