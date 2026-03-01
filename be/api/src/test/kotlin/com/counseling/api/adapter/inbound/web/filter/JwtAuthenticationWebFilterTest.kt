@@ -126,13 +126,13 @@ class JwtAuthenticationWebFilterTest :
             exchange.response.statusCode shouldBe null
         }
 
-        "returns 401 when Authorization header is missing" {
+        "passes through to chain when Authorization header is missing (SecurityConfig handles auth)" {
             val request =
                 MockServerHttpRequest
                     .get("/api/agents")
                     .build()
             val exchange = MockServerWebExchange.from(request)
-            val chain = mockk<WebFilterChain>()
+            val chain = passThruChain()
 
             StepVerifier
                 .create(
@@ -141,17 +141,17 @@ class JwtAuthenticationWebFilterTest :
                     },
                 ).verifyComplete()
 
-            exchange.response.statusCode shouldBe HttpStatus.UNAUTHORIZED
+            exchange.response.statusCode shouldBe null
         }
 
-        "returns 401 when Authorization header is not Bearer" {
+        "passes through to chain when Authorization header is not Bearer (SecurityConfig handles auth)" {
             val request =
                 MockServerHttpRequest
                     .get("/api/agents")
                     .header(HttpHeaders.AUTHORIZATION, "Basic dXNlcjpwYXNz")
                     .build()
             val exchange = MockServerWebExchange.from(request)
-            val chain = mockk<WebFilterChain>()
+            val chain = passThruChain()
 
             StepVerifier
                 .create(
@@ -160,7 +160,7 @@ class JwtAuthenticationWebFilterTest :
                     },
                 ).verifyComplete()
 
-            exchange.response.statusCode shouldBe HttpStatus.UNAUTHORIZED
+            exchange.response.statusCode shouldBe null
         }
 
         "returns 401 when token is invalid" {

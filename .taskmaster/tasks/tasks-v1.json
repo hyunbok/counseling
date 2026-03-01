@@ -432,7 +432,7 @@
           5,
           6
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -440,7 +440,7 @@
             "description": "Define QueueEntry, CustomerInfo, QueueUpdate domain models and related DTOs for the queue management system with proper validation annotations.",
             "dependencies": [],
             "details": "Create domain models in be/api/src/main/kotlin/domain/queue/ directory:\n\n1. QueueEntry.kt:\n- id: UUID (unique identifier for queue entry)\n- customerName: String (customer display name)\n- customerContact: String (phone or email)\n- enteredAt: Instant (timestamp when customer entered queue)\n- groupId: UUID? (optional target counseling group)\n\n2. CustomerInfo.kt:\n- name: String (validated, non-blank, max 50 chars)\n- contact: String (validated phone/email pattern)\n- groupId: UUID? (optional counseling group preference)\n\n3. QueueUpdate.kt (for WebSocket notifications):\n- type: QueueUpdateType enum (CUSTOMER_ENTERED, CUSTOMER_LEFT, CUSTOMER_ACCEPTED, POSITION_CHANGED)\n- entry: QueueEntry? (the affected entry)\n- queueSize: Int (current total queue size)\n- timestamp: Instant\n\n4. DTOs:\n- EnterQueueRequest (name, contact, groupId?)\n- EnterQueueResponse (entryId, position, estimatedWaitTime)\n- QueuePositionResponse (position, estimatedWaitTime, queueSize)\n- QueueEntryDto (for agent view with wait duration calculated)\n\nUse Jackson annotations for JSON serialization and Jakarta validation annotations.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write Kotest unit tests to verify: 1) QueueEntry serialization/deserialization with ObjectMapper, 2) Validation constraints on CustomerInfo reject invalid input, 3) QueueUpdate enum values serialize correctly, 4) DTOs map correctly from domain models."
           },
           {
@@ -451,7 +451,7 @@
               1
             ],
             "details": "Create QueueService.kt in be/api/src/main/kotlin/service/queue/ directory:\n\n1. Dependencies:\n- ReactiveRedisTemplate<String, String> (for Redis operations)\n- ObjectMapper (for JSON serialization)\n- NotificationService (for WebSocket notifications - can be placeholder initially)\n\n2. Redis Key Structure:\n- Queue key: 'tenant:{tenantId}:counseling:queue' (tenant-specific)\n- Score: entry timestamp in epoch milliseconds for FIFO ordering\n\n3. Core Methods:\n- enterQueue(tenantId: String, customer: CustomerInfo): Mono<QueueEntry>\n  * Generate UUID, create QueueEntry with current timestamp\n  * Add to sorted set with ZADD (score = enteredAt.toEpochMilli)\n  * Trigger queue update notification\n  * Return created entry\n\n- leaveQueue(tenantId: String, entryId: UUID): Mono<Boolean>\n  * Find entry by scanning queue (ZRANGE with pattern match)\n  * Remove entry with ZREM\n  * Trigger queue update notification\n  * Return success boolean\n\n- getQueueEntries(tenantId: String): Flux<QueueEntry>\n  * Use ZRANGE to get all entries ordered by score (earliest first)\n  * Deserialize JSON strings to QueueEntry objects\n\n- getQueuePosition(tenantId: String, entryId: UUID): Mono<Int>\n  * Use ZRANK to get 0-based position, add 1 for 1-based\n\n- getQueueSize(tenantId: String): Mono<Long>\n  * Use ZCARD to get total queue size\n\n4. Configure Redis connection in application.yml with connection pool settings.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write integration tests using @SpringBootTest with embedded Redis (Testcontainers): 1) Test enterQueue adds entry and returns correct position, 2) Test leaveQueue removes entry correctly, 3) Test queue ordering maintains FIFO by entry time, 4) Test getQueuePosition returns correct 1-based position, 5) Test concurrent enter operations maintain consistency with 50+ simultaneous requests."
           },
           {
@@ -462,7 +462,7 @@
               2
             ],
             "details": "Extend QueueService with accept flow in be/api/src/main/kotlin/service/queue/:\n\n1. Add acceptCustomer method:\n- acceptCustomer(tenantId: String, entryId: UUID, agentId: UUID): Mono<Channel>\n  * Validate entry exists in queue (return error if not found)\n  * Remove entry from Redis queue atomically\n  * Create new Channel entity:\n    - Generate channelId (UUID)\n    - Set agentId, status=WAITING\n    - Set startedAt timestamp\n  * Create Endpoint for customer:\n    - type=CUSTOMER, customerName, customerContact from QueueEntry\n  * Create Endpoint for agent:\n    - type=AGENT, userId=agentId\n  * Update agent status to BUSY via AgentStatusService\n  * Trigger notifications: queue update + customer matched notification\n  * Return created Channel\n\n2. Create AgentStatusService.kt (or extend existing):\n- updateStatus(agentId: UUID, status: AgentStatus): Mono<Void>\n- AgentStatus enum: ONLINE, OFFLINE, BUSY, AWAY, WRAPUP\n- Store status in Redis with key 'tenant:{tenantId}:agent:{agentId}:status'\n- Broadcast status change to monitoring subscribers\n\n3. Transaction handling:\n- Use Redis transaction (MULTI/EXEC) for atomic queue removal + status update\n- Implement compensating action if channel creation fails\n\n4. Validation:\n- Agent must be ONLINE to accept customers\n- Agent cannot accept if already BUSY\n- Entry must exist and not be already accepted",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write integration tests: 1) Test acceptCustomer removes entry from queue and creates channel, 2) Test agent status changes to BUSY after accept, 3) Test concurrent accept of same entry fails for second agent, 4) Test accept fails if agent is not ONLINE, 5) Test accept fails if entry doesn't exist, 6) Verify channel and endpoints are created correctly."
           },
           {
@@ -473,7 +473,7 @@
               3
             ],
             "details": "Create QueueController.kt in be/api/src/main/kotlin/controller/:\n\n1. Customer Endpoints:\n- POST /api/queue/enter\n  * Request: EnterQueueRequest (name, contact, groupId?)\n  * Response: EnterQueueResponse (entryId, position, estimatedWaitTime)\n  * No authentication required (customer is anonymous)\n  * Validate input, call queueService.enterQueue()\n\n- DELETE /api/queue/leave\n  * Query param: entryId (UUID)\n  * Response: 204 No Content on success\n  * Call queueService.leaveQueue()\n\n- GET /api/queue/position\n  * Query param: entryId (UUID)\n  * Response: QueuePositionResponse (position, estimatedWaitTime)\n  * Customer can poll this endpoint for position updates\n\n2. Agent Endpoints (require JWT authentication):\n- GET /api/queue\n  * Response: List<QueueEntryDto> with wait duration\n  * Only ONLINE agents can view queue\n  * Filter by agent's group if applicable\n\n- POST /api/queue/{entryId}/accept\n  * Path param: entryId (UUID)\n  * Response: ChannelResponse (channelId, livekitToken, etc.)\n  * Extract agentId from JWT principal\n  * Call queueService.acceptCustomer()\n\n3. Error Handling:\n- Use @ControllerAdvice for global exception handling\n- QueueEntryNotFoundException -> 404\n- AgentNotAvailableException -> 409 Conflict\n- InvalidAgentStatusException -> 400\n\n4. Response DTOs:\n- Include hypermedia links for queue status polling (HATEOAS optional)",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write @WebFluxTest controller tests: 1) Test POST /api/queue/enter with valid input returns 201 with entry details, 2) Test DELETE /api/queue/leave returns 204, 3) Test GET /api/queue returns sorted list for authenticated agent, 4) Test POST /api/queue/{id}/accept returns channel info, 5) Test validation errors return 400 with details, 6) Test unauthorized access to agent endpoints returns 401."
           },
           {
@@ -484,10 +484,11 @@
               4
             ],
             "details": "Create WebSocket infrastructure in be/api/src/main/kotlin/websocket/:\n\n1. QueueWebSocketHandler.kt (RSocket or WebSocket):\n- subscribeToQueue(): Flux<QueueUpdate>\n  * Agents subscribe to receive all queue changes\n  * Filter updates by agent's group if applicable\n  * Use Sinks.Many for broadcasting to multiple subscribers\n\n2. NotificationService.kt enhancement:\n- Private field: queueSinks: ConcurrentHashMap<String, Sinks.Many<QueueUpdate>>\n  * Key: tenantId (or tenantId:groupId for group-specific)\n- notifyQueueUpdate(tenantId: String, update: QueueUpdate): Mono<Void>\n  * Emit update to all subscribers for that tenant\n- subscribeToQueueUpdates(tenantId: String): Flux<QueueUpdate>\n  * Return hot flux from sink for subscription\n\n3. Customer Position Updates (SSE recommended for simplicity):\n- GET /api/queue/stream?entryId={id} (SSE endpoint)\n  * Return Flux<QueuePositionResponse> with periodic updates\n  * Push new position when queue changes\n  * Complete stream when customer is accepted or leaves\n\n4. CustomerNotificationSink:\n- customerSinks: ConcurrentHashMap<UUID, Sinks.One<QueueUpdate>>\n- notifyCustomerMatched(entryId: UUID, channelId: UUID): Mono<Void>\n  * Notify specific customer when agent accepts\n  * Include channel details for redirect to video call\n\n5. Configuration:\n- WebSocket message broker config with tenant-aware topics\n- SSE timeout and heartbeat settings\n- Connection cleanup on disconnect\n\n6. Message Format:\n- QueueUpdate JSON with type discriminator for frontend handling",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write integration tests: 1) Test WebSocket subscription receives queue updates when customer enters/leaves, 2) Test SSE endpoint streams position updates to customer, 3) Test customer receives notification when accepted with channel info, 4) Verify update latency is under 1 second, 5) Load test with 100+ concurrent WebSocket subscribers, 6) Test connection cleanup when customer disconnects."
           }
-        ]
+        ],
+        "updatedAt": "2026-03-01T16:17:37.116369+00:00"
       },
       {
         "id": 8,
