@@ -2,6 +2,7 @@ package com.counseling.api.adapter.inbound.web
 
 import com.counseling.api.adapter.inbound.web.dto.ErrorResponse
 import com.counseling.api.domain.exception.BadRequestException
+import com.counseling.api.domain.exception.NotFoundException
 import com.counseling.api.domain.exception.UnauthorizedException
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -34,6 +35,19 @@ class GlobalExceptionHandler {
             status = HttpStatus.BAD_REQUEST.value(),
             error = HttpStatus.BAD_REQUEST.reasonPhrase,
             message = ex.message ?: "Bad request",
+            path = exchange.request.uri.path,
+        )
+
+    @ExceptionHandler(NotFoundException::class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    fun handleNotFound(
+        ex: NotFoundException,
+        exchange: ServerWebExchange,
+    ): ErrorResponse =
+        ErrorResponse(
+            status = HttpStatus.NOT_FOUND.value(),
+            error = HttpStatus.NOT_FOUND.reasonPhrase,
+            message = ex.message ?: "Not found",
             path = exchange.request.uri.path,
         )
 }

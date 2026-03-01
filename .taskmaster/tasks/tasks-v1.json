@@ -361,7 +361,7 @@
         "dependencies": [
           4
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -369,7 +369,7 @@
             "description": "Implement the foundational domain entities for tenant-specific data including User (Agent/Admin), Group, and Company following DDD principles with R2DBC annotations for PostgreSQL.",
             "dependencies": [],
             "details": "Create domain entities in be/common/domain/ directory:\n\n1. **User.kt** - Agent and Admin entity:\n```kotlin\n@Table(\"users\")\ndata class User(\n    @Id val id: UUID = UUID.randomUUID(),\n    val username: String,\n    var passwordHash: String,\n    val name: String,\n    val role: UserRole,\n    val groupId: UUID?,\n    var agentStatus: AgentStatus = AgentStatus.OFFLINE,\n    var status: AccountStatus = AccountStatus.ACTIVE,\n    val createdAt: Instant = Instant.now(),\n    var updatedAt: Instant = Instant.now()\n)\n\nenum class UserRole { AGENT, COMPANY_ADMIN, GROUP_ADMIN }\nenum class AgentStatus { ONLINE, OFFLINE, BUSY, AWAY, WRAP_UP }\nenum class AccountStatus { ACTIVE, INACTIVE }\n```\n\n2. **Group.kt** - Counseling group:\n```kotlin\n@Table(\"groups\")\ndata class Group(\n    @Id val id: UUID = UUID.randomUUID(),\n    val name: String,\n    var status: GroupStatus = GroupStatus.ACTIVE\n)\n\nenum class GroupStatus { ACTIVE, INACTIVE }\n```\n\n3. **Company.kt** - Tenant company info:\n```kotlin\n@Table(\"companies\")\ndata class Company(\n    @Id val id: UUID = UUID.randomUUID(),\n    val name: String,\n    var contact: String?,\n    var address: String?,\n    var updatedAt: Instant = Instant.now()\n)\n```\n\nInclude validation annotations (@field:NotBlank, @field:Size) and domain logic methods (e.g., User.canAcceptCounseling(), User.changeStatus()).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write Kotest unit tests for: (1) User entity validation - username required, role valid enum, (2) User.canAcceptCounseling() returns true only when ONLINE status, (3) User.changeStatus() transitions follow valid state machine (cannot go from OFFLINE to BUSY directly), (4) Group entity validation, (5) Company entity optional field handling."
           },
           {
@@ -380,7 +380,7 @@
               1
             ],
             "details": "Create counseling session domain entities in be/common/domain/:\n\n1. **Channel.kt** - Counseling session:\n```kotlin\n@Table(\"channels\")\ndata class Channel(\n    @Id val id: UUID = UUID.randomUUID(),\n    val agentId: UUID,\n    var status: ChannelStatus = ChannelStatus.WAITING,\n    val startedAt: Instant = Instant.now(),\n    var endedAt: Instant? = null,\n    var recordingPath: String? = null\n) {\n    fun close(): Channel = copy(status = ChannelStatus.CLOSED, endedAt = Instant.now())\n    fun startSession(): Channel = copy(status = ChannelStatus.IN_PROGRESS)\n}\n\nenum class ChannelStatus { WAITING, IN_PROGRESS, CLOSED }\n```\n\n2. **Endpoint.kt** - Participant connection:\n```kotlin\n@Table(\"endpoints\")\ndata class Endpoint(\n    @Id val id: UUID = UUID.randomUUID(),\n    val channelId: UUID,\n    val type: EndpointType,\n    val customerName: String?,\n    val customerContact: String?,\n    val joinedAt: Instant = Instant.now(),\n    var leftAt: Instant? = null\n) {\n    fun leave(): Endpoint = copy(leftAt = Instant.now())\n}\n\nenum class EndpointType { AGENT, CUSTOMER }\n```\n\n3. **Value Objects** in be/common/domain/vo/:\n- CustomerInfo.kt: data class CustomerInfo(val name: String, val contact: String)\n- SessionDuration.kt: value object for calculating session length\n- RecordingPath.kt: value object with path validation following /{tenant_id}/{channel_id}/{timestamp}.{ext} format",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write Kotest unit tests: (1) Channel state transitions (WAITING -> IN_PROGRESS -> CLOSED), (2) Channel.close() sets endedAt timestamp, (3) Endpoint.leave() sets leftAt, (4) CustomerInfo value object immutability, (5) RecordingPath validates path format pattern, (6) SessionDuration calculates correctly from start/end times."
           },
           {
@@ -391,7 +391,7 @@
               2
             ],
             "details": "Create additional domain entities in be/common/domain/:\n\n1. **ChatMessage.kt** - Real-time chat:\n```kotlin\n@Table(\"chat_messages\")\ndata class ChatMessage(\n    @Id val id: UUID = UUID.randomUUID(),\n    val channelId: UUID,\n    val senderType: SenderType,\n    val senderId: String,\n    val content: String,\n    val createdAt: Instant = Instant.now()\n)\n\nenum class SenderType { AGENT, CUSTOMER }\n```\n\n2. **CounselNote.kt** - Agent notes:\n```kotlin\n@Table(\"counsel_notes\")\ndata class CounselNote(\n    @Id val id: UUID = UUID.randomUUID(),\n    val channelId: UUID,\n    val agentId: UUID,\n    var content: String,\n    val createdAt: Instant = Instant.now(),\n    var updatedAt: Instant = Instant.now()\n) {\n    fun updateContent(newContent: String): CounselNote = copy(content = newContent, updatedAt = Instant.now())\n}\n```\n\n3. **Feedback.kt** - Customer feedback:\n```kotlin\n@Table(\"feedbacks\")\ndata class Feedback(\n    @Id val id: UUID = UUID.randomUUID(),\n    val channelId: UUID,\n    val rating: Int, // 1-5\n    val comment: String?,\n    val createdAt: Instant = Instant.now()\n) {\n    init {\n        require(rating in 1..5) { \"Rating must be between 1 and 5\" }\n    }\n}\n```\n\n4. **Domain Events** in be/common/domain/event/:\n- ChannelCreatedEvent, ChannelClosedEvent\n- FeedbackSubmittedEvent\n- AgentStatusChangedEvent\nThese events enable CQRS synchronization from Command (PostgreSQL) to Query (MongoDB) side.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write Kotest unit tests: (1) ChatMessage sender type validation, (2) CounselNote.updateContent() updates timestamp, (3) Feedback rating constraint 1-5 throws exception for invalid values, (4) Feedback with null comment is valid, (5) Domain events contain proper aggregate IDs and timestamps, (6) ChannelClosedEvent includes duration calculation."
           },
           {
@@ -404,7 +404,7 @@
               3
             ],
             "details": "Create repository port interfaces in be/common/domain/port/:\n\n1. **Command Repositories** (PostgreSQL - Write operations):\n```kotlin\n// UserRepository.kt\ninterface UserRepository {\n    fun findById(id: UUID): Mono<User>\n    fun findByUsername(username: String): Mono<User>\n    fun findByGroupId(groupId: UUID): Flux<User>\n    fun save(user: User): Mono<User>\n    fun updateStatus(id: UUID, status: AgentStatus): Mono<Void>\n}\n\n// ChannelRepository.kt\ninterface ChannelRepository {\n    fun findById(id: UUID): Mono<Channel>\n    fun findByAgentId(agentId: UUID): Flux<Channel>\n    fun findActiveByAgentId(agentId: UUID): Mono<Channel>\n    fun save(channel: Channel): Mono<Channel>\n}\n\n// Similar interfaces for: EndpointRepository, GroupRepository, CompanyRepository, ChatMessageRepository, CounselNoteRepository, FeedbackRepository\n```\n\n2. **Query Repositories** (MongoDB - Read-optimized):\n```kotlin\n// ChannelQueryRepository.kt\ninterface ChannelQueryRepository {\n    fun findByAgentIdWithPagination(agentId: UUID, pageable: Pageable): Flux<ChannelReadModel>\n    fun findByDateRange(start: Instant, end: Instant): Flux<ChannelReadModel>\n    fun countByStatus(status: ChannelStatus): Mono<Long>\n}\n\n// StatsQueryRepository.kt - For admin statistics\ninterface StatsQueryRepository {\n    fun getSessionStatsByDateRange(start: Instant, end: Instant): Mono<SessionStats>\n    fun getAgentPerformanceStats(agentId: UUID): Mono<AgentStats>\n}\n```\n\n3. **Read Models** in be/common/domain/readmodel/:\n- ChannelReadModel, FeedbackReadModel, SessionStats, AgentStats",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write Kotest unit tests verifying: (1) Repository interfaces compile correctly with reactive return types, (2) Read model data classes have proper fields matching MongoDB documents, (3) All repository methods have appropriate return types (Mono for single, Flux for multiple), (4) Verify interface segregation - command repos don't have query methods and vice versa."
           },
           {
@@ -415,10 +415,11 @@
               4
             ],
             "details": "Create R2DBC repository implementations in be/common/infrastructure/persistence/:\n\n1. **Spring Data R2DBC Repositories**:\n```kotlin\n// R2dbcUserRepository.kt\ninterface R2dbcUserRepository : ReactiveCrudRepository<User, UUID> {\n    fun findByUsername(username: String): Mono<User>\n    fun findByGroupId(groupId: UUID): Flux<User>\n    @Modifying\n    @Query(\"UPDATE users SET agent_status = :status, updated_at = :now WHERE id = :id\")\n    fun updateAgentStatus(id: UUID, status: AgentStatus, now: Instant): Mono<Void>\n}\n\n// Similar for: R2dbcChannelRepository, R2dbcEndpointRepository, R2dbcGroupRepository, R2dbcChatMessageRepository, R2dbcCounselNoteRepository, R2dbcFeedbackRepository\n```\n\n2. **Port Adapter Implementations**:\n```kotlin\n// UserRepositoryAdapter.kt\n@Repository\nclass UserRepositoryAdapter(\n    private val r2dbcRepository: R2dbcUserRepository,\n    private val eventPublisher: ApplicationEventPublisher\n) : UserRepository {\n    override fun save(user: User): Mono<User> =\n        r2dbcRepository.save(user)\n            .doOnSuccess { eventPublisher.publishEvent(UserSavedEvent(it)) }\n    // ... other method implementations\n}\n```\n\n3. **Database Schema** - Create Flyway migrations in be/api/src/main/resources/db/migration/:\n- V1__create_users_table.sql\n- V2__create_groups_table.sql\n- V3__create_channels_table.sql\n- V4__create_endpoints_table.sql\n- V5__create_chat_messages_table.sql\n- V6__create_counsel_notes_table.sql\n- V7__create_feedbacks_table.sql\n\n4. **R2DBC Configuration** for tenant-aware connection in TenantDatabaseConfig.kt",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write integration tests with TestContainers PostgreSQL: (1) UserRepositoryAdapter.save() persists and retrieves user, (2) UserRepositoryAdapter.findByUsername() returns correct user, (3) ChannelRepositoryAdapter handles status updates correctly, (4) Verify Flyway migrations run successfully, (5) Test concurrent save operations don't cause conflicts, (6) Verify event publishing on save operations, (7) Test repository operations work with TenantRoutingConnectionFactory from Task 4."
           }
-        ]
+        ],
+        "updatedAt": "2026-03-01T15:53:58.781319+00:00"
       },
       {
         "id": 7,

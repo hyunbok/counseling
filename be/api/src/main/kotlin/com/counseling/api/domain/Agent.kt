@@ -12,8 +12,16 @@ data class Agent(
     val createdAt: Instant,
     val updatedAt: Instant,
     val deleted: Boolean = false,
+    val groupId: UUID? = null,
+    val agentStatus: AgentStatus = AgentStatus.OFFLINE,
 ) {
     fun changePassword(newHash: String): Agent = copy(passwordHash = newHash, updatedAt = Instant.now())
 
     fun isActive(): Boolean = !deleted
+
+    fun updateStatus(status: AgentStatus): Agent = copy(agentStatus = status, updatedAt = Instant.now())
+
+    fun assignToGroup(groupId: UUID?): Agent = copy(groupId = groupId, updatedAt = Instant.now())
+
+    fun isAvailable(): Boolean = !deleted && agentStatus == AgentStatus.ONLINE
 }

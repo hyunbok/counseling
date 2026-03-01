@@ -1,6 +1,7 @@
 package com.counseling.api.port.outbound
 
 import com.counseling.api.domain.Agent
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.UUID
 
@@ -10,4 +11,8 @@ interface AgentRepository {
     fun findByIdAndNotDeleted(id: UUID): Mono<Agent>
 
     fun save(agent: Agent): Mono<Agent>
+
+    fun findAllByGroupIdAndNotDeleted(groupId: UUID): Flux<Agent>
+
+    fun findAllByNotDeleted(): Flux<Agent>
 }
