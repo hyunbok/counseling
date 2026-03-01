@@ -1,0 +1,68 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Brand colors */
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-primary-dark: #818cf8;
+  --color-primary-dark-hover: #a5b4fc;
+
+  /* Background */
+  --color-bg-base: #ffffff;
+  --color-bg-surface: #f9fafb;
+  --color-bg-elevated: #ffffff;
+  --color-bg-base-dark: #111827;
+  --color-bg-surface-dark: #1f2937;
+  --color-bg-elevated-dark: #374151;
+
+  /* Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #374151;
+  --color-text-tertiary: #6b7280;
+  --color-text-primary-dark: #f3f4f6;
+  --color-text-secondary-dark: #d1d5db;
+  --color-text-tertiary-dark: #9ca3af;
+
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Font families */
+  --font-sans: "Pretendard", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Font sizes */
+  --text-display: 1.875rem;
+  --text-heading-l: 1.5rem;
+  --text-heading-m: 1.25rem;
+  --text-body-l: 1rem;
+  --text-body-m: 0.875rem;
+  --text-caption: 0.75rem;
+
+  /* Border radius */
+  --radius-card: 12px;
+  --radius-button: 8px;
+  --radius-input: 8px;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body {
+  background-color: var(--color-bg-base-dark);
+  color: var(--color-text-primary-dark);
+}

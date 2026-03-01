@@ -831,7 +831,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -839,7 +839,7 @@
             "description": "Create the fe/app-admin Next.js project using pnpm create next-app with TypeScript, Tailwind CSS, ESLint, App Router, and src directory structure. Install core dependencies for state management and API communication.",
             "dependencies": [],
             "details": "Execute `cd fe && pnpm create next-app app-admin --typescript --tailwind --eslint --app --src-dir` to scaffold the project. Then install runtime dependencies: `pnpm add zustand @tanstack/react-query @tanstack/react-query-devtools axios`. Install dev dependencies: `pnpm add -D prettier eslint-config-prettier @types/node`. Configure prettier integration with eslint in .eslintrc.json by extending 'prettier'. Create .prettierrc with project formatting preferences (singleQuote: true, semi: false, trailingComma: 'es5'). The resulting structure should have src/app/ directory with App Router setup ready for admin pages.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Verify Next.js dev server starts with `pnpm dev` on localhost:3000. Check that all dependencies are properly listed in package.json. Ensure TypeScript compilation works with `pnpm build`. Run `pnpm lint` to verify ESLint configuration with Prettier integration."
           },
           {
@@ -850,7 +850,7 @@
               1
             ],
             "details": "Update tailwind.config.ts to extend theme with: colors (primary indigo-600/#4F46E5, semantic colors for success/warning/error/info, agent status colors - Online=green-500, Offline=gray-400, Busy=red-500, Away=amber-500, Wrap-up=purple-500), fontFamily (sans: Pretendard/Inter, mono: JetBrains Mono), typography scale (Display 30px, Heading L 24px, Heading M 20px, Body L 16px, Body M 14px, Caption 12px). Add dark mode support with `darkMode: 'class'`. Configure src/app/globals.css with font imports (Pretendard from CDN, Inter from Google Fonts) and base layer styles. Set up CSS custom properties for light/dark theme background and text colors per design-concept.md specifications.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Create a test component using custom colors (bg-primary, text-success) and verify they render correctly. Test dark mode toggle by adding 'dark' class to html element and confirming dark: variants apply. Verify fonts load correctly in browser Network tab and font-family is applied in computed styles."
           },
           {
@@ -861,7 +861,7 @@
               2
             ],
             "details": "Create src/components/layout/AdminSidebar.tsx with: navigation links (Dashboard, Tenants, Groups, Agents, Monitoring, Feedbacks), role-based visibility logic (Tenants menu only for Super Admin), user profile section with name and role badge, dark mode toggle button using Sun/Moon Heroicons. Install @heroicons/react for icon system (`pnpm add @heroicons/react`). Build src/app/layout.tsx as root layout wrapping authenticated pages with sidebar + main content area pattern. Create src/app/(auth)/layout.tsx for login page without sidebar. Implement responsive behavior with collapsible sidebar on mobile (hamburger menu). Follow design-concept.md specifications: sidebar width ~256px, rounded-xl cards, shadow-sm, p-6 padding, indigo-600 primary accent, proper hover states for navigation items.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Navigate between routes and verify sidebar highlights active navigation link. Test responsive behavior at mobile (375px), tablet (768px), and desktop (1280px) breakpoints. Verify dark mode toggle persists preference to localStorage and applies on page reload. Mock different user roles and verify Tenants menu visibility changes appropriately."
           },
           {
@@ -872,7 +872,7 @@
               1
             ],
             "details": "Create src/stores/adminStore.ts with Zustand: user info (id, username, name, role: SUPER_ADMIN | COMPANY_ADMIN | GROUP_ADMIN), JWT tokens (access/refresh), login/logout actions, persist middleware for token storage in localStorage. Create src/lib/api.ts: Axios instance with baseURL from NEXT_PUBLIC_API_ADMIN_URL env var, request interceptor to attach Authorization header, response interceptor for 401 handling with token refresh logic. Create src/lib/query-client.ts: QueryClient with staleTime: 5 minutes, retry: 1 for failed queries. Create src/hooks/useAdminAuth.ts: login mutation calling /api-adm/auth/login, logout clearing store and blacklisting token, hasRole() and canAccess() helper functions for RBAC, useAuthGuard hook for protecting routes. Set up TanStack Query provider in src/app/providers.tsx wrapping QueryClientProvider with ReactQueryDevtools for development.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test login flow stores JWT tokens correctly in localStorage via Zustand persist. Verify logout clears auth state and removes tokens. Test hasRole('SUPER_ADMIN') returns correct boolean. Verify Axios interceptor attaches Bearer token to requests. Test 401 response triggers token refresh flow."
           },
           {
@@ -884,7 +884,7 @@
               4
             ],
             "details": "Create page routes with role-based access: src/app/login/page.tsx (admin login form with username/password, redirects to dashboard on success), src/app/dashboard/page.tsx (stats overview with StatCard components showing total agents, active sessions, average satisfaction, etc.), src/app/tenants/page.tsx (SUPER_ADMIN only - tenant list with DataTable, create/edit with CreateModal), src/app/groups/page.tsx (COMPANY_ADMIN+ - group management with CRUD), src/app/agents/page.tsx (agent list with status indicators, create/deactivate actions), src/app/monitoring/page.tsx (live session monitoring grid), src/app/feedbacks/page.tsx (feedback list with rating filters). Create reusable components: src/components/stats/StatCard.tsx (icon, value, label, trend indicator), src/components/tables/DataTable.tsx (sortable columns, pagination, row actions), src/components/modals/CreateModal.tsx (dialog wrapper for create/edit forms). Implement route middleware in src/middleware.ts to redirect unauthenticated users to login and check role permissions per route.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test login redirects to dashboard on success. Navigate to /tenants as COMPANY_ADMIN and verify 403 forbidden or redirect. Verify dashboard StatCards render with placeholder data. Test DataTable pagination and sorting interactions. Verify CreateModal opens/closes correctly. Run `pnpm build` to ensure all pages compile without TypeScript errors."
           }
         ]
