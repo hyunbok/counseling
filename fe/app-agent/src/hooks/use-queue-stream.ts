@@ -12,6 +12,8 @@ export function useQueueStream() {
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
+    let isActive = true;
+
     (async () => {
       try {
         const response = await fetch(`${baseUrl}/api/queue/stream`, {
@@ -24,9 +26,9 @@ export function useQueueStream() {
         const decoder = new TextDecoder();
         let buffer = '';
 
-        while (true) {
+        while (isActive) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done || !isActive) break;
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() ?? '';
@@ -43,6 +45,7 @@ export function useQueueStream() {
     })();
 
     return () => {
+      isActive = false;
       controller.abort();
     };
   }, [queryClient]);

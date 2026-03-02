@@ -10,6 +10,7 @@ import { ChatPanel } from '@/components/call/chat-panel';
 import { NotePanel } from '@/components/call/note-panel';
 import { ToolBar } from '@/components/call/tool-bar';
 import useCallStore from '@/stores/call-store';
+import { useRecording } from '@/hooks/use-recording';
 import api from '@/lib/api';
 
 interface CallPageProps {
@@ -38,6 +39,15 @@ function CallPageInner({ channelId }: { channelId: string }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const connectionState = useConnectionState();
   const isConnected = connectionState === ConnectionState.Connected;
+  const { isRecording, startRecording, stopRecording } = useRecording(channelId);
+
+  // Auto-start recording when connected
+  useEffect(() => {
+    if (isConnected && !isRecording) {
+      startRecording();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected]);
 
   // Elapsed timer
   useEffect(() => {
@@ -54,6 +64,9 @@ function CallPageInner({ channelId }: { channelId: string }) {
   };
 
   const handleEndCall = async () => {
+    if (isRecording) {
+      stopRecording();
+    }
     try {
       await api.post(`/api/channels/${channelId}/close`);
     } catch {
@@ -83,10 +96,25 @@ function CallPageInner({ channelId }: { channelId: string }) {
           {/* Elapsed timer */}
           <span className="font-mono text-sm text-gray-300">{formatElapsed(elapsedSeconds)}</span>
           {/* Recording badge */}
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-600/20 border border-red-500/40 px-2.5 py-0.5 text-xs font-medium text-red-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-            REC
-          </span>
+          {isRecording ? (
+            <button
+              onClick={stopRecording}
+              className="inline-flex items-center gap-1 rounded-full bg-red-600/20 border border-red-500/40 px-2.5 py-0.5 text-xs font-medium text-red-400 hover:bg-red-600/30 transition-colors"
+              aria-label="녹화 중지"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+              REC
+            </button>
+          ) : (
+            <button
+              onClick={startRecording}
+              className="inline-flex items-center gap-1 rounded-full bg-gray-700/50 border border-gray-600 px-2.5 py-0.5 text-xs font-medium text-gray-400 hover:bg-gray-700 transition-colors"
+              aria-label="녹화 시작"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-gray-500" />
+              REC
+            </button>
+          )}
         </div>
       </div>
 
@@ -119,7 +147,7 @@ function CallPageInner({ channelId }: { channelId: string }) {
           {/* Tab content */}
           <div className="flex-1 overflow-hidden" role="tabpanel">
             {activeTab === 'chat' && <ChatPanel channelId={channelId} />}
-            {activeTab === 'note' && <NotePanel />}
+            {activeTab === 'note' && <NotePanel channelId={channelId} />}
             {(activeTab === 'file' || activeTab === 'doc') && (
               <div className="flex h-full items-center justify-center">
                 <p className="text-sm text-gray-500">준비 중입니다.</p>

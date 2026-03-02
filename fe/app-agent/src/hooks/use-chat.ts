@@ -45,6 +45,9 @@ export function useChat(channelId: string, agentId: string) {
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 
+    let isActive = true;
+    const MAX_SEEN_IDS = 5000;
+
     (async () => {
       try {
         const response = await fetch(`${baseUrl}/api/channels/${channelId}/chat/stream`, {
@@ -58,9 +61,9 @@ export function useChat(channelId: string, agentId: string) {
         const decoder = new TextDecoder();
         let buffer = '';
 
-        while (true) {
+        while (isActive) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done || !isActive) break;
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
@@ -71,6 +74,11 @@ export function useChat(channelId: string, agentId: string) {
               try {
                 const msg: ChatMessage = JSON.parse(line.slice(5).trim());
                 if (!seenIds.current.has(msg.id)) {
+                  // Cap seenIds to prevent unbounded growth
+                  if (seenIds.current.size >= MAX_SEEN_IDS) {
+                    const first = seenIds.current.values().next().value;
+                    if (first) seenIds.current.delete(first);
+                  }
                   seenIds.current.add(msg.id);
                   setLiveMessages((prev) => [...prev, msg]);
                 }
@@ -86,6 +94,7 @@ export function useChat(channelId: string, agentId: string) {
     })();
 
     return () => {
+      isActive = false;
       controller.abort();
     };
   }, [channelId]);
