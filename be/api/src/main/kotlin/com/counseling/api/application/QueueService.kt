@@ -4,25 +4,31 @@ import com.counseling.api.config.LiveKitProperties
 import com.counseling.api.domain.AgentStatus
 import com.counseling.api.domain.Channel
 import com.counseling.api.domain.ChannelStatus
+import com.counseling.api.domain.DeliveryMethod
 import com.counseling.api.domain.Endpoint
 import com.counseling.api.domain.EndpointType
+import com.counseling.api.domain.NotificationType
 import com.counseling.api.domain.PositionUpdate
 import com.counseling.api.domain.QueueEntry
 import com.counseling.api.domain.QueueUpdate
 import com.counseling.api.domain.QueueUpdateType
+import com.counseling.api.domain.RecipientType
 import com.counseling.api.domain.TenantContext
 import com.counseling.api.domain.exception.ConflictException
 import com.counseling.api.port.inbound.AcceptResult
 import com.counseling.api.port.inbound.EnterQueueResult
+import com.counseling.api.port.inbound.NotificationUseCase
 import com.counseling.api.port.inbound.PositionResult
 import com.counseling.api.port.inbound.QueueEntryWithPosition
 import com.counseling.api.port.inbound.QueueUseCase
+import com.counseling.api.port.inbound.SendNotificationCommand
 import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.EndpointRepository
 import com.counseling.api.port.outbound.LiveKitPort
 import com.counseling.api.port.outbound.QueueNotificationPort
 import com.counseling.api.port.outbound.QueueRepository
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -40,7 +46,10 @@ class QueueService(
     private val agentRepository: AgentRepository,
     private val liveKitPort: LiveKitPort,
     private val liveKitProperties: LiveKitProperties,
+    private val notificationUseCase: NotificationUseCase,
 ) : QueueUseCase {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun enterQueue(
         name: String,
         contact: String,
@@ -72,6 +81,29 @@ class QueueService(
                             queueSize = size,
                         )
                     queueNotificationPort.emitQueueUpdate(tenantId, update)
+                    // Fire-and-forget: send persistent notification to agents in the group
+                    if (entry.groupId != null) {
+                        agentRepository
+                            .findAllByGroupIdAndNotDeleted(entry.groupId)
+                            .flatMap { agent ->
+                                notificationUseCase.send(
+                                    SendNotificationCommand(
+                                        recipientId = agent.id,
+                                        recipientType = RecipientType.AGENT,
+                                        type = NotificationType.NEW_COUNSELING_REQUEST,
+                                        title = "새로운 상담 요청",
+                                        body = "${entry.customerName} 님이 상담을 요청했습니다.",
+                                        referenceId = entry.id,
+                                        referenceType = "QUEUE_ENTRY",
+                                        deliveryMethod = DeliveryMethod.IN_APP,
+                                    ),
+                                )
+                            }.contextWrite { ctx -> TenantContext.withTenantId(ctx, tenantId) }
+                            .subscribe(
+                                {},
+                                { e -> log.error("Failed to send notification: {}", e.message) },
+                            )
+                    }
                     Mono.just(EnterQueueResult(entry = entry, position = position, queueSize = size))
                 }
         }
