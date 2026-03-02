@@ -1,117 +1,106 @@
 'use client';
 
-import { use, useEffect } from 'react';
-import { MicrophoneIcon, VideoCameraIcon, PhoneXMarkIcon, VideoCameraSlashIcon } from '@heroicons/react/24/outline';
-import { MicrophoneIcon as MicrophoneSolidIcon } from '@heroicons/react/24/solid';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useVideoCall } from '@/hooks/use-video-call';
-import { Button } from '@/components/ui/button';
+import {
+  LiveKitRoom,
+  VideoConference,
+  RoomAudioRenderer,
+} from '@livekit/components-react';
+import '@livekit/components-styles';
+import useCustomerStore from '@/stores/customer-store';
+import api from '@/lib/api';
+import { ChatPanel } from '@/components/chat/chat-panel';
+
+interface TokenResponse {
+  token: string;
+  roomName: string;
+  identity: string;
+  livekitUrl: string;
+}
 
 interface CallPageProps {
   params: Promise<{ id: string }>;
 }
 
 export default function CallPage({ params }: CallPageProps) {
-  const { id } = use(params);
+  const { id: channelId } = use(params);
   const router = useRouter();
+  const { customerName } = useCustomerStore();
 
-  // TODO: Fetch real token from API using channelId before connecting
-  const token = '';
-  const hasToken = token !== '';
+  const [tokenData, setTokenData] = useState<TokenResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { isConnected, isCameraOn, isMicOn, toggleCamera, toggleMic, connect, disconnect } =
-    useVideoCall({ roomName: id, token });
-
-  // Connect to LiveKit room on mount once token is available
   useEffect(() => {
-    if (!hasToken) return;
-    connect();
-    return () => {
-      disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasToken]);
+    if (!customerName) {
+      router.replace('/');
+      return;
+    }
 
-  const handleEndCall = async () => {
-    await disconnect();
+    const fetchToken = async () => {
+      try {
+        const { data } = await api.get<TokenResponse>(
+          `/api/channels/${channelId}/customer-token`,
+          { params: { name: customerName } },
+        );
+        setTokenData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '토큰을 가져올 수 없습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchToken();
+  }, [channelId, customerName, router]);
+
+  const handleDisconnected = () => {
     router.push('/feedback');
   };
 
-  if (!hasToken) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
         <div className="text-center">
-          <p className="text-amber-400 mb-4">통화 토큰을 가져오는 중...</p>
-          <p className="text-sm text-gray-400">
-            {/* TODO: Display error if token fetch fails */}
-            잠시만 기다려 주세요.
-          </p>
+          <div className="h-12 w-12 mx-auto mb-4 rounded-full border-4 border-gray-600 border-t-indigo-400 animate-spin" />
+          <p className="text-gray-300">통화 연결 준비 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !tokenData) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+        <div className="text-center max-w-sm">
+          <p className="text-red-400 mb-4">{error ?? '연결할 수 없습니다.'}</p>
+          <button
+            onClick={() => router.push('/')}
+            className="text-indigo-400 underline text-sm"
+          >
+            처음으로 돌아가기
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-900 text-white">
-      {/* Video area */}
-      <div className="flex flex-1 items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="rounded-xl bg-gray-800 w-80 h-56 flex items-center justify-center border border-gray-700">
-            {isCameraOn ? (
-              <p className="text-gray-400 text-sm">카메라 영상</p>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <VideoCameraSlashIcon className="h-10 w-10 text-gray-500" />
-                <p className="text-gray-500 text-sm">카메라 꺼짐</p>
-              </div>
-            )}
-          </div>
-          <h2 className="text-lg font-semibold text-white">화상 통화 진행 중</h2>
-          <p className="text-sm text-gray-400">
-            통화 ID: <span className="font-mono text-indigo-400">{id}</span>
-          </p>
-          {!isConnected && <p className="text-sm text-amber-400">연결 중...</p>}
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-4 py-6 border-t border-gray-800">
-        <Button
-          variant={isMicOn ? 'ghost' : 'danger'}
-          onClick={toggleMic}
-          aria-label={isMicOn ? '마이크 끄기' : '마이크 켜기'}
-          className="rounded-full p-3 text-white"
-        >
-          {isMicOn ? (
-            <MicrophoneIcon className="h-6 w-6" />
-          ) : (
-            <MicrophoneSolidIcon className="h-6 w-6" />
-          )}
-        </Button>
-
-        <Button
-          variant={isCameraOn ? 'ghost' : 'danger'}
-          onClick={toggleCamera}
-          aria-label={isCameraOn ? '카메라 끄기' : '카메라 켜기'}
-          className="rounded-full p-3 text-white"
-        >
-          {isCameraOn ? (
-            <VideoCameraIcon className="h-6 w-6" />
-          ) : (
-            <VideoCameraSlashIcon className="h-6 w-6" />
-          )}
-        </Button>
-
-        <Button
-          variant="danger"
-          onClick={handleEndCall}
-          aria-label="통화 종료"
-          className="rounded-full px-6 py-3"
-        >
-          <PhoneXMarkIcon className="h-6 w-6 mr-2" />
-          통화 종료
-        </Button>
-      </div>
+    <div className="h-screen bg-gray-900" data-lk-theme="default">
+      <LiveKitRoom
+        serverUrl={tokenData.livekitUrl}
+        token={tokenData.token}
+        connect={true}
+        video={true}
+        audio={true}
+        onDisconnected={handleDisconnected}
+        style={{ height: '100vh' }}
+      >
+        <VideoConference />
+        <RoomAudioRenderer />
+        <ChatPanel channelId={channelId} customerName={customerName} />
+      </LiveKitRoom>
     </div>
   );
 }

@@ -739,8 +739,9 @@
           8,
           12
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-03-02T06:04:07.750521+00:00"
       },
       {
         "id": 14,
@@ -822,7 +823,7 @@
           10,
           14
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": []
       },
       {

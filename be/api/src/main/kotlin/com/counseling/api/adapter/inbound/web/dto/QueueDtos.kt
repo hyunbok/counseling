@@ -53,5 +53,6 @@ data class PositionUpdateEvent(
     val entryId: UUID,
     val position: Long,
     val queueSize: Long,
+    val channelId: UUID? = null,
     val timestamp: Instant,
 )

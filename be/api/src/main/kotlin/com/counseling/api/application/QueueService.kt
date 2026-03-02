@@ -186,6 +186,7 @@ class QueueService(
                                                 entryId = entryId,
                                                 position = 0L,
                                                 queueSize = size,
+                                                channelId = channelId,
                                             )
                                         queueNotificationPort.emitPositionUpdate(tenantId, positionUpdate)
                                         Mono.just(

@@ -9,43 +9,40 @@ import {
   PhoneXMarkIcon,
 } from '@heroicons/react/24/outline';
 import { MicrophoneIcon as MicrophoneSolidIcon } from '@heroicons/react/24/solid';
+import { useTrackToggle } from '@livekit/components-react';
+import { Track } from 'livekit-client';
 
 interface ToolBarProps {
-  isMicOn: boolean;
-  isCameraOn: boolean;
-  isScreenSharing: boolean;
-  onToggleMic: () => void;
-  onToggleCamera: () => void;
-  onToggleScreenShare: () => void;
   onCapture: () => void;
   onEndCall: () => void;
 }
 
-export const ToolBar = ({
-  isMicOn,
-  isCameraOn,
-  isScreenSharing,
-  onToggleMic,
-  onToggleCamera,
-  onToggleScreenShare,
-  onCapture,
-  onEndCall,
-}: ToolBarProps) => {
+export const ToolBar = ({ onCapture, onEndCall }: ToolBarProps) => {
+  const { enabled: micEnabled, toggle: toggleMic } = useTrackToggle({
+    source: Track.Source.Microphone,
+  });
+  const { enabled: cameraEnabled, toggle: toggleCamera } = useTrackToggle({
+    source: Track.Source.Camera,
+  });
+  const { enabled: screenEnabled, toggle: toggleScreen } = useTrackToggle({
+    source: Track.Source.ScreenShare,
+  });
+
   return (
     <div className="flex items-center justify-center">
       <div className="flex items-center gap-3 rounded-full bg-gray-800/90 backdrop-blur-sm px-6 py-3 shadow-lg">
         {/* Mic */}
         <button
-          onClick={onToggleMic}
+          onClick={() => toggleMic()}
           className={`flex items-center justify-center rounded-full p-3 transition-colors ${
-            isMicOn
+            micEnabled
               ? 'text-gray-300 hover:bg-gray-700'
               : 'bg-red-600 text-white hover:bg-red-700'
           }`}
-          aria-label={isMicOn ? '마이크 끄기' : '마이크 켜기'}
-          aria-pressed={!isMicOn}
+          aria-label={micEnabled ? '마이크 끄기' : '마이크 켜기'}
+          aria-pressed={!micEnabled}
         >
-          {isMicOn ? (
+          {micEnabled ? (
             <MicrophoneIcon className="h-6 w-6" />
           ) : (
             <MicrophoneSolidIcon className="h-6 w-6" />
@@ -54,16 +51,16 @@ export const ToolBar = ({
 
         {/* Camera */}
         <button
-          onClick={onToggleCamera}
+          onClick={() => toggleCamera()}
           className={`flex items-center justify-center rounded-full p-3 transition-colors ${
-            isCameraOn
+            cameraEnabled
               ? 'text-gray-300 hover:bg-gray-700'
               : 'bg-red-600 text-white hover:bg-red-700'
           }`}
-          aria-label={isCameraOn ? '카메라 끄기' : '카메라 켜기'}
-          aria-pressed={!isCameraOn}
+          aria-label={cameraEnabled ? '카메라 끄기' : '카메라 켜기'}
+          aria-pressed={!cameraEnabled}
         >
-          {isCameraOn ? (
+          {cameraEnabled ? (
             <VideoCameraIcon className="h-6 w-6" />
           ) : (
             <VideoCameraSlashIcon className="h-6 w-6" />
@@ -72,14 +69,14 @@ export const ToolBar = ({
 
         {/* Screen share */}
         <button
-          onClick={onToggleScreenShare}
+          onClick={() => toggleScreen()}
           className={`flex items-center justify-center rounded-full p-3 transition-colors ${
-            isScreenSharing
+            screenEnabled
               ? 'bg-indigo-600 text-white hover:bg-indigo-700'
               : 'text-gray-300 hover:bg-gray-700'
           }`}
-          aria-label={isScreenSharing ? '화면 공유 중지' : '화면 공유'}
-          aria-pressed={isScreenSharing}
+          aria-label={screenEnabled ? '화면 공유 중지' : '화면 공유'}
+          aria-pressed={screenEnabled}
         >
           <ComputerDesktopIcon className="h-6 w-6" />
         </button>

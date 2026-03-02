@@ -4,6 +4,7 @@ import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { QueueList } from '@/components/queue/queue-list';
 import { useAgentStatus, useUpdateAgentStatus } from '@/hooks/use-agent-status';
 import { useQueueList } from '@/hooks/use-queue';
+import { useQueueStream } from '@/hooks/use-queue-stream';
 
 type AgentStatus = 'ONLINE' | 'AWAY' | 'WRAP_UP';
 
@@ -23,6 +24,8 @@ export default function DashboardPage() {
   const { data: agentStatus } = useAgentStatus();
   const updateStatus = useUpdateAgentStatus();
   const { data: queue } = useQueueList();
+
+  useQueueStream();
 
   const currentStatus = (agentStatus?.status as AgentStatus | undefined) ?? 'ONLINE';
   const queueCount = queue?.length ?? 0;
