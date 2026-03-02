@@ -6,14 +6,12 @@ import reactor.core.publisher.Mono
 import java.time.Instant
 import java.util.UUID
 
-interface ChatMessageRepository {
+interface ChatMessageReadRepository {
     fun save(message: ChatMessage): Mono<ChatMessage>
 
-    fun findAllByChannelId(channelId: UUID): Flux<ChatMessage>
-
-    fun findByChannelIdBefore(
+    fun findByChannelId(
         channelId: UUID,
-        before: Instant,
+        before: Instant?,
         limit: Int,
     ): Flux<ChatMessage>
 }
