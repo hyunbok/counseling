@@ -2,12 +2,15 @@
 
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useVideoCall } from '@/hooks/use-video-call';
+import { LiveKitRoom, RoomAudioRenderer, useConnectionState } from '@livekit/components-react';
+import '@livekit/components-styles';
+import { ConnectionState } from 'livekit-client';
 import { VideoRoom } from '@/components/call/video-room';
 import { ChatPanel } from '@/components/call/chat-panel';
 import { NotePanel } from '@/components/call/note-panel';
 import { ToolBar } from '@/components/call/tool-bar';
 import useCallStore from '@/stores/call-store';
+import api from '@/lib/api';
 
 interface CallPageProps {
   params: Promise<{ id: string }>;
@@ -22,28 +25,19 @@ const tabs: { key: Tab; label: string }[] = [
   { key: 'doc', label: '문서' },
 ];
 
-export default function CallPage({ params }: CallPageProps) {
-  const { id } = use(params);
+interface TokenResponse {
+  token: string;
+  roomName: string;
+  identity: string;
+  livekitUrl: string;
+}
+
+function CallPageInner({ channelId }: { channelId: string }) {
   const router = useRouter();
-  const { customerName, activeTab, setActiveTab, reset } = useCallStore();
+  const { customerName, activeTab, setActiveTab } = useCallStore();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  // TODO: Fetch real token from API using channelId
-  const token = '';
-  const hasToken = token !== '';
-
-  const { isConnected, isCameraOn, isMicOn, isScreenSharing, connect, disconnect, toggleCamera, toggleMic, toggleScreenShare } =
-    useVideoCall({ roomName: id, token });
-
-  // Connect on mount once token is available
-  useEffect(() => {
-    if (!hasToken) return;
-    connect();
-    return () => {
-      disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasToken]);
+  const connectionState = useConnectionState();
+  const isConnected = connectionState === ConnectionState.Connected;
 
   // Elapsed timer
   useEffect(() => {
@@ -60,8 +54,12 @@ export default function CallPage({ params }: CallPageProps) {
   };
 
   const handleEndCall = async () => {
-    await disconnect();
-    reset();
+    try {
+      await api.post(`/api/channels/${channelId}/close`);
+    } catch {
+      // Proceed even if close fails
+    }
+    useCallStore.getState().reset();
     router.push('/dashboard');
   };
 
@@ -95,7 +93,7 @@ export default function CallPage({ params }: CallPageProps) {
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Video area */}
-        <VideoRoom isConnected={isConnected} isCameraOn={isCameraOn} />
+        <VideoRoom />
 
         {/* Side panel */}
         <div className="flex w-80 shrink-0 flex-col bg-gray-800 border-l border-gray-700">
@@ -120,7 +118,7 @@ export default function CallPage({ params }: CallPageProps) {
 
           {/* Tab content */}
           <div className="flex-1 overflow-hidden" role="tabpanel">
-            {activeTab === 'chat' && <ChatPanel channelId={id} />}
+            {activeTab === 'chat' && <ChatPanel channelId={channelId} />}
             {activeTab === 'note' && <NotePanel />}
             {(activeTab === 'file' || activeTab === 'doc') && (
               <div className="flex h-full items-center justify-center">
@@ -133,17 +131,89 @@ export default function CallPage({ params }: CallPageProps) {
 
       {/* Toolbar (floating pill) */}
       <div className="px-4 py-4 bg-gray-900/80">
-        <ToolBar
-          isMicOn={isMicOn}
-          isCameraOn={isCameraOn}
-          isScreenSharing={isScreenSharing}
-          onToggleMic={toggleMic}
-          onToggleCamera={toggleCamera}
-          onToggleScreenShare={toggleScreenShare}
-          onCapture={handleCapture}
-          onEndCall={handleEndCall}
-        />
+        <ToolBar onCapture={handleCapture} onEndCall={handleEndCall} />
       </div>
+    </div>
+  );
+}
+
+export default function CallPage({ params }: CallPageProps) {
+  const { id: channelId } = use(params);
+  const router = useRouter();
+  const { agentToken, livekitUrl } = useCallStore();
+
+  const [tokenData, setTokenData] = useState<TokenResponse | null>(
+    agentToken && livekitUrl ? { token: agentToken, livekitUrl, roomName: channelId, identity: '' } : null,
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(!agentToken || !livekitUrl);
+
+  useEffect(() => {
+    if (agentToken && livekitUrl) {
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchToken = async () => {
+      try {
+        const { data } = await api.get<TokenResponse>(`/api/channels/${channelId}/token`);
+        setTokenData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '토큰을 가져올 수 없습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchToken();
+  }, [channelId, agentToken, livekitUrl]);
+
+  const handleDisconnected = () => {
+    useCallStore.getState().reset();
+    router.push('/dashboard');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+        <div className="text-center">
+          <div className="h-12 w-12 mx-auto mb-4 rounded-full border-4 border-gray-600 border-t-indigo-400 animate-spin" />
+          <p className="text-gray-300">통화 연결 준비 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !tokenData) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
+        <div className="text-center max-w-sm">
+          <p className="text-red-400 mb-4">{error ?? '연결할 수 없습니다.'}</p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="text-indigo-400 underline text-sm"
+          >
+            대시보드로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen bg-gray-900" data-lk-theme="default">
+      <LiveKitRoom
+        serverUrl={tokenData.livekitUrl}
+        token={tokenData.token}
+        connect={true}
+        video={true}
+        audio={true}
+        onDisconnected={handleDisconnected}
+        style={{ height: '100vh' }}
+      >
+        <RoomAudioRenderer />
+        <CallPageInner channelId={channelId} />
+      </LiveKitRoom>
     </div>
   );
 }
