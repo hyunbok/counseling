@@ -40,6 +40,26 @@ class ChatMessageR2dbcRepository(
             .map { row -> mapToChatMessage(row) }
             .all()
 
+    override fun findByChannelIdBefore(
+        channelId: UUID,
+        before: Instant,
+        limit: Int,
+    ): Flux<ChatMessage> =
+        databaseClient
+            .sql(
+                """
+                SELECT id, channel_id, sender_type, sender_id, content, created_at
+                FROM chat_messages
+                WHERE channel_id = :channelId AND created_at < :before
+                ORDER BY created_at DESC
+                LIMIT :limit
+                """.trimIndent(),
+            ).bind("channelId", channelId)
+            .bind("before", before)
+            .bind("limit", limit)
+            .map { row -> mapToChatMessage(row) }
+            .all()
+
     private fun mapToChatMessage(row: Readable): ChatMessage =
         ChatMessage(
             id = row.get("id", UUID::class.java)!!,
