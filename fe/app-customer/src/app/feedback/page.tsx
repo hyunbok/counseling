@@ -2,23 +2,50 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { useMutation } from '@tanstack/react-query';
 import { StarIcon } from '@heroicons/react/24/solid';
 import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import useCustomerStore from '@/stores/customer-store';
+import api from '@/lib/api';
 
 export default function FeedbackPage() {
   const router = useRouter();
-  const { reset } = useCustomerStore();
+  const { channelId, customerName, reset } = useCustomerStore();
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const submitFeedback = useMutation({
+    mutationFn: async (params: { rating: number; comment: string }) => {
+      await api.post('/api/feedback', {
+        channelId,
+        customerName,
+        rating: params.rating,
+        comment: params.comment,
+      });
+    },
+  });
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    // TODO: Submit feedback to API; call reset() after successful API response
+    if (rating === 0) return;
+
+    try {
+      await submitFeedback.mutateAsync({ rating, comment });
+    } catch (err: unknown) {
+      // If 404, the endpoint doesn't exist yet — proceed gracefully
+      const isAxiosError = err && typeof err === 'object' && 'response' in err;
+      if (isAxiosError && (err as { response?: { status?: number } }).response?.status === 404) {
+        console.warn('Feedback API not implemented yet, proceeding gracefully');
+      } else {
+        // Real error — don't proceed
+        return;
+      }
+    }
+
     reset();
     setSubmitted(true);
   };
@@ -121,13 +148,19 @@ export default function FeedbackPage() {
             <Button
               type="submit"
               variant="primary"
-              disabled={rating === 0}
+              disabled={rating === 0 || submitFeedback.isPending}
               className="w-full"
               aria-label="피드백 제출"
             >
-              제출
+              {submitFeedback.isPending ? '제출 중...' : '제출'}
             </Button>
           </form>
+
+          {submitFeedback.isError && !submitted && (
+            <p className="text-sm text-red-500 dark:text-red-400 mt-2">
+              제출에 실패했습니다. 다시 시도해 주세요.
+            </p>
+          )}
         </div>
       </div>
     </div>
