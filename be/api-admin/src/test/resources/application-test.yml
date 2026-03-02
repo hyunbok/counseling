@@ -11,3 +11,8 @@ spring:
       - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
       - org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration
       - org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration
+
+jwt:
+  secret: test-secret-key-for-jwt-signing-must-be-at-least-256-bits-long-for-hmac-sha256
+  access-expiration: 3600000
+  refresh-expiration: 604800000
