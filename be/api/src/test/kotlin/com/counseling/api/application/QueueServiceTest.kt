@@ -14,6 +14,7 @@ import com.counseling.api.domain.QueueUpdate
 import com.counseling.api.domain.QueueUpdateType
 import com.counseling.api.domain.TenantContext
 import com.counseling.api.domain.exception.ConflictException
+import com.counseling.api.port.inbound.NotificationUseCase
 import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.EndpointRepository
@@ -42,6 +43,7 @@ class QueueServiceTest :
         val endpointRepository = mockk<EndpointRepository>()
         val agentRepository = mockk<AgentRepository>()
         val liveKitPort = mockk<LiveKitPort>()
+        val notificationUseCase = mockk<NotificationUseCase>(relaxed = true)
         val liveKitProperties =
             LiveKitProperties(
                 url = "wss://livekit.test",
@@ -58,6 +60,7 @@ class QueueServiceTest :
                 agentRepository,
                 liveKitPort,
                 liveKitProperties,
+                notificationUseCase,
             )
 
         val tenantId = "tenant-test"

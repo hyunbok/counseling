@@ -49,5 +49,5 @@ class NotificationQueryService(
     override fun streamNotifications(recipientId: UUID): Flux<Notification> =
         notificationSsePort
             .subscribe(recipientId)
-            .doOnCancel { notificationSsePort.removeRecipient(recipientId) }
+            .doFinally { notificationSsePort.removeRecipient(recipientId) }
 }

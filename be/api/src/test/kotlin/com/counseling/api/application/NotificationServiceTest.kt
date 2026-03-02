@@ -7,6 +7,7 @@ import com.counseling.api.domain.RecipientType
 import com.counseling.api.domain.TenantContext
 import com.counseling.api.domain.exception.NotFoundException
 import com.counseling.api.port.inbound.SendNotificationCommand
+import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.EmailMessage
 import com.counseling.api.port.outbound.EmailPort
 import com.counseling.api.port.outbound.NotificationReadRepository
@@ -29,6 +30,7 @@ class NotificationServiceTest :
         val notificationReadRepository = mockk<NotificationReadRepository>()
         val notificationSsePort = mockk<NotificationSsePort>(relaxed = true)
         val emailPort = mockk<EmailPort>()
+        val agentRepository = mockk<AgentRepository>()
 
         val service =
             NotificationService(
@@ -36,6 +38,7 @@ class NotificationServiceTest :
                 notificationReadRepository,
                 notificationSsePort,
                 emailPort,
+                agentRepository,
             )
 
         val tenantId = "test-tenant"
@@ -113,8 +116,21 @@ class NotificationServiceTest :
                     recipientId = command.recipientId,
                     deliveryMethod = DeliveryMethod.EMAIL,
                 )
+            val agent =
+                com.counseling.api.domain.Agent(
+                    id = command.recipientId,
+                    username = "agent1",
+                    passwordHash = "hash",
+                    name = "Agent One",
+                    role = com.counseling.api.domain.AgentRole.COUNSELOR,
+                    createdAt = Instant.now(),
+                    updatedAt = Instant.now(),
+                    email = "agent@test.com",
+                )
 
             every { notificationRepository.save(any()) } returns Mono.just(saved)
+            every { notificationReadRepository.save(saved, tenantId) } returns Mono.just(saved)
+            every { agentRepository.findByIdAndNotDeleted(saved.recipientId) } returns Mono.just(agent)
             every { emailPort.send(any<EmailMessage>()) } returns Mono.empty()
 
             StepVerifier
@@ -133,6 +149,7 @@ class NotificationServiceTest :
                 }.verifyComplete()
 
             verify { notificationRepository.save(any()) }
+            verify { notificationReadRepository.save(saved, tenantId) }
         }
 
         "send() should still succeed when MongoDB projection fails" {
@@ -172,7 +189,7 @@ class NotificationServiceTest :
             every {
                 notificationRepository.findByIdAndRecipientId(notificationId, recipientId)
             } returns Mono.just(notification)
-            every { notificationRepository.markAsRead(notificationId) } returns Mono.just(true)
+            every { notificationRepository.markAsRead(notificationId, recipientId) } returns Mono.just(true)
             every {
                 notificationReadRepository.markAsRead(notificationId, tenantId)
             } returns Mono.just(true)
@@ -193,7 +210,7 @@ class NotificationServiceTest :
                     result.read shouldBe true
                 }.verifyComplete()
 
-            verify { notificationRepository.markAsRead(notificationId) }
+            verify { notificationRepository.markAsRead(notificationId, recipientId) }
             verify { notificationReadRepository.markAsRead(notificationId, tenantId) }
         }
 

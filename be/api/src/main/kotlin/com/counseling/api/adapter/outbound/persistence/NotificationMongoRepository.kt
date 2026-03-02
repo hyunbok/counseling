@@ -84,7 +84,7 @@ class NotificationMongoRepository(
             Criteria
                 .where("tenantId")
                 .`is`(tenantId)
-                .and("id")
+                .and("_id")
                 .`is`(notificationId.toString())
         return mongoTemplate
             .updateFirst(

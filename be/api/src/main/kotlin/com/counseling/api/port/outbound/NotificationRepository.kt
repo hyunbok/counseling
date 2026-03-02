@@ -12,7 +12,10 @@ interface NotificationRepository {
         recipientId: UUID,
     ): Mono<Notification>
 
-    fun markAsRead(id: UUID): Mono<Boolean>
+    fun markAsRead(
+        id: UUID,
+        recipientId: UUID,
+    ): Mono<Boolean>
 
     fun markAllAsReadByRecipientId(recipientId: UUID): Mono<Long>
 }

@@ -6,6 +6,7 @@ import com.counseling.api.domain.TenantContext
 import com.counseling.api.domain.exception.NotFoundException
 import com.counseling.api.port.inbound.NotificationUseCase
 import com.counseling.api.port.inbound.SendNotificationCommand
+import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.EmailMessage
 import com.counseling.api.port.outbound.EmailPort
 import com.counseling.api.port.outbound.NotificationReadRepository
@@ -25,6 +26,7 @@ class NotificationService(
     private val notificationReadRepository: NotificationReadRepository,
     private val notificationSsePort: NotificationSsePort,
     private val emailPort: EmailPort,
+    private val agentRepository: AgentRepository,
 ) : NotificationUseCase {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -51,14 +53,27 @@ class NotificationService(
                         notificationSsePort.emit(saved.recipientId, saved)
                     }
                     if (saved.deliveryMethod == DeliveryMethod.EMAIL) {
-                        emailPort
-                            .send(
-                                EmailMessage(
-                                    to = saved.recipientId.toString(),
-                                    subject = saved.title,
-                                    htmlBody = saved.body,
-                                ),
-                            ).doOnError { e ->
+                        agentRepository
+                            .findByIdAndNotDeleted(saved.recipientId)
+                            .flatMap { agent ->
+                                val email = agent.email
+                                if (email != null) {
+                                    emailPort.send(
+                                        EmailMessage(
+                                            to = email,
+                                            subject = saved.title,
+                                            htmlBody = saved.body,
+                                        ),
+                                    )
+                                } else {
+                                    log.warn(
+                                        "Agent {} has no email, skipping email notification {}",
+                                        saved.recipientId,
+                                        saved.id,
+                                    )
+                                    Mono.empty()
+                                }
+                            }.doOnError { e ->
                                 log.error(
                                     "Failed to send email notification {} to recipient {}: {}",
                                     saved.id,
@@ -68,21 +83,17 @@ class NotificationService(
                             }.subscribe()
                     }
                 }.flatMap { saved ->
-                    if (saved.deliveryMethod == DeliveryMethod.IN_APP) {
-                        notificationReadRepository
-                            .save(saved, tenantId)
-                            .thenReturn(saved)
-                            .onErrorResume { e ->
-                                log.error(
-                                    "Failed to project notification {} to read store: {}",
-                                    saved.id,
-                                    e.message,
-                                )
-                                Mono.just(saved)
-                            }
-                    } else {
-                        Mono.just(saved)
-                    }
+                    notificationReadRepository
+                        .save(saved, tenantId)
+                        .thenReturn(saved)
+                        .onErrorResume { e ->
+                            log.error(
+                                "Failed to project notification {} to read store: {}",
+                                saved.id,
+                                e.message,
+                            )
+                            Mono.just(saved)
+                        }
                 }
         }
 
@@ -96,7 +107,7 @@ class NotificationService(
                 .switchIfEmpty(Mono.error(NotFoundException("Notification not found: $notificationId")))
                 .flatMap { notification ->
                     notificationRepository
-                        .markAsRead(notificationId)
+                        .markAsRead(notificationId, recipientId)
                         .flatMap {
                             val updated = notification.copy(read = true)
                             notificationReadRepository

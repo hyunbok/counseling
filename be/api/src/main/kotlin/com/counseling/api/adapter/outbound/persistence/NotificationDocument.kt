@@ -13,7 +13,10 @@ import java.util.UUID
 
 @Document(collection = "notifications")
 @CompoundIndexes(
-    CompoundIndex(name = "idx_recipient_created", def = "{'recipientId': 1, 'createdAt': -1}"),
+    CompoundIndex(
+        name = "idx_tenant_recipient_created",
+        def = "{'tenantId': 1, 'recipientId': 1, 'createdAt': -1}",
+    ),
 )
 data class NotificationDocument(
     @Id

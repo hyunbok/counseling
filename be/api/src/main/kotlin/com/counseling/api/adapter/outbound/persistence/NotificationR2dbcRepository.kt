@@ -69,13 +69,17 @@ class NotificationR2dbcRepository(
             .map { row: Readable -> mapToNotification(row) }
             .one()
 
-    override fun markAsRead(id: UUID): Mono<Boolean> =
+    override fun markAsRead(
+        id: UUID,
+        recipientId: UUID,
+    ): Mono<Boolean> =
         databaseClient
             .sql(
                 """
-                UPDATE notifications SET read = TRUE WHERE id = :id AND deleted = FALSE
+                UPDATE notifications SET read = TRUE WHERE id = :id AND recipient_id = :recipientId AND deleted = FALSE
                 """.trimIndent(),
             ).bind("id", id)
+            .bind("recipientId", recipientId)
             .fetch()
             .rowsUpdated()
             .map { it > 0 }
