@@ -37,8 +37,8 @@ class AgentR2dbcRepository(
             databaseClient
                 .sql(
                     """
-                    INSERT INTO agents (id, username, password_hash, name, role, created_at, updated_at, deleted, group_id, agent_status)
-                    VALUES (:id, :username, :passwordHash, :name, :role, :createdAt, :updatedAt, :deleted, :groupId, :agentStatus)
+                    INSERT INTO agents (id, username, password_hash, name, role, created_at, updated_at, deleted, group_id, agent_status, email)
+                    VALUES (:id, :username, :passwordHash, :name, :role, :createdAt, :updatedAt, :deleted, :groupId, :agentStatus, :email)
                     ON CONFLICT (id) DO UPDATE SET
                         password_hash = :passwordHash,
                         name = :name,
@@ -46,7 +46,8 @@ class AgentR2dbcRepository(
                         updated_at = :updatedAt,
                         deleted = :deleted,
                         group_id = :groupId,
-                        agent_status = :agentStatus
+                        agent_status = :agentStatus,
+                        email = :email
                     """.trimIndent(),
                 ).bind("id", agent.id)
                 .bind("username", agent.username)
@@ -63,7 +64,13 @@ class AgentR2dbcRepository(
             } else {
                 spec.bindNull("groupId", UUID::class.java)
             }
-        return specWithGroup.then().thenReturn(agent)
+        val specWithEmail =
+            if (agent.email != null) {
+                specWithGroup.bind("email", agent.email)
+            } else {
+                specWithGroup.bindNull("email", String::class.java)
+            }
+        return specWithEmail.then().thenReturn(agent)
     }
 
     override fun findAllByGroupIdAndNotDeleted(groupId: UUID): Flux<Agent> =
@@ -94,5 +101,6 @@ class AgentR2dbcRepository(
                 AgentStatus.valueOf(
                     row.get("agent_status", String::class.java) ?: AgentStatus.OFFLINE.name,
                 ),
+            email = row.get("email", String::class.java),
         )
 }
