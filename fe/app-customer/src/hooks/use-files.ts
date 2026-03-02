@@ -109,7 +109,6 @@ export function useFiles(channelId: string, senderName: string) {
       const { data } = await api.post<SharedFile>(
         `/api/channels/${channelId}/files`,
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
       );
       return data;
     },

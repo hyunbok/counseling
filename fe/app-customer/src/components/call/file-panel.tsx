@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useFiles, type SharedFile } from '@/hooks/use-files';
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = [
   'image/jpeg',
   'image/png',
@@ -60,7 +60,7 @@ export function FilePanel({ channelId, customerName }: FilePanelProps) {
     setValidationError(null);
 
     if (file.size > MAX_FILE_SIZE) {
-      setValidationError('파일 크기는 20MB 이하여야 합니다.');
+      setValidationError('파일 크기는 10MB 이하여야 합니다.');
       e.target.value = '';
       return;
     }

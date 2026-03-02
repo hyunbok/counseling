@@ -112,7 +112,6 @@ export function useFiles(channelId: string, agentId: string) {
       const { data } = await api.post<SharedFileResponse>(
         `/api/channels/${channelId}/files`,
         formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
       );
       return data;
     },
@@ -177,8 +176,6 @@ export function isAllowedFileType(file: File): boolean {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'text/plain',
   ];
   return allowed.includes(file.type);

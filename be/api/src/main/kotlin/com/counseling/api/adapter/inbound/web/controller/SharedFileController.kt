@@ -23,8 +23,11 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 
@@ -42,8 +45,16 @@ class SharedFileController(
         @RequestPart("file") filePart: FilePart,
         @RequestPart("senderType") senderType: String,
         @RequestPart("senderId") senderId: String,
-    ): Mono<SharedFileResponse> =
-        filePart
+    ): Mono<SharedFileResponse> {
+        val uploaderType =
+            try {
+                SenderType.valueOf(senderType.uppercase())
+            } catch (e: IllegalArgumentException) {
+                return Mono.error(
+                    ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid senderType: $senderType"),
+                )
+            }
+        return filePart
             .content()
             .map { buffer ->
                 val bytes = ByteArray(buffer.readableByteCount())
@@ -57,7 +68,7 @@ class SharedFileController(
                     UploadFileCommand(
                         channelId = channelId,
                         uploaderId = senderId,
-                        uploaderType = SenderType.valueOf(senderType.uppercase()),
+                        uploaderType = uploaderType,
                         originalFilename = filePart.filename(),
                         contentType = contentType,
                         fileSize = bytes.size.toLong(),
@@ -65,6 +76,7 @@ class SharedFileController(
                     ),
                 )
             }.map { it.toResponse() }
+    }
 
     @GetMapping
     fun listFiles(
@@ -90,9 +102,13 @@ class SharedFileController(
         sharedFileUseCase
             .download(channelId, fileId)
             .map { fileResource ->
+                val encodedName =
+                    URLEncoder
+                        .encode(fileResource.filename, StandardCharsets.UTF_8)
+                        .replace("+", "%20")
                 val headers = HttpHeaders()
                 headers.contentType = MediaType.parseMediaType(fileResource.contentType)
-                headers.setContentDispositionFormData("attachment", fileResource.filename)
+                headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''$encodedName")
                 headers.contentLength = fileResource.contentLength
                 ResponseEntity
                     .ok()

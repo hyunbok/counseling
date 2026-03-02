@@ -39,10 +39,13 @@ data class SharedFileDocument(
         )
 
     companion object {
-        fun fromDomain(file: SharedFile): SharedFileDocument =
+        fun fromDomain(
+            file: SharedFile,
+            tenantId: String? = null,
+        ): SharedFileDocument =
             SharedFileDocument(
                 id = file.id.toString(),
-                tenantId = null,
+                tenantId = tenantId,
                 channelId = file.channelId.toString(),
                 uploaderId = file.uploaderId,
                 uploaderType = file.uploaderType.name,

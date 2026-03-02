@@ -33,15 +33,17 @@ class SharedFileService(
         if (command.contentType !in fileStorageProperties.allowedTypes) {
             return Mono.error(BadRequestException("File type not allowed: ${command.contentType}"))
         }
-        if (command.fileSize > fileStorageProperties.maxFileSize) {
+        val actualSize = command.content.size.toLong()
+        if (actualSize > fileStorageProperties.maxFileSize) {
             return Mono.error(
-                BadRequestException("File size ${command.fileSize} exceeds limit ${fileStorageProperties.maxFileSize}"),
+                BadRequestException("File size $actualSize exceeds limit ${fileStorageProperties.maxFileSize}"),
             )
         }
 
-        val extension = command.originalFilename.substringAfterLast('.', "")
+        val rawExtension = command.originalFilename.substringAfterLast('.', "")
+        val safeExtension = rawExtension.replace(Regex("[^a-zA-Z0-9]"), "").take(10)
         val storedFilename =
-            if (extension.isNotBlank()) "${UUID.randomUUID()}.$extension" else UUID.randomUUID().toString()
+            if (safeExtension.isNotBlank()) "${UUID.randomUUID()}.$safeExtension" else UUID.randomUUID().toString()
         val storagePath = "${fileStorageProperties.basePath}/${command.channelId}/$storedFilename"
 
         val file =
@@ -53,7 +55,7 @@ class SharedFileService(
                 originalFilename = command.originalFilename,
                 storedFilename = storedFilename,
                 contentType = command.contentType,
-                fileSize = command.fileSize,
+                fileSize = actualSize,
                 storagePath = storagePath,
                 createdAt = Instant.now(),
             )
@@ -61,7 +63,18 @@ class SharedFileService(
         return fileStoragePort
             .store(storagePath, command.content)
             .then(sharedFileRepository.save(file))
-            .doOnNext { saved ->
+            .onErrorResume { e ->
+                fileStoragePort
+                    .delete(storagePath)
+                    .doOnError { deleteError ->
+                        log.error(
+                            "Failed to rollback file at {} after DB save failure: {}",
+                            storagePath,
+                            deleteError.message,
+                        )
+                    }.onErrorComplete()
+                    .then(Mono.error(e))
+            }.doOnNext { saved ->
                 fileNotificationPort.emitFile(command.channelId, saved)
             }.flatMap { saved ->
                 sharedFileReadRepository
@@ -86,6 +99,9 @@ class SharedFileService(
             .findByIdAndNotDeleted(fileId)
             .switchIfEmpty(Mono.error(NotFoundException("File not found: $fileId")))
             .flatMap { file ->
+                if (file.channelId != channelId) {
+                    return@flatMap Mono.error(NotFoundException("File not found: $fileId"))
+                }
                 fileStoragePort.load(file.storagePath).map { resource ->
                     SharedFileResource(
                         resource = resource,
@@ -104,6 +120,9 @@ class SharedFileService(
             .findByIdAndNotDeleted(fileId)
             .switchIfEmpty(Mono.error(NotFoundException("File not found: $fileId")))
             .flatMap { file ->
+                if (file.channelId != channelId) {
+                    return@flatMap Mono.error(NotFoundException("File not found: $fileId"))
+                }
                 sharedFileRepository
                     .softDelete(fileId)
                     .then(
