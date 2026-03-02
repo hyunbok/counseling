@@ -1,31 +1,50 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
-export interface ChannelSummary {
-  id: string;
-  status: 'WAITING' | 'IN_PROGRESS' | 'CLOSED';
+export interface HistoryItem {
+  channelId: string;
+  agentId: string | null;
+  agentName: string | null;
+  groupId: string | null;
+  groupName: string | null;
   customerName: string | null;
+  customerContact: string | null;
+  status: string;
   startedAt: string | null;
   endedAt: string | null;
-  createdAt: string;
+  durationSeconds: number | null;
+  hasRecording: boolean;
+  feedbackRating: number | null;
 }
 
-interface UseHistoryParams {
-  status?: string;
-  page?: number;
-  size?: number;
+export interface HistoryListResponse {
+  items: HistoryItem[];
+  hasMore: boolean;
 }
 
-export function useHistory(params: UseHistoryParams = {}) {
-  const { status = 'CLOSED', page = 0, size = 20 } = params;
+export interface HistoryFilters {
+  groupId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
 
-  return useQuery<ChannelSummary[]>({
-    queryKey: ['history', status, page, size],
-    queryFn: async () => {
-      const { data } = await api.get<ChannelSummary[]>('/api/channels', {
-        params: { status, page, size },
+export function useHistory(filters: HistoryFilters = {}) {
+  return useInfiniteQuery<HistoryListResponse>({
+    queryKey: ['history', filters],
+    queryFn: async ({ pageParam }) => {
+      const { data } = await api.get<HistoryListResponse>('/api/history', {
+        params: {
+          ...filters,
+          before: pageParam as string | undefined,
+          limit: 20,
+        },
       });
       return data;
+    },
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.hasMore || lastPage.items.length === 0) return undefined;
+      return lastPage.items[lastPage.items.length - 1].endedAt ?? undefined;
     },
   });
 }
