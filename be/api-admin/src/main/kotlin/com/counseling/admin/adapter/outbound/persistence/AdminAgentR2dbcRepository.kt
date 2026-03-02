@@ -62,6 +62,24 @@ class AdminAgentR2dbcRepository(
             .map { row -> mapToAgent(row) }
             .all()
 
+    override fun findAllByNotDeleted(
+        page: Int,
+        size: Int,
+    ): Flux<Agent> =
+        databaseClient
+            .sql("SELECT * FROM agents WHERE deleted = false ORDER BY created_at DESC LIMIT :limit OFFSET :offset")
+            .bind("limit", size)
+            .bind("offset", page * size)
+            .map { row -> mapToAgent(row) }
+            .all()
+
+    override fun countAllByNotDeleted(): Mono<Long> =
+        databaseClient
+            .sql("SELECT COUNT(*) as cnt FROM agents WHERE deleted = false")
+            .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
+            .one()
+            .defaultIfEmpty(0L)
+
     override fun findAllByGroupIdAndNotDeleted(groupId: UUID): Flux<Agent> =
         databaseClient
             .sql("SELECT * FROM agents WHERE group_id = :groupId AND deleted = false ORDER BY created_at DESC")
@@ -69,13 +87,28 @@ class AdminAgentR2dbcRepository(
             .map { row -> mapToAgent(row) }
             .all()
 
-    override fun countByGroupIdAndNotDeleted(groupId: UUID): Mono<Long> =
+    override fun findAllByGroupIdAndNotDeleted(
+        groupId: UUID,
+        page: Int,
+        size: Int,
+    ): Flux<Agent> =
+        databaseClient
+            .sql("SELECT * FROM agents WHERE group_id = :groupId AND deleted = false ORDER BY created_at DESC LIMIT :limit OFFSET :offset")
+            .bind("groupId", groupId)
+            .bind("limit", size)
+            .bind("offset", page * size)
+            .map { row -> mapToAgent(row) }
+            .all()
+
+    override fun countAllByGroupIdAndNotDeleted(groupId: UUID): Mono<Long> =
         databaseClient
             .sql("SELECT COUNT(*) as cnt FROM agents WHERE group_id = :groupId AND deleted = false")
             .bind("groupId", groupId)
             .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
             .one()
             .defaultIfEmpty(0L)
+
+    override fun countByGroupIdAndNotDeleted(groupId: UUID): Mono<Long> = countAllByGroupIdAndNotDeleted(groupId)
 
     private fun mapToAgent(row: io.r2dbc.spi.Readable): Agent =
         Agent(

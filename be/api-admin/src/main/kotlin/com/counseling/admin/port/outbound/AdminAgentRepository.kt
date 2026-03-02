@@ -14,7 +14,22 @@ interface AdminAgentRepository {
 
     fun findAllByNotDeleted(): Flux<Agent>
 
+    fun findAllByNotDeleted(
+        page: Int,
+        size: Int,
+    ): Flux<Agent>
+
+    fun countAllByNotDeleted(): Mono<Long>
+
     fun findAllByGroupIdAndNotDeleted(groupId: UUID): Flux<Agent>
+
+    fun findAllByGroupIdAndNotDeleted(
+        groupId: UUID,
+        page: Int,
+        size: Int,
+    ): Flux<Agent>
+
+    fun countAllByGroupIdAndNotDeleted(groupId: UUID): Mono<Long>
 
     fun countByGroupIdAndNotDeleted(groupId: UUID): Mono<Long>
 }

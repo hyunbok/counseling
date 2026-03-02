@@ -6,12 +6,15 @@ import com.counseling.admin.domain.exception.ConflictException
 import com.counseling.admin.domain.exception.NotFoundException
 import com.counseling.admin.port.inbound.GroupManagementUseCase
 import com.counseling.admin.port.inbound.GroupWithAgentCount
+import com.counseling.admin.port.inbound.PagedResult
 import com.counseling.admin.port.outbound.AdminAgentRepository
 import com.counseling.admin.port.outbound.AdminGroupRepository
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.util.function.component1
+import reactor.kotlin.core.util.function.component2
 import java.time.Instant
 import java.util.UUID
 
@@ -30,6 +33,25 @@ class GroupManagementService(
                 agentRepository
                     .countByGroupIdAndNotDeleted(group.id)
                     .map { count -> GroupWithAgentCount(group = group, agentCount = count.toInt()) }
+            }
+
+    override fun listGroupsPaged(
+        page: Int,
+        size: Int,
+    ): Mono<PagedResult<GroupWithAgentCount>> =
+        Mono
+            .zip(
+                groupRepository.findAllByNotDeleted(page, size).collectList(),
+                groupRepository.countAllByNotDeleted(),
+            ).flatMap { (groups, total) ->
+                Flux
+                    .fromIterable(groups)
+                    .flatMap { group ->
+                        agentRepository
+                            .countByGroupIdAndNotDeleted(group.id)
+                            .map { count -> GroupWithAgentCount(group = group, agentCount = count.toInt()) }
+                    }.collectList()
+                    .map { enriched -> PagedResult(enriched, total, page, size) }
             }
 
     override fun createGroup(name: String): Mono<Group> =

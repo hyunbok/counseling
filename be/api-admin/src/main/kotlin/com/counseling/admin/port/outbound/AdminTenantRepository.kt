@@ -12,7 +12,20 @@ interface AdminTenantRepository {
 
     fun findBySlug(slug: String): Mono<Tenant>
 
-    fun findAllByDeletedFalse(): Flux<Tenant>
+    fun findAllByDeletedFalse(
+        page: Int,
+        size: Int,
+    ): Flux<Tenant>
+
+    fun countAllByDeletedFalse(): Mono<Long>
 
     fun findAllByStatusAndDeletedFalse(status: String): Flux<Tenant>
+
+    fun findAllByStatusAndDeletedFalse(
+        status: String,
+        page: Int,
+        size: Int,
+    ): Flux<Tenant>
+
+    fun countAllByStatusAndDeletedFalse(status: String): Mono<Long>
 }

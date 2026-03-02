@@ -51,6 +51,24 @@ class AdminGroupR2dbcRepository(
             .map { row -> mapToGroup(row) }
             .all()
 
+    override fun findAllByNotDeleted(
+        page: Int,
+        size: Int,
+    ): Flux<Group> =
+        databaseClient
+            .sql("SELECT * FROM groups WHERE deleted = FALSE ORDER BY created_at LIMIT :limit OFFSET :offset")
+            .bind("limit", size)
+            .bind("offset", page * size)
+            .map { row -> mapToGroup(row) }
+            .all()
+
+    override fun countAllByNotDeleted(): Mono<Long> =
+        databaseClient
+            .sql("SELECT COUNT(*) as cnt FROM groups WHERE deleted = FALSE")
+            .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
+            .one()
+            .defaultIfEmpty(0L)
+
     override fun findByNameAndNotDeleted(name: String): Mono<Group> =
         databaseClient
             .sql("SELECT * FROM groups WHERE name = :name AND deleted = FALSE")

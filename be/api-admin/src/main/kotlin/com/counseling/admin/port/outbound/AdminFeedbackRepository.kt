@@ -11,5 +11,12 @@ interface AdminFeedbackRepository {
     fun findAll(
         agentId: UUID?,
         rating: Int?,
+        page: Int,
+        size: Int,
     ): Flux<Feedback>
+
+    fun countAll(
+        agentId: UUID?,
+        rating: Int?,
+    ): Mono<Long>
 }

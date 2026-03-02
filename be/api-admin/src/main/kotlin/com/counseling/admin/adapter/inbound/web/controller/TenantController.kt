@@ -1,6 +1,7 @@
 package com.counseling.admin.adapter.inbound.web.controller
 
 import com.counseling.admin.adapter.inbound.web.dto.CreateTenantRequest
+import com.counseling.admin.adapter.inbound.web.dto.PageResponse
 import com.counseling.admin.adapter.inbound.web.dto.TenantDetailResponse
 import com.counseling.admin.adapter.inbound.web.dto.TenantSummaryResponse
 import com.counseling.admin.adapter.inbound.web.dto.UpdateTenantRequest
@@ -22,9 +23,9 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.UUID
+import kotlin.math.ceil
 
 @RestController
 @RequestMapping("/api-adm/tenants")
@@ -35,10 +36,20 @@ class TenantController(
     @GetMapping
     fun listTenants(
         @RequestParam(required = false) status: String?,
-    ): Flux<TenantSummaryResponse> =
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): Mono<PageResponse<TenantSummaryResponse>> =
         tenantManagementUseCase
-            .listTenants(status)
-            .map { TenantSummaryResponse.from(it) }
+            .listTenants(status, page, size)
+            .map { result ->
+                PageResponse(
+                    content = result.content.map { TenantSummaryResponse.from(it) },
+                    page = result.page,
+                    size = result.size,
+                    totalElements = result.totalElements,
+                    totalPages = ceil(result.totalElements.toDouble() / result.size).toInt(),
+                )
+            }
 
     @GetMapping("/{id}")
     fun getTenant(

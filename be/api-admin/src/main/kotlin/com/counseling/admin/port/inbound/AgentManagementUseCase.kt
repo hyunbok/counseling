@@ -33,6 +33,12 @@ interface AgentManagementUseCase {
 
     fun listAgentsWithGroupName(groupId: UUID?): Flux<AgentWithGroupName>
 
+    fun listAgentsPaged(
+        groupId: UUID?,
+        page: Int,
+        size: Int,
+    ): Mono<PagedResult<AgentWithGroupName>>
+
     fun getAgent(id: UUID): Mono<Agent>
 
     fun createAgent(command: CreateAgentCommand): Mono<CreateAgentResult>

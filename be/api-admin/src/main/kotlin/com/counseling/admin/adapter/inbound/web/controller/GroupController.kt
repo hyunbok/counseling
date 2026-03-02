@@ -2,6 +2,7 @@ package com.counseling.admin.adapter.inbound.web.controller
 
 import com.counseling.admin.adapter.inbound.web.dto.CreateGroupRequest
 import com.counseling.admin.adapter.inbound.web.dto.GroupResponse
+import com.counseling.admin.adapter.inbound.web.dto.PageResponse
 import com.counseling.admin.adapter.inbound.web.dto.UpdateGroupRequest
 import com.counseling.admin.port.inbound.GroupManagementUseCase
 import org.springframework.context.annotation.Profile
@@ -13,11 +14,12 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.UUID
+import kotlin.math.ceil
 
 @RestController
 @RequestMapping("/api-adm/groups")
@@ -26,15 +28,27 @@ class GroupController(
     private val groupManagementUseCase: GroupManagementUseCase,
 ) {
     @GetMapping
-    fun listGroups(): Flux<GroupResponse> =
-        groupManagementUseCase.listGroupsWithAgentCount().map { item ->
-            GroupResponse(
-                id = item.group.id,
-                name = item.group.name,
-                status = item.group.status.name,
-                agentCount = item.agentCount,
-                createdAt = item.group.createdAt,
-                updatedAt = item.group.updatedAt,
+    fun listGroups(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): Mono<PageResponse<GroupResponse>> =
+        groupManagementUseCase.listGroupsPaged(page, size).map { result ->
+            PageResponse(
+                content =
+                    result.content.map { item ->
+                        GroupResponse(
+                            id = item.group.id,
+                            name = item.group.name,
+                            status = item.group.status.name,
+                            agentCount = item.agentCount,
+                            createdAt = item.group.createdAt,
+                            updatedAt = item.group.updatedAt,
+                        )
+                    },
+                page = result.page,
+                size = result.size,
+                totalElements = result.totalElements,
+                totalPages = ceil(result.totalElements.toDouble() / result.size).toInt(),
             )
         }
 
