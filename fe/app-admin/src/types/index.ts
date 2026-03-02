@@ -15,6 +15,7 @@ export interface Group {
   id: string;
   name: string;
   status: string;
+  agentCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,6 +27,7 @@ export interface Agent {
   name: string;
   role: string;
   groupId?: string;
+  groupName?: string;
   active: boolean;
   agentStatus: string;
   createdAt: string;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { StatCard } from '@/components/ui/stat-card';
 import { BuildingOfficeIcon, UsersIcon, ChartBarIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
@@ -16,8 +17,14 @@ export default function DashboardPage() {
   const { data: agents } = useAgentList();
   const { data: channels } = useActiveChannels();
   const { data: feedbacks } = useFeedbackList();
-  const { data: stats } = useStatsSummary();
   const { data: agentStatuses } = useAgentStatuses();
+
+  const { from, to } = useMemo(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    return { from: thirtyDaysAgo.toISOString(), to: now.toISOString() };
+  }, []);
+  const { data: stats } = useStatsSummary(from, to);
 
   if (!isAuthenticated) return null;
 
@@ -38,7 +45,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="테넌트" value={tenants?.length ?? '-'} icon={BuildingOfficeIcon} />
           <StatCard label="상담사" value={agents?.length ?? '-'} icon={UsersIcon} />
-          <StatCard label="진행 중 세션" value={channels?.length ?? '-'} icon={ChartBarIcon} />
+          <StatCard label="진행 중 세션" value={channels?.filter((ch) => ch.status === 'OPEN' || ch.status === 'IN_PROGRESS').length ?? '-'} icon={ChartBarIcon} />
           <StatCard label="피드백" value={feedbacks?.length ?? '-'} icon={ChatBubbleLeftRightIcon} />
         </div>
 
