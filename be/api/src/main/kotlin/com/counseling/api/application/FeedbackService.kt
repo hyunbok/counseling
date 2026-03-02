@@ -13,8 +13,10 @@ import com.counseling.api.port.inbound.NotificationUseCase
 import com.counseling.api.port.inbound.SendNotificationCommand
 import com.counseling.api.port.inbound.SubmitFeedbackCommand
 import com.counseling.api.port.outbound.ChannelRepository
+import com.counseling.api.port.outbound.FeedbackProjection
 import com.counseling.api.port.outbound.FeedbackReadRepository
 import com.counseling.api.port.outbound.FeedbackRepository
+import com.counseling.api.port.outbound.HistoryReadRepository
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
@@ -29,6 +31,7 @@ class FeedbackService(
     private val feedbackReadRepository: FeedbackReadRepository,
     private val channelRepository: ChannelRepository,
     private val notificationUseCase: NotificationUseCase,
+    private val historyReadRepository: HistoryReadRepository,
 ) : FeedbackUseCase {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -75,6 +78,25 @@ class FeedbackService(
                                                     e,
                                                 )
                                                 Mono.just(saved)
+                                            }.flatMap { s ->
+                                                historyReadRepository
+                                                    .updateFeedback(
+                                                        channelId = s.channelId,
+                                                        tenantId = tenantId,
+                                                        feedback =
+                                                            FeedbackProjection(
+                                                                rating = s.rating,
+                                                                comment = s.comment,
+                                                                createdAt = s.createdAt,
+                                                            ),
+                                                    ).onErrorResume { e ->
+                                                        log.error(
+                                                            "Failed to update history feedback for channel {}",
+                                                            s.channelId,
+                                                            e,
+                                                        )
+                                                        Mono.empty()
+                                                    }.thenReturn(s)
                                             }
                                     }.doOnNext { saved ->
                                         channel.agentId?.let { agentId ->

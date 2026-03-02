@@ -12,8 +12,11 @@ import com.counseling.api.port.inbound.RecordingUseCase
 import com.counseling.api.port.inbound.StartRecordingResult
 import com.counseling.api.port.inbound.StopRecordingResult
 import com.counseling.api.port.outbound.ChannelRepository
+import com.counseling.api.port.outbound.HistoryReadRepository
 import com.counseling.api.port.outbound.LiveKitEgressPort
+import com.counseling.api.port.outbound.RecordingProjection
 import com.counseling.api.port.outbound.RecordingRepository
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -28,7 +31,10 @@ class RecordingService(
     private val channelRepository: ChannelRepository,
     private val liveKitEgressPort: LiveKitEgressPort,
     private val recordingProperties: RecordingProperties,
+    private val historyReadRepository: HistoryReadRepository,
 ) : RecordingUseCase {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun startRecording(
         channelId: UUID,
         agentId: UUID,
@@ -120,7 +126,33 @@ class RecordingService(
                                         channelRepository.save(updatedChannel).thenReturn(savedRecording)
                                     }
                                 },
-                            ).map { saved ->
+                            ).flatMap { saved ->
+                                TenantContext
+                                    .getTenantId()
+                                    .onErrorReturn("unknown")
+                                    .flatMap { tenantId ->
+                                        historyReadRepository
+                                            .updateRecording(
+                                                channelId = channelId,
+                                                tenantId = tenantId,
+                                                recording =
+                                                    RecordingProjection(
+                                                        recordingId = saved.id,
+                                                        status = saved.status.name,
+                                                        filePath = saved.filePath,
+                                                        startedAt = saved.startedAt,
+                                                        stoppedAt = saved.stoppedAt,
+                                                    ),
+                                            ).onErrorResume { e ->
+                                                log.error(
+                                                    "Failed to update recording projection for channel {}",
+                                                    channelId,
+                                                    e,
+                                                )
+                                                Mono.empty()
+                                            }
+                                    }.thenReturn(saved)
+                            }.map { saved ->
                                 StopRecordingResult(
                                     recordingId = saved.id,
                                     channelId = saved.channelId,

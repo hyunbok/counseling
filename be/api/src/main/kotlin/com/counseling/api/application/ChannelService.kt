@@ -14,7 +14,9 @@ import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.ChatNotificationPort
 import com.counseling.api.port.outbound.EndpointRepository
+import com.counseling.api.port.outbound.HistoryReadRepository
 import com.counseling.api.port.outbound.LiveKitPort
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -30,7 +32,10 @@ class ChannelService(
     private val liveKitPort: LiveKitPort,
     private val liveKitProperties: LiveKitProperties,
     private val chatNotificationPort: ChatNotificationPort,
+    private val historyReadRepository: HistoryReadRepository,
 ) : ChannelUseCase {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun getAgentToken(
         channelId: UUID,
         agentId: UUID,
@@ -123,7 +128,34 @@ class ChannelService(
                             .flatMap { endpoint -> endpointRepository.save(endpoint.leave()) }
                             .then(),
                     ).then(channelRepository.save(channel.close()))
-                    .then(
+                    .flatMap { closedChannel ->
+                        com.counseling.api.domain.TenantContext
+                            .getTenantId()
+                            .onErrorReturn("unknown")
+                            .flatMap { tenantId ->
+                                val durationSeconds =
+                                    if (closedChannel.startedAt != null && closedChannel.endedAt != null) {
+                                        closedChannel.endedAt.epochSecond - closedChannel.startedAt.epochSecond
+                                    } else {
+                                        null
+                                    }
+                                historyReadRepository
+                                    .updateStatus(
+                                        channelId = channelId,
+                                        tenantId = tenantId,
+                                        status = "CLOSED",
+                                        endedAt = closedChannel.endedAt,
+                                        durationSeconds = durationSeconds,
+                                    ).onErrorResume { e ->
+                                        log.error(
+                                            "Failed to update history status for channel {}",
+                                            channelId,
+                                            e,
+                                        )
+                                        Mono.empty()
+                                    }
+                            }.thenReturn(closedChannel)
+                    }.then(
                         agentRepository
                             .findByIdAndNotDeleted(agentId)
                             .flatMap { agent -> agentRepository.save(agent.updateStatus(AgentStatus.ONLINE)) },

@@ -18,6 +18,8 @@ import com.counseling.api.port.inbound.NotificationUseCase
 import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.EndpointRepository
+import com.counseling.api.port.outbound.GroupRepository
+import com.counseling.api.port.outbound.HistoryReadRepository
 import com.counseling.api.port.outbound.LiveKitPort
 import com.counseling.api.port.outbound.QueueNotificationPort
 import com.counseling.api.port.outbound.QueueRepository
@@ -44,6 +46,8 @@ class QueueServiceTest :
         val agentRepository = mockk<AgentRepository>()
         val liveKitPort = mockk<LiveKitPort>()
         val notificationUseCase = mockk<NotificationUseCase>(relaxed = true)
+        val historyReadRepository = mockk<HistoryReadRepository>(relaxed = true)
+        val groupRepository = mockk<GroupRepository>(relaxed = true)
         val liveKitProperties =
             LiveKitProperties(
                 url = "wss://livekit.test",
@@ -61,6 +65,8 @@ class QueueServiceTest :
                 liveKitPort,
                 liveKitProperties,
                 notificationUseCase,
+                historyReadRepository,
+                groupRepository,
             )
 
         val tenantId = "tenant-test"

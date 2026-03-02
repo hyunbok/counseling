@@ -25,6 +25,9 @@ import com.counseling.api.port.inbound.SendNotificationCommand
 import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.EndpointRepository
+import com.counseling.api.port.outbound.GroupRepository
+import com.counseling.api.port.outbound.HistoryProjection
+import com.counseling.api.port.outbound.HistoryReadRepository
 import com.counseling.api.port.outbound.LiveKitPort
 import com.counseling.api.port.outbound.QueueNotificationPort
 import com.counseling.api.port.outbound.QueueRepository
@@ -47,6 +50,8 @@ class QueueService(
     private val liveKitPort: LiveKitPort,
     private val liveKitProperties: LiveKitProperties,
     private val notificationUseCase: NotificationUseCase,
+    private val historyReadRepository: HistoryReadRepository,
+    private val groupRepository: GroupRepository,
 ) : QueueUseCase {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -191,7 +196,42 @@ class QueueService(
                                         .then(endpointRepository.save(customerEndpoint))
                                         .then(endpointRepository.save(agentEndpoint))
                                         .then(agentRepository.save(agent.updateStatus(AgentStatus.BUSY)))
-                                        .thenReturn(roomName)
+                                        .then(
+                                            entry.groupId?.let { gid ->
+                                                groupRepository
+                                                    .findByIdAndNotDeleted(gid)
+                                                    .map { it.name }
+                                                    .onErrorReturn("")
+                                            } ?: Mono.just(""),
+                                        ).flatMap { groupName ->
+                                            historyReadRepository
+                                                .upsert(
+                                                    HistoryProjection(
+                                                        channelId = channelId,
+                                                        tenantId = tenantId,
+                                                        agentId = agentId,
+                                                        agentName = agent.name,
+                                                        groupId = entry.groupId,
+                                                        groupName = groupName.ifBlank { null },
+                                                        customerName = entry.customerName,
+                                                        customerContact = entry.customerContact,
+                                                        status = "IN_PROGRESS",
+                                                        startedAt = now,
+                                                        endedAt = null,
+                                                        durationSeconds = null,
+                                                        recording = null,
+                                                        feedback = null,
+                                                        counselNote = null,
+                                                    ),
+                                                ).onErrorResume { e ->
+                                                    log.error(
+                                                        "Failed to create history projection for channel {}",
+                                                        channelId,
+                                                        e,
+                                                    )
+                                                    Mono.empty()
+                                                }
+                                        }.thenReturn(roomName)
                                 }.flatMap { roomName ->
                                     val agentToken =
                                         liveKitPort.generateToken(

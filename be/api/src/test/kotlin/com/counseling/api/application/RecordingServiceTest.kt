@@ -10,6 +10,7 @@ import com.counseling.api.domain.exception.ConflictException
 import com.counseling.api.domain.exception.NotFoundException
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.EgressStartResult
+import com.counseling.api.port.outbound.HistoryReadRepository
 import com.counseling.api.port.outbound.LiveKitEgressPort
 import com.counseling.api.port.outbound.RecordingRepository
 import io.kotest.core.spec.style.StringSpec
@@ -30,6 +31,7 @@ class RecordingServiceTest :
         val recordingRepository = mockk<RecordingRepository>()
         val channelRepository = mockk<ChannelRepository>()
         val liveKitEgressPort = mockk<LiveKitEgressPort>()
+        val historyReadRepository = mockk<HistoryReadRepository>(relaxed = true)
         val recordingProperties =
             RecordingProperties(
                 basePath = "/tmp/recordings",
@@ -41,6 +43,7 @@ class RecordingServiceTest :
                 channelRepository,
                 liveKitEgressPort,
                 recordingProperties,
+                historyReadRepository,
             )
 
         val tenantId = "tenant-test"

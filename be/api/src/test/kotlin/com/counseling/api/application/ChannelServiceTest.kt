@@ -15,6 +15,7 @@ import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.ChatNotificationPort
 import com.counseling.api.port.outbound.EndpointRepository
+import com.counseling.api.port.outbound.HistoryReadRepository
 import com.counseling.api.port.outbound.LiveKitPort
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
@@ -36,6 +37,7 @@ class ChannelServiceTest :
         val agentRepository = mockk<AgentRepository>()
         val liveKitPort = mockk<LiveKitPort>()
         val chatNotificationPort = mockk<ChatNotificationPort>(relaxed = true)
+        val historyReadRepository = mockk<HistoryReadRepository>(relaxed = true)
         val liveKitProperties =
             LiveKitProperties(
                 url = "wss://livekit.example.com",
@@ -51,6 +53,7 @@ class ChannelServiceTest :
                 liveKitPort,
                 liveKitProperties,
                 chatNotificationPort,
+                historyReadRepository,
             )
 
         val tenantId = "tenant-test"

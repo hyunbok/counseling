@@ -16,6 +16,7 @@ import com.counseling.api.port.inbound.SubmitFeedbackCommand
 import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.FeedbackReadRepository
 import com.counseling.api.port.outbound.FeedbackRepository
+import com.counseling.api.port.outbound.HistoryReadRepository
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks
@@ -33,6 +34,7 @@ class FeedbackServiceTest :
         val feedbackReadRepository = mockk<FeedbackReadRepository>()
         val channelRepository = mockk<ChannelRepository>()
         val notificationUseCase = mockk<NotificationUseCase>(relaxed = true)
+        val historyReadRepository = mockk<HistoryReadRepository>(relaxed = true)
 
         val service =
             FeedbackService(
@@ -40,6 +42,7 @@ class FeedbackServiceTest :
                 feedbackReadRepository,
                 channelRepository,
                 notificationUseCase,
+                historyReadRepository,
             )
 
         val tenantId = "test-tenant"
