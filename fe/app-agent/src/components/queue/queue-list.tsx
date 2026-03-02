@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useQueueList, useAcceptQueue } from '@/hooks/use-queue';
+import { useQueueStream } from '@/hooks/use-queue-stream';
 import { useRouter } from 'next/navigation';
 import useCallStore from '@/stores/call-store';
 
@@ -17,11 +18,13 @@ export const QueueList = () => {
   const acceptQueue = useAcceptQueue();
   const setChannel = useCallStore((state) => state.setChannel);
 
+  useQueueStream();
+
   const handleAccept = (queueId: string, customerName: string) => {
     acceptQueue.mutate(queueId, {
       onSuccess: (data) => {
         const channelId = data?.channelId ?? queueId;
-        setChannel(channelId, customerName);
+        setChannel(channelId, customerName, data?.agentToken, data?.livekitUrl);
         router.push(`/call/${channelId}`);
       },
     });

@@ -8,6 +8,16 @@ interface QueueItem {
   createdAt: string;
 }
 
+interface AcceptResponse {
+  channelId: string;
+  customerName: string;
+  customerContact: string;
+  livekitRoomName: string;
+  livekitUrl: string;
+  agentToken: string;
+  customerToken: string;
+}
+
 export const useQueueList = () => {
   return useQuery<QueueItem[]>({
     queryKey: ['queue'],
@@ -23,9 +33,9 @@ export const useQueueList = () => {
 export const useAcceptQueue = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<AcceptResponse, Error, string>({
     mutationFn: async (queueId: string) => {
-      const { data } = await api.post(`/api/queue/${queueId}/accept`);
+      const { data } = await api.post<AcceptResponse>(`/api/queue/${queueId}/accept`);
       return data;
     },
     onSettled: () => {
