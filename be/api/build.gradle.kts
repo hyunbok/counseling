@@ -54,6 +54,9 @@ dependencies {
     // JSON (Jackson 3.x — Spring Boot 4)
     implementation("tools.jackson.module:jackson-module-kotlin")
 
+    // Mail
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+
     // Actuator
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
