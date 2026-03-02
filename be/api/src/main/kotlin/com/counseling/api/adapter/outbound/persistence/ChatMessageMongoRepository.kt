@@ -18,9 +18,9 @@ import java.util.UUID
 class ChatMessageMongoRepository(
     private val mongoTemplate: ReactiveMongoTemplate,
 ) : ChatMessageReadRepository {
-
     override fun save(message: ChatMessage): Mono<ChatMessage> =
-        mongoTemplate.save(ChatMessageDocument.fromDomain(message), COLLECTION_NAME)
+        mongoTemplate
+            .save(ChatMessageDocument.fromDomain(message), COLLECTION_NAME)
             .map { it.toDomain() }
 
     override fun findByChannelId(
@@ -33,10 +33,12 @@ class ChatMessageMongoRepository(
             criteria.and("createdAt").lt(before)
         }
         val query =
-            Query.query(criteria)
+            Query
+                .query(criteria)
                 .with(Sort.by(Sort.Direction.DESC, "createdAt"))
                 .limit(limit)
-        return mongoTemplate.find(query, ChatMessageDocument::class.java, COLLECTION_NAME)
+        return mongoTemplate
+            .find(query, ChatMessageDocument::class.java, COLLECTION_NAME)
             .map { it.toDomain() }
     }
 

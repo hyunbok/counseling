@@ -10,7 +10,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 @Component
 class InMemoryChatNotificationAdapter : ChatNotificationPort {
-
     private val channelSinks = ConcurrentHashMap<UUID, Sinks.Many<ChatMessage>>()
 
     override fun emitMessage(
@@ -20,8 +19,7 @@ class InMemoryChatNotificationAdapter : ChatNotificationPort {
         channelSink(channelId).tryEmitNext(message)
     }
 
-    override fun subscribeMessages(channelId: UUID): Flux<ChatMessage> =
-        channelSink(channelId).asFlux()
+    override fun subscribeMessages(channelId: UUID): Flux<ChatMessage> = channelSink(channelId).asFlux()
 
     private fun channelSink(channelId: UUID): Sinks.Many<ChatMessage> =
         channelSinks.computeIfAbsent(channelId) {
