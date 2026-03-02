@@ -35,17 +35,18 @@ class AgentController(
     fun listAgents(
         @RequestParam(required = false) groupId: UUID?,
     ): Flux<AgentResponse> =
-        agentManagementUseCase.listAgents(groupId).map { agent ->
+        agentManagementUseCase.listAgentsWithGroupName(groupId).map { item ->
             AgentResponse(
-                id = agent.id,
-                username = agent.username,
-                name = agent.name,
-                role = agent.role.name,
-                groupId = agent.groupId,
-                active = agent.active,
-                agentStatus = agent.agentStatus.name,
-                createdAt = agent.createdAt,
-                updatedAt = agent.updatedAt,
+                id = item.agent.id,
+                username = item.agent.username,
+                name = item.agent.name,
+                role = item.agent.role.name,
+                groupId = item.agent.groupId,
+                groupName = item.groupName,
+                active = item.agent.active,
+                agentStatus = item.agent.agentStatus.name,
+                createdAt = item.agent.createdAt,
+                updatedAt = item.agent.updatedAt,
             )
         }
 
@@ -60,6 +61,7 @@ class AgentController(
                 name = agent.name,
                 role = agent.role.name,
                 groupId = agent.groupId,
+                groupName = null,
                 active = agent.active,
                 agentStatus = agent.agentStatus.name,
                 createdAt = agent.createdAt,
@@ -113,6 +115,7 @@ class AgentController(
                     name = agent.name,
                     role = agent.role.name,
                     groupId = agent.groupId,
+                    groupName = null,
                     active = agent.active,
                     agentStatus = agent.agentStatus.name,
                     createdAt = agent.createdAt,
@@ -132,6 +135,7 @@ class AgentController(
                 name = agent.name,
                 role = agent.role.name,
                 groupId = agent.groupId,
+                groupName = null,
                 active = agent.active,
                 agentStatus = agent.agentStatus.name,
                 createdAt = agent.createdAt,

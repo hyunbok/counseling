@@ -23,8 +23,15 @@ data class CreateAgentResult(
     val temporaryPassword: String,
 )
 
+data class AgentWithGroupName(
+    val agent: Agent,
+    val groupName: String?,
+)
+
 interface AgentManagementUseCase {
     fun listAgents(groupId: UUID?): Flux<Agent>
+
+    fun listAgentsWithGroupName(groupId: UUID?): Flux<AgentWithGroupName>
 
     fun getAgent(id: UUID): Mono<Agent>
 

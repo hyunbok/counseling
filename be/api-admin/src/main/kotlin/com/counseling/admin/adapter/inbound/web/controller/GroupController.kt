@@ -27,13 +27,14 @@ class GroupController(
 ) {
     @GetMapping
     fun listGroups(): Flux<GroupResponse> =
-        groupManagementUseCase.listGroups().map { group ->
+        groupManagementUseCase.listGroupsWithAgentCount().map { item ->
             GroupResponse(
-                id = group.id,
-                name = group.name,
-                status = group.status.name,
-                createdAt = group.createdAt,
-                updatedAt = group.updatedAt,
+                id = item.group.id,
+                name = item.group.name,
+                status = item.group.status.name,
+                agentCount = item.agentCount,
+                createdAt = item.group.createdAt,
+                updatedAt = item.group.updatedAt,
             )
         }
 
@@ -47,6 +48,7 @@ class GroupController(
                 id = group.id,
                 name = group.name,
                 status = group.status.name,
+                agentCount = 0,
                 createdAt = group.createdAt,
                 updatedAt = group.updatedAt,
             )
@@ -62,6 +64,7 @@ class GroupController(
                 id = group.id,
                 name = group.name,
                 status = group.status.name,
+                agentCount = 0,
                 createdAt = group.createdAt,
                 updatedAt = group.updatedAt,
             )

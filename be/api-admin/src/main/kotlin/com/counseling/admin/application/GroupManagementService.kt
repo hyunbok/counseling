@@ -5,6 +5,7 @@ import com.counseling.admin.domain.GroupStatus
 import com.counseling.admin.domain.exception.ConflictException
 import com.counseling.admin.domain.exception.NotFoundException
 import com.counseling.admin.port.inbound.GroupManagementUseCase
+import com.counseling.admin.port.inbound.GroupWithAgentCount
 import com.counseling.admin.port.outbound.AdminAgentRepository
 import com.counseling.admin.port.outbound.AdminGroupRepository
 import org.springframework.context.annotation.Profile
@@ -21,6 +22,15 @@ class GroupManagementService(
     private val agentRepository: AdminAgentRepository,
 ) : GroupManagementUseCase {
     override fun listGroups(): Flux<Group> = groupRepository.findAllByNotDeleted()
+
+    override fun listGroupsWithAgentCount(): Flux<GroupWithAgentCount> =
+        groupRepository
+            .findAllByNotDeleted()
+            .flatMap { group ->
+                agentRepository
+                    .countByGroupIdAndNotDeleted(group.id)
+                    .map { count -> GroupWithAgentCount(group = group, agentCount = count.toInt()) }
+            }
 
     override fun createGroup(name: String): Mono<Group> =
         groupRepository

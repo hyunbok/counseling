@@ -16,6 +16,7 @@ data class GroupResponse(
     val id: UUID,
     val name: String,
     val status: String,
+    val agentCount: Int,
     val createdAt: Instant,
     val updatedAt: Instant,
 )
