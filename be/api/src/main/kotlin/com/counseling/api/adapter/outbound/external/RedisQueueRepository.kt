@@ -97,8 +97,11 @@ class RedisQueueRepository(
         val zsetKey = sortedSetKey(tenantId)
         return redisTemplate
             .opsForZSet()
-            .range(zsetKey, org.springframework.data.domain.Range.unbounded())
-            .map { deserialize(it) }
+            .range(
+                zsetKey,
+                org.springframework.data.domain.Range
+                    .unbounded(),
+            ).map { deserialize(it) }
     }
 
     override fun findById(

@@ -10,11 +10,14 @@ data class Channel(
     val startedAt: Instant?,
     val endedAt: Instant?,
     val recordingPath: String?,
+    val livekitRoomName: String? = null,
     val createdAt: Instant,
     val updatedAt: Instant,
     val deleted: Boolean = false,
 ) {
     fun assignAgent(agentId: UUID): Channel = copy(agentId = agentId, updatedAt = Instant.now())
+
+    fun withRoomName(name: String): Channel = copy(livekitRoomName = name, updatedAt = Instant.now())
 
     fun start(): Channel =
         copy(

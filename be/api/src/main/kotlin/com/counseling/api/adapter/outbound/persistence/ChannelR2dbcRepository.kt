@@ -22,14 +22,15 @@ class ChannelR2dbcRepository(
             databaseClient
                 .sql(
                     """
-                    INSERT INTO channels (id, agent_id, status, started_at, ended_at, recording_path, created_at, updated_at, deleted)
-                    VALUES (:id, :agentId, :status, :startedAt, :endedAt, :recordingPath, :createdAt, :updatedAt, :deleted)
+                    INSERT INTO channels (id, agent_id, status, started_at, ended_at, recording_path, livekit_room_name, created_at, updated_at, deleted)
+                    VALUES (:id, :agentId, :status, :startedAt, :endedAt, :recordingPath, :livekitRoomName, :createdAt, :updatedAt, :deleted)
                     ON CONFLICT (id) DO UPDATE SET
                         agent_id = :agentId,
                         status = :status,
                         started_at = :startedAt,
                         ended_at = :endedAt,
                         recording_path = :recordingPath,
+                        livekit_room_name = :livekitRoomName,
                         updated_at = :updatedAt,
                         deleted = :deleted
                     """.trimIndent(),
@@ -39,18 +40,36 @@ class ChannelR2dbcRepository(
                 .bind("updatedAt", channel.updatedAt)
                 .bind("deleted", channel.deleted)
         val specWithAgent =
-            if (channel.agentId != null) spec.bind("agentId", channel.agentId) else spec.bindNull("agentId", UUID::class.java)
+            if (channel.agentId != null) {
+                spec.bind("agentId", channel.agentId)
+            } else {
+                spec.bindNull("agentId", UUID::class.java)
+            }
         val specWithStartedAt =
-            if (channel.startedAt != null) specWithAgent.bind("startedAt", channel.startedAt) else specWithAgent.bindNull("startedAt", Instant::class.java)
+            if (channel.startedAt != null) {
+                specWithAgent.bind("startedAt", channel.startedAt)
+            } else {
+                specWithAgent.bindNull("startedAt", Instant::class.java)
+            }
         val specWithEndedAt =
-            if (channel.endedAt != null) specWithStartedAt.bind("endedAt", channel.endedAt) else specWithStartedAt.bindNull("endedAt", Instant::class.java)
+            if (channel.endedAt != null) {
+                specWithStartedAt.bind("endedAt", channel.endedAt)
+            } else {
+                specWithStartedAt.bindNull("endedAt", Instant::class.java)
+            }
         val specWithRecording =
             if (channel.recordingPath != null) {
                 specWithEndedAt.bind("recordingPath", channel.recordingPath)
             } else {
                 specWithEndedAt.bindNull("recordingPath", String::class.java)
             }
-        return specWithRecording.then().thenReturn(channel)
+        val specWithRoomName =
+            if (channel.livekitRoomName != null) {
+                specWithRecording.bind("livekitRoomName", channel.livekitRoomName)
+            } else {
+                specWithRecording.bindNull("livekitRoomName", String::class.java)
+            }
+        return specWithRoomName.then().thenReturn(channel)
     }
 
     override fun findByIdAndNotDeleted(id: UUID): Mono<Channel> =
@@ -74,6 +93,18 @@ class ChannelR2dbcRepository(
             .map { row -> mapToChannel(row) }
             .all()
 
+    override fun findAllByAgentIdAndStatusAndNotDeleted(
+        agentId: UUID,
+        status: ChannelStatus,
+    ): Flux<Channel> =
+        databaseClient
+            .sql(
+                "SELECT * FROM channels WHERE agent_id = :agentId AND status = :status AND deleted = FALSE ORDER BY created_at",
+            ).bind("agentId", agentId)
+            .bind("status", status.name)
+            .map { row -> mapToChannel(row) }
+            .all()
+
     private fun mapToChannel(row: Readable): Channel =
         Channel(
             id = row.get("id", UUID::class.java)!!,
@@ -82,6 +113,7 @@ class ChannelR2dbcRepository(
             startedAt = row.get("started_at", Instant::class.java),
             endedAt = row.get("ended_at", Instant::class.java),
             recordingPath = row.get("recording_path", String::class.java),
+            livekitRoomName = row.get("livekit_room_name", String::class.java),
             createdAt = row.get("created_at", Instant::class.java)!!,
             updatedAt = row.get("updated_at", Instant::class.java)!!,
             deleted = row.get("deleted", Boolean::class.java)!!,

@@ -501,7 +501,7 @@
           6,
           7
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -509,7 +509,7 @@
             "description": "Set up LiveKit configuration properties class and application.yml settings for LiveKit server connection with API key, secret, and URL.",
             "dependencies": [],
             "details": "Create LiveKitProperties.kt configuration class in be/api/src/main/kotlin/com/counseling/api/config/ using @ConfigurationProperties:\n\n1. LiveKitProperties.kt:\n- apiKey: String (from LIVEKIT_API_KEY env)\n- apiSecret: String (from LIVEKIT_API_SECRET env)\n- url: String (from LIVEKIT_URL env, e.g., ws://localhost:7880)\n- defaultRoomOptions: RoomOptions class with:\n  - emptyTimeout: Duration (default 5 minutes)\n  - maxParticipants: Int (default 2 for 1:1 counseling)\n\n2. Update application.yml with livekit.* property mappings:\n```yaml\nlivekit:\n  api-key: ${LIVEKIT_API_KEY:devkey}\n  api-secret: ${LIVEKIT_API_SECRET:secret}\n  url: ${LIVEKIT_URL:ws://localhost:7880}\n  default-room-options:\n    empty-timeout: 300s\n    max-participants: 2\n```\n\n3. Create LiveKitConfig.kt @Configuration class to instantiate RoomServiceClient bean from livekit-server-sdk with proper connection settings.\n\n4. Add validation annotations to ensure required properties are present on startup.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write Kotest unit tests to verify: (1) LiveKitProperties loads correctly from application.yml, (2) Validation fails when required properties are missing, (3) RoomServiceClient bean is created successfully with configured URL and credentials."
           },
           {

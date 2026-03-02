@@ -86,7 +86,7 @@ class DomainEventTest :
 
         "FeedbackEvent Submitted has feedback and occurredAt" {
             val feedback = createFeedback()
-            val event = Submitted(feedback = feedback)
+            val event = FeedbackEvent.Submitted(feedback = feedback)
             event.feedback shouldBe feedback
             event.occurredAt shouldNotBe null
         }

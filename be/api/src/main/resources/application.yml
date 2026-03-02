@@ -22,3 +22,9 @@ logging:
   level:
     root: INFO
     com.counseling.api: DEBUG
+
+livekit:
+  url: ${LIVEKIT_URL:ws://localhost:7880}
+  api-key: ${LIVEKIT_API_KEY:devkey}
+  api-secret: ${LIVEKIT_API_SECRET:secret}
+  token-ttl-seconds: ${LIVEKIT_TOKEN_TTL_SECONDS:3600}

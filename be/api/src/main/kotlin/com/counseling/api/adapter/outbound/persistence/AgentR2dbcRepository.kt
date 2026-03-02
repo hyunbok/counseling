@@ -90,8 +90,9 @@ class AgentR2dbcRepository(
             updatedAt = row.get("updated_at", Instant::class.java)!!,
             deleted = row.get("deleted", Boolean::class.java)!!,
             groupId = row.get("group_id", UUID::class.java),
-            agentStatus = AgentStatus.valueOf(
-                row.get("agent_status", String::class.java) ?: AgentStatus.OFFLINE.name,
-            ),
+            agentStatus =
+                AgentStatus.valueOf(
+                    row.get("agent_status", String::class.java) ?: AgentStatus.OFFLINE.name,
+                ),
         )
 }
