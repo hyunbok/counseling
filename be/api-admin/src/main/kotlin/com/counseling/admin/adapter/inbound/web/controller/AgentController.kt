@@ -3,6 +3,7 @@ package com.counseling.admin.adapter.inbound.web.controller
 import com.counseling.admin.adapter.inbound.web.dto.AgentResponse
 import com.counseling.admin.adapter.inbound.web.dto.CreateAgentRequest
 import com.counseling.admin.adapter.inbound.web.dto.CreateAgentResponse
+import com.counseling.admin.adapter.inbound.web.dto.PageResponse
 import com.counseling.admin.adapter.inbound.web.dto.ResetPasswordResponse
 import com.counseling.admin.adapter.inbound.web.dto.UpdateAgentRequest
 import com.counseling.admin.adapter.inbound.web.dto.UpdateAgentStatusRequest
@@ -21,9 +22,9 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.UUID
+import kotlin.math.ceil
 
 @RestController
 @RequestMapping("/api-adm/agents")
@@ -34,18 +35,30 @@ class AgentController(
     @GetMapping
     fun listAgents(
         @RequestParam(required = false) groupId: UUID?,
-    ): Flux<AgentResponse> =
-        agentManagementUseCase.listAgents(groupId).map { agent ->
-            AgentResponse(
-                id = agent.id,
-                username = agent.username,
-                name = agent.name,
-                role = agent.role.name,
-                groupId = agent.groupId,
-                active = agent.active,
-                agentStatus = agent.agentStatus.name,
-                createdAt = agent.createdAt,
-                updatedAt = agent.updatedAt,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): Mono<PageResponse<AgentResponse>> =
+        agentManagementUseCase.listAgentsPaged(groupId, page, size).map { result ->
+            PageResponse(
+                content =
+                    result.content.map { item ->
+                        AgentResponse(
+                            id = item.agent.id,
+                            username = item.agent.username,
+                            name = item.agent.name,
+                            role = item.agent.role.name,
+                            groupId = item.agent.groupId,
+                            groupName = item.groupName,
+                            active = item.agent.active,
+                            agentStatus = item.agent.agentStatus.name,
+                            createdAt = item.agent.createdAt,
+                            updatedAt = item.agent.updatedAt,
+                        )
+                    },
+                page = result.page,
+                size = result.size,
+                totalElements = result.totalElements,
+                totalPages = ceil(result.totalElements.toDouble() / result.size).toInt(),
             )
         }
 
@@ -60,6 +73,7 @@ class AgentController(
                 name = agent.name,
                 role = agent.role.name,
                 groupId = agent.groupId,
+                groupName = null,
                 active = agent.active,
                 agentStatus = agent.agentStatus.name,
                 createdAt = agent.createdAt,
@@ -113,6 +127,7 @@ class AgentController(
                     name = agent.name,
                     role = agent.role.name,
                     groupId = agent.groupId,
+                    groupName = null,
                     active = agent.active,
                     agentStatus = agent.agentStatus.name,
                     createdAt = agent.createdAt,
@@ -132,6 +147,7 @@ class AgentController(
                 name = agent.name,
                 role = agent.role.name,
                 groupId = agent.groupId,
+                groupName = null,
                 active = agent.active,
                 agentStatus = agent.agentStatus.name,
                 createdAt = agent.createdAt,

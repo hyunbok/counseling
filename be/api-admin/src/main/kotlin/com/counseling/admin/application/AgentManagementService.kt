@@ -6,16 +6,21 @@ import com.counseling.admin.domain.AgentStatus
 import com.counseling.admin.domain.exception.ConflictException
 import com.counseling.admin.domain.exception.NotFoundException
 import com.counseling.admin.port.inbound.AgentManagementUseCase
+import com.counseling.admin.port.inbound.AgentWithGroupName
 import com.counseling.admin.port.inbound.CreateAgentCommand
 import com.counseling.admin.port.inbound.CreateAgentResult
+import com.counseling.admin.port.inbound.PagedResult
 import com.counseling.admin.port.inbound.UpdateAgentCommand
 import com.counseling.admin.port.outbound.AdminAgentRepository
+import com.counseling.admin.port.outbound.AdminGroupRepository
 import org.springframework.context.annotation.Profile
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
+import reactor.kotlin.core.util.function.component1
+import reactor.kotlin.core.util.function.component2
 import java.time.Instant
 import java.util.UUID
 
@@ -23,6 +28,7 @@ import java.util.UUID
 @Profile("!test")
 class AgentManagementService(
     private val agentRepository: AdminAgentRepository,
+    private val groupRepository: AdminGroupRepository,
     private val passwordEncoder: PasswordEncoder,
 ) : AgentManagementUseCase {
     override fun listAgents(groupId: UUID?): Flux<Agent> =
@@ -31,6 +37,53 @@ class AgentManagementService(
         } else {
             agentRepository.findAllByNotDeleted()
         }
+
+    override fun listAgentsWithGroupName(groupId: UUID?): Flux<AgentWithGroupName> =
+        groupRepository
+            .findAllByNotDeleted()
+            .collectMap({ it.id }, { it.name })
+            .flatMapMany { groupNameMap ->
+                listAgents(groupId).map { agent ->
+                    AgentWithGroupName(
+                        agent = agent,
+                        groupName = agent.groupId?.let { groupNameMap[it] },
+                    )
+                }
+            }
+
+    override fun listAgentsPaged(
+        groupId: UUID?,
+        page: Int,
+        size: Int,
+    ): Mono<PagedResult<AgentWithGroupName>> =
+        groupRepository
+            .findAllByNotDeleted()
+            .collectMap({ it.id }, { it.name })
+            .flatMap { groupNameMap ->
+                val agentFlux =
+                    if (groupId != null) {
+                        agentRepository.findAllByGroupIdAndNotDeleted(groupId, page, size)
+                    } else {
+                        agentRepository.findAllByNotDeleted(page, size)
+                    }
+                val countMono =
+                    if (groupId != null) {
+                        agentRepository.countAllByGroupIdAndNotDeleted(groupId)
+                    } else {
+                        agentRepository.countAllByNotDeleted()
+                    }
+                Mono
+                    .zip(
+                        agentFlux
+                            .map { agent ->
+                                AgentWithGroupName(
+                                    agent = agent,
+                                    groupName = agent.groupId?.let { groupNameMap[it] },
+                                )
+                            }.collectList(),
+                        countMono,
+                    ).map { (content, total) -> PagedResult(content, total, page, size) }
+            }
 
     override fun getAgent(id: UUID): Mono<Agent> =
         agentRepository

@@ -2,29 +2,17 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Feedback } from '@/types';
 
-interface FeedbacksResponse {
-  content: Feedback[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
-}
-
 interface FeedbackParams {
-  page?: number;
-  size?: number;
   agentId?: string;
   rating?: number;
-  search?: string;
-  dateFrom?: string;
-  dateTo?: string;
 }
 
+// BE returns plain array (Flux<FeedbackResponse>), not paginated
 export const useFeedbackList = (params: FeedbackParams = {}) => {
-  return useQuery<FeedbacksResponse>({
+  return useQuery<Feedback[]>({
     queryKey: ['feedbacks', params],
     queryFn: async () => {
-      const { data } = await api.get<FeedbacksResponse>('/api-adm/feedbacks', { params });
+      const { data } = await api.get<Feedback[]>('/api-adm/feedbacks', { params });
       return data;
     },
   });

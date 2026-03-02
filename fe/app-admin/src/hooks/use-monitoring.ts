@@ -1,20 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { MonitoringSession } from '@/types';
+import type { ActiveChannel, AgentStatusInfo } from '@/types';
 
-interface MonitoringResponse {
-  sessions: MonitoringSession[];
-  totalActive: number;
-  totalWaiting: number;
-  avgWaitSeconds: number;
-  onlineAgents: number;
-}
-
-export const useActiveSessions = () => {
-  return useQuery<MonitoringResponse>({
-    queryKey: ['monitoring'],
+// BE has two separate endpoints for monitoring
+export const useActiveChannels = () => {
+  return useQuery<ActiveChannel[]>({
+    queryKey: ['monitoring', 'channels'],
     queryFn: async () => {
-      const { data } = await api.get<MonitoringResponse>('/api-adm/monitoring/sessions');
+      const { data } = await api.get<ActiveChannel[]>('/api-adm/monitoring/channels');
+      return data;
+    },
+    refetchInterval: 5000,
+  });
+};
+
+export const useAgentStatuses = () => {
+  return useQuery<AgentStatusInfo[]>({
+    queryKey: ['monitoring', 'agents'],
+    queryFn: async () => {
+      const { data } = await api.get<AgentStatusInfo[]>('/api-adm/monitoring/agents');
       return data;
     },
     refetchInterval: 5000,

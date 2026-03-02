@@ -12,47 +12,53 @@ import type { Group } from '@/types';
 const inputClass =
   'w-full rounded-[--radius-input] border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) px-3 py-2 text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-(--color-primary)';
 
-const selectClass =
-  'w-full rounded-[--radius-input] border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) px-3 py-2 text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-(--color-primary)';
-
 const labelClass =
   'block text-sm font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)';
 
-// Mock tenant list for the dropdown until a real tenant list endpoint is wired up
-const MOCK_TENANTS = [
-  { id: 'tenant-001', name: '(주)상담플러스' },
-  { id: 'tenant-002', name: '케어24' },
-  { id: 'tenant-003', name: '마음터' },
-];
+const groupStatusLabel: Record<string, string> = {
+  ACTIVE: '활성',
+  INACTIVE: '비활성',
+};
+
+const groupStatusColor: Record<string, string> = {
+  ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  INACTIVE: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+};
 
 const columns: Column<Group>[] = [
   { key: 'name', label: '그룹명', sortable: true },
-  { key: 'tenantName', label: '테넌트', sortable: true },
-  { key: 'agentCount', label: '상담사 수' },
+  {
+    key: 'status',
+    label: '상태',
+    render: (row) => (
+      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${groupStatusColor[row.status] ?? 'bg-gray-100 text-gray-600'}`}>
+        {groupStatusLabel[row.status] ?? row.status}
+      </span>
+    ),
+  },
   { key: 'createdAt', label: '생성일', render: (row) => new Date(row.createdAt).toLocaleDateString('ko-KR') },
 ];
 
 export default function GroupsPage() {
   const { isAuthenticated } = useAuthGuard();
-  const [page, setPage] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({ tenantId: '', name: '' });
+  const [form, setForm] = useState({ name: '' });
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
-  const { data, isLoading } = useGroupList({ page, size: 10 });
+  const { data, isLoading } = useGroupList();
   const { mutate: createGroup, isPending } = useCreateGroup();
   const { mutate: deleteGroup, isPending: isDeleting } = useDeleteGroup();
 
   const handleSubmit = () => {
-    createGroup(form, {
+    createGroup({ name: form.name }, {
       onSuccess: () => {
         setIsModalOpen(false);
-        setForm({ tenantId: '', name: '' });
+        setForm({ name: '' });
       },
     });
   };
 
-  const deleteTarget = data?.content.find((g) => g.id === deleteTargetId);
+  const deleteTarget = data?.find((g) => g.id === deleteTargetId);
 
   const columnsWithActions: Column<Group>[] = [
     ...columns,
@@ -89,11 +95,7 @@ export default function GroupsPage() {
 
         <DataTable
           columns={columnsWithActions}
-          data={data?.content ?? []}
-          totalElements={data?.totalElements}
-          page={page}
-          pageSize={10}
-          onPageChange={setPage}
+          data={data ?? []}
           isLoading={isLoading}
           emptyMessage="등록된 그룹이 없습니다."
         />
@@ -106,20 +108,6 @@ export default function GroupsPage() {
           onSubmit={handleSubmit}
           isPending={isPending}
         >
-          <div className="space-y-1">
-            <label htmlFor="group-tenant" className={labelClass}>테넌트</label>
-            <select
-              id="group-tenant"
-              value={form.tenantId}
-              onChange={(e) => setForm((f) => ({ ...f, tenantId: e.target.value }))}
-              className={selectClass}
-            >
-              <option value="">테넌트 선택</option>
-              {MOCK_TENANTS.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
           <div className="space-y-1">
             <label htmlFor="group-name" className={labelClass}>그룹명</label>
             <input

@@ -12,5 +12,12 @@ interface AdminGroupRepository {
 
     fun findAllByNotDeleted(): Flux<Group>
 
+    fun findAllByNotDeleted(
+        page: Int,
+        size: Int,
+    ): Flux<Group>
+
+    fun countAllByNotDeleted(): Mono<Long>
+
     fun findByNameAndNotDeleted(name: String): Mono<Group>
 }

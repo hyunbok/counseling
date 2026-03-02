@@ -26,6 +26,7 @@ data class AgentResponse(
     val name: String,
     val role: String,
     val groupId: UUID?,
+    val groupName: String?,
     val active: Boolean,
     val agentStatus: String,
     val createdAt: Instant,

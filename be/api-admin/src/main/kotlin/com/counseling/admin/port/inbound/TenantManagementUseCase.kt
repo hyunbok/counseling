@@ -2,7 +2,6 @@ package com.counseling.admin.port.inbound
 
 import com.counseling.admin.domain.Tenant
 import com.counseling.admin.domain.TenantStatus
-import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.UUID
 
@@ -26,7 +25,11 @@ data class UpdateTenantCommand(
 )
 
 interface TenantManagementUseCase {
-    fun listTenants(status: String?): Flux<Tenant>
+    fun listTenants(
+        status: String?,
+        page: Int,
+        size: Int,
+    ): Mono<PagedResult<Tenant>>
 
     fun getTenant(id: UUID): Mono<Tenant>
 

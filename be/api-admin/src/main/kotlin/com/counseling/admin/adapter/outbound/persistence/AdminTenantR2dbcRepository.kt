@@ -58,11 +58,23 @@ class AdminTenantR2dbcRepository(
             .map { row -> mapToTenant(row) }
             .one()
 
-    override fun findAllByDeletedFalse(): Flux<Tenant> =
+    override fun findAllByDeletedFalse(
+        page: Int,
+        size: Int,
+    ): Flux<Tenant> =
         databaseClient
-            .sql("SELECT * FROM tenants WHERE deleted = false ORDER BY created_at DESC")
+            .sql("SELECT * FROM tenants WHERE deleted = false ORDER BY created_at DESC LIMIT :limit OFFSET :offset")
+            .bind("limit", size)
+            .bind("offset", page * size)
             .map { row -> mapToTenant(row) }
             .all()
+
+    override fun countAllByDeletedFalse(): Mono<Long> =
+        databaseClient
+            .sql("SELECT COUNT(*) as cnt FROM tenants WHERE deleted = false")
+            .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
+            .one()
+            .defaultIfEmpty(0L)
 
     override fun findAllByStatusAndDeletedFalse(status: String): Flux<Tenant> =
         databaseClient
@@ -70,6 +82,27 @@ class AdminTenantR2dbcRepository(
             .bind("status", status)
             .map { row -> mapToTenant(row) }
             .all()
+
+    override fun findAllByStatusAndDeletedFalse(
+        status: String,
+        page: Int,
+        size: Int,
+    ): Flux<Tenant> =
+        databaseClient
+            .sql("SELECT * FROM tenants WHERE status = :status AND deleted = false ORDER BY created_at DESC LIMIT :limit OFFSET :offset")
+            .bind("status", status)
+            .bind("limit", size)
+            .bind("offset", page * size)
+            .map { row -> mapToTenant(row) }
+            .all()
+
+    override fun countAllByStatusAndDeletedFalse(status: String): Mono<Long> =
+        databaseClient
+            .sql("SELECT COUNT(*) as cnt FROM tenants WHERE status = :status AND deleted = false")
+            .bind("status", status)
+            .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
+            .one()
+            .defaultIfEmpty(0L)
 
     private fun mapToTenant(row: io.r2dbc.spi.Readable): Tenant =
         Tenant(
