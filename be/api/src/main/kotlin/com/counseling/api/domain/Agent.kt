@@ -14,6 +14,7 @@ data class Agent(
     val deleted: Boolean = false,
     val groupId: UUID? = null,
     val agentStatus: AgentStatus = AgentStatus.OFFLINE,
+    val email: String? = null,
 ) {
     fun changePassword(newHash: String): Agent = copy(passwordHash = newHash, updatedAt = Instant.now())
 
