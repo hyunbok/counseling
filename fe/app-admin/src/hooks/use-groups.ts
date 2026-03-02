@@ -2,39 +2,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Group } from '@/types';
 
-interface GroupsResponse {
-  content: Group[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
-}
-
-interface GroupParams {
-  page?: number;
-  size?: number;
-  tenantId?: string;
-  search?: string;
-}
-
-interface CreateGroupBody {
-  tenantId: string;
-  name: string;
-}
-
-interface UpdateGroupBody {
-  name?: string;
-}
-
-export const useGroupList = (params: GroupParams = {}) => {
-  return useQuery<GroupsResponse>({
-    queryKey: ['groups', params],
+// BE returns plain array (Flux<GroupResponse>), not paginated
+export const useGroupList = () => {
+  return useQuery<Group[]>({
+    queryKey: ['groups'],
     queryFn: async () => {
-      const { data } = await api.get<GroupsResponse>('/api-adm/groups', { params });
+      const { data } = await api.get<Group[]>('/api-adm/groups');
       return data;
     },
   });
 };
+
+interface CreateGroupBody {
+  name: string;
+}
 
 export const useCreateGroup = () => {
   const queryClient = useQueryClient();
@@ -49,11 +30,16 @@ export const useCreateGroup = () => {
   });
 };
 
+interface UpdateGroupBody {
+  name?: string;
+  status?: string;
+}
+
 export const useUpdateGroup = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, body }: { id: string; body: UpdateGroupBody }): Promise<Group> => {
-      const { data } = await api.patch<Group>(`/api-adm/groups/${id}`, body);
+      const { data } = await api.put<Group>(`/api-adm/groups/${id}`, body);
       return data;
     },
     onSuccess: () => {
