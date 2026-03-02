@@ -54,6 +54,8 @@ class SecurityConfig {
                     .permitAll()
                     .pathMatchers("/api/channels/*/chat", "/api/channels/*/chat/**")
                     .permitAll()
+                    .pathMatchers(HttpMethod.POST, "/api/channels/*/feedback")
+                    .permitAll()
                     .pathMatchers("/api/**")
                     .authenticated()
                     .anyExchange()
