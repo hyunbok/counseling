@@ -120,6 +120,7 @@ class QueueController(
                 entryId = update.entryId,
                 position = update.position,
                 queueSize = update.queueSize,
+                channelId = update.channelId,
                 timestamp = update.timestamp,
             )
         }
