@@ -15,7 +15,11 @@ const INITIAL_MESSAGES: Message[] = [
   { id: '2', sender: 'agent', text: '안녕하세요! 무엇을 도와드릴까요?', time: '14:02' },
 ];
 
-export const ChatPanel = () => {
+interface ChatPanelProps {
+  channelId?: string;
+}
+
+export const ChatPanel = ({ channelId: _channelId }: ChatPanelProps = {}) => {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
 
