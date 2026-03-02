@@ -596,7 +596,7 @@
           5,
           6
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -604,7 +604,7 @@
             "description": "Create TenantController with CRUD endpoints for platform-level tenant management, accessible only to SUPER_ADMIN role users.",
             "dependencies": [],
             "details": "Create TenantController.kt in be/api-admin/src/main/kotlin/com/counseling/admin/adapter/inbound/web/ with @PreAuthorize(\"hasRole('SUPER_ADMIN')\") security annotation. Implement endpoints: GET /api-adm/tenants (list all tenants with pagination), POST /api-adm/tenants (create tenant with DB connection info), PUT /api-adm/tenants/{id} (update tenant details), PATCH /api-adm/tenants/{id}/status (activate/deactivate tenant). Create TenantService in application/service/ with business logic for tenant lifecycle management including DB connection validation. Define DTOs: CreateTenantRequest (name, dbHost, dbPort, dbName, dbUsername, dbPassword), UpdateTenantRequest, TenantResponse, TenantListResponse with pagination metadata. Connect to Meta DB TenantRepository from Task 4. Implement proper error handling for duplicate tenant names and invalid DB connections.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write @WebFluxTest integration tests: (1) Verify SUPER_ADMIN can list/create/update/deactivate tenants, (2) Verify COMPANY_ADMIN and GROUP_ADMIN receive 403 Forbidden, (3) Test tenant creation with valid DB connection info succeeds, (4) Test duplicate tenant name returns 409 Conflict, (5) Test tenant status toggle between ACTIVE and INACTIVE."
           },
           {
@@ -615,7 +615,7 @@
               1
             ],
             "details": "Create GroupController.kt at /api-adm/groups with @PreAuthorize(\"hasAnyRole('COMPANY_ADMIN', 'GROUP_ADMIN')\"). Implement endpoints: GET /api-adm/groups (list groups filtered by tenant context), POST /api-adm/groups (create group - COMPANY_ADMIN only), PUT /api-adm/groups/{id} (update group), DELETE /api-adm/groups/{id} (soft delete - COMPANY_ADMIN only). Create CompanyController.kt at /api-adm/company for company info management: GET /api-adm/company (get own company info), PUT /api-adm/company (update company info - COMPANY_ADMIN only). Create GroupService and CompanyService with tenant-aware repository operations. Define DTOs: CreateGroupRequest (name), UpdateGroupRequest, GroupResponse with member count, CompanyResponse, UpdateCompanyRequest. GROUP_ADMIN can only view/update their assigned group, COMPANY_ADMIN can manage all groups in their tenant. Use TenantContext from Task 4 for automatic tenant filtering.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write integration tests: (1) COMPANY_ADMIN can create/delete groups, (2) GROUP_ADMIN cannot create/delete groups but can view/update their own group, (3) Verify tenant isolation - admin cannot see other tenant's groups, (4) Test group deletion fails if agents are still assigned, (5) Test company info update persists correctly."
           },
           {
@@ -627,7 +627,7 @@
               2
             ],
             "details": "Create AgentManagementController.kt at /api-adm/agents. Implement endpoints: GET /api-adm/agents (list agents with filters: groupId, status, search), POST /api-adm/agents (register new agent with temp password), PUT /api-adm/agents/{id} (update agent info), PATCH /api-adm/agents/{id}/status (activate/deactivate account), POST /api-adm/agents/{id}/reset-password (generate temp password and send email). Create AgentManagementService with business logic: generateTempPassword(), validateAgentCreation(), sendPasswordResetEmail(). Define DTOs: CreateAgentRequest (username, name, groupId, role), UpdateAgentRequest, AgentResponse, AgentListResponse with pagination. Role constraints: COMPANY_ADMIN can manage all agents, GROUP_ADMIN can only manage agents in their group. Integrate with NotificationService (placeholder) for email sending on account creation and password reset. Use BCryptPasswordEncoder for password hashing.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write tests: (1) Agent creation generates unique username and temp password, (2) GROUP_ADMIN cannot manage agents outside their group, (3) Password reset generates new temp password and triggers email notification, (4) Agent deactivation sets status to INACTIVE, (5) Duplicate username returns 409 Conflict, (6) Verify password is properly hashed with BCrypt."
           },
           {
@@ -640,7 +640,7 @@
               3
             ],
             "details": "Create StatisticsController.kt at /api-adm/stats. Implement endpoints: GET /api-adm/stats/summary (with query params: from, to dates) returning StatsSummary (totalSessions, avgDuration, avgRating, completedCount, abandonedCount), GET /api-adm/stats/agents returning Flux<AgentStats> (agentId, name, sessionCount, avgDuration, avgRating, onlineTime). Create MonitoringController.kt at /api-adm/monitoring with endpoints: GET /api-adm/monitoring/channels returning active channels with agent/customer info and duration, GET /api-adm/monitoring/agents returning real-time agent status summary (online, busy, away, wrapup, offline counts) and individual agent statuses. Create StatisticsService querying MongoDB read models (ChannelQueryRepository, StatsQueryRepository from Task 6). Create MonitoringService reading from Redis for real-time agent status. Apply tenant context filtering and role-based group filtering for GROUP_ADMIN users.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write tests: (1) Statistics summary calculates correctly for date range, (2) Per-agent stats aggregates sessions and ratings accurately, (3) Monitoring returns only active (IN_PROGRESS) channels, (4) Agent status counts match Redis stored values, (5) GROUP_ADMIN sees only their group's statistics, (6) Verify tenant isolation in all statistics queries."
           },
           {
@@ -654,10 +654,11 @@
               4
             ],
             "details": "Create FeedbackController.kt at /api-adm/feedbacks. Implement endpoints: GET /api-adm/feedbacks (list with filters: agentId, groupId, rating range, date range, pagination), GET /api-adm/feedbacks/{id} (feedback detail with channel/agent info). Create FeedbackQueryService reading from MongoDB FeedbackReadModel. Create AdminAuthController.kt at /api-adm/auth with endpoints: POST /api-adm/auth/login (authenticate admin/superuser, return JWT with role and tenantId claims), POST /api-adm/auth/logout (blacklist token via Redis), POST /api-adm/auth/refresh (refresh token pair). AdminAuthService distinguishes between SuperAdmin (from Meta DB) and tenant admins (from Tenant DB). SuperAdmin JWT contains no tenantId, while tenant admin JWT contains tenantId claim. Reuse JwtTokenService and TokenBlacklistService from Task 5 with admin-specific token configuration. Define DTOs: FeedbackListResponse, FeedbackDetailResponse, AdminLoginRequest, AdminLoginResponse with user role info.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Write tests: (1) Feedback list filters by rating range correctly, (2) Feedback detail includes agent and channel information, (3) SuperAdmin login authenticates against Meta DB without tenantId, (4) Company/Group Admin login authenticates against Tenant DB with tenantId in JWT, (5) Logout blacklists admin token, (6) Refresh token generates new token pair with same claims, (7) GROUP_ADMIN sees only feedback for their group's agents."
           }
-        ]
+        ],
+        "updatedAt": "2026-03-02T05:38:15.515291+00:00"
       },
       {
         "id": 12,
