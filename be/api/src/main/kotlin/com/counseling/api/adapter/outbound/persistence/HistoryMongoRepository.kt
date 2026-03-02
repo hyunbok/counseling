@@ -174,15 +174,12 @@ class HistoryMongoRepository(
         if (groupId != null) {
             criteria = criteria.and("groupId").`is`(groupId.toString())
         }
-        if (dateFrom != null) {
+        if (dateFrom != null && dateTo != null) {
+            criteria = criteria.and("startedAt").gte(dateFrom).lte(dateTo)
+        } else if (dateFrom != null) {
             criteria = criteria.and("startedAt").gte(dateFrom)
-        }
-        if (dateTo != null) {
-            if (dateFrom != null) {
-                criteria = criteria.and("endedAt").lte(dateTo)
-            } else {
-                criteria = criteria.and("startedAt").lte(dateTo)
-            }
+        } else if (dateTo != null) {
+            criteria = criteria.and("startedAt").lte(dateTo)
         }
         if (before != null) {
             criteria = criteria.and("endedAt").lt(before)

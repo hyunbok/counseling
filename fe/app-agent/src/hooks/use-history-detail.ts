@@ -11,9 +11,10 @@ export interface HistoryRecording {
 }
 
 export interface HistoryDetail extends HistoryItem {
-  recordings: HistoryRecording[];
+  customerContact: string | null;
+  recording: HistoryRecording | null;
   feedback: { rating: number; comment: string | null } | null;
-  counselNotes: { id: string; content: string; createdAt: string }[];
+  counselNote: { noteId: string; content: string; createdAt: string; updatedAt: string } | null;
 }
 
 export function useHistoryDetail(channelId: string | null) {

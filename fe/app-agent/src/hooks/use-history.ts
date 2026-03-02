@@ -8,12 +8,12 @@ export interface HistoryItem {
   groupId: string | null;
   groupName: string | null;
   customerName: string | null;
-  customerContact: string | null;
   status: string;
   startedAt: string | null;
   endedAt: string | null;
   durationSeconds: number | null;
   hasRecording: boolean;
+  hasFeedback: boolean;
   feedbackRating: number | null;
 }
 

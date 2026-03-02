@@ -27,7 +27,6 @@ data class HistoryListResponse(
 data class HistoryRecordingResponse(
     val recordingId: UUID,
     val status: String,
-    val filePath: String?,
     val startedAt: Instant,
     val stoppedAt: Instant?,
 )

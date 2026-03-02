@@ -11,7 +11,6 @@ import { useHistoryDetail } from '@/hooks/use-history-detail';
 export default function HistoryPage() {
   const [filters, setFilters] = useState<HistoryFilters>({});
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null);
-  const [selectedRecordingIndex, setSelectedRecordingIndex] = useState<number>(0);
 
   const {
     data,
@@ -34,18 +33,13 @@ export default function HistoryPage() {
 
   const handleRowClick = useCallback((channelId: string) => {
     setSelectedChannelId(channelId);
-    setSelectedRecordingIndex(0);
   }, []);
 
   const handleCloseModal = useCallback(() => {
     setSelectedChannelId(null);
-    setSelectedRecordingIndex(0);
   }, []);
 
-  const activeRecording =
-    detail?.recordings && detail.recordings.length > 0
-      ? detail.recordings[selectedRecordingIndex] ?? null
-      : null;
+  const activeRecording = detail?.recording ?? null;
 
   return (
     <SidebarLayout>
@@ -71,6 +65,7 @@ export default function HistoryPage() {
         {/* Recording playback modal — shown when a channel is selected and it has recordings */}
         {selectedChannelId && activeRecording && (
           <RecordingPlaybackModal
+            channelId={selectedChannelId}
             recording={activeRecording}
             onClose={handleCloseModal}
           />
@@ -105,24 +100,17 @@ export default function HistoryPage() {
                     {detail.feedback.comment && ` — ${detail.feedback.comment}`}
                   </p>
                 )}
-                {detail.counselNotes.length > 0 && (
+                {detail.counselNote && (
                   <div>
                     <p className="text-sm font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark) mb-1">
                       상담 노트
                     </p>
-                    <ul className="space-y-1">
-                      {detail.counselNotes.map((note) => (
-                        <li
-                          key={note.id}
-                          className="text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) rounded-lg bg-(--color-bg-surface) dark:bg-(--color-bg-elevated-dark) px-3 py-2"
-                        >
-                          {note.content}
-                        </li>
-                      ))}
-                    </ul>
+                    <p className="text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) rounded-lg bg-(--color-bg-surface) dark:bg-(--color-bg-elevated-dark) px-3 py-2">
+                      {detail.counselNote.content}
+                    </p>
                   </div>
                 )}
-                {detail.recordings.length === 0 && (
+                {!detail.recording && (
                   <p className="text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
                     녹화 파일이 없습니다.
                   </p>

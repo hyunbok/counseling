@@ -188,7 +188,6 @@ class HistoryController(
                     HistoryRecordingResponse(
                         recordingId = it.recordingId,
                         status = it.status,
-                        filePath = it.filePath,
                         startedAt = it.startedAt,
                         stoppedAt = it.stoppedAt,
                     )

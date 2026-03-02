@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { HistoryRecording } from '@/hooks/use-history-detail';
 
 interface RecordingPlaybackModalProps {
+  channelId: string;
   recording: HistoryRecording;
   onClose: () => void;
 }
@@ -30,7 +31,7 @@ function formatDateTime(iso: string | null): string {
   });
 }
 
-export const RecordingPlaybackModal = ({ recording, onClose }: RecordingPlaybackModalProps) => {
+export const RecordingPlaybackModal = ({ channelId, recording, onClose }: RecordingPlaybackModalProps) => {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export const RecordingPlaybackModal = ({ recording, onClose }: RecordingPlayback
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get(`/api/recordings/${recording.recordingId}/stream`, {
+      const response = await api.get(`/api/history/${channelId}/recording/${recording.recordingId}`, {
         responseType: 'blob',
       });
       const url = URL.createObjectURL(response.data as Blob);
@@ -51,7 +52,7 @@ export const RecordingPlaybackModal = ({ recording, onClose }: RecordingPlayback
     } finally {
       setIsLoading(false);
     }
-  }, [recording.recordingId]);
+  }, [channelId, recording.recordingId]);
 
   useEffect(() => {
     fetchRecordingBlob();
