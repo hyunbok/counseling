@@ -11,8 +11,11 @@ const selectClass =
   'rounded-lg border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) px-3 py-1.5 text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-(--color-primary)';
 
 const columns: Column<Feedback>[] = [
-  { key: 'agentName', label: '상담사', sortable: true },
-  { key: 'clientName', label: '고객', sortable: true },
+  {
+    key: 'channelId',
+    label: '채널 ID',
+    render: (row) => <span className="font-mono text-xs">{row.channelId.slice(0, 8)}...</span>,
+  },
   {
     key: 'rating',
     label: '평점',
@@ -39,10 +42,9 @@ const columns: Column<Feedback>[] = [
 
 export default function FeedbacksPage() {
   const { isAuthenticated } = useAuthGuard();
-  const [page, setPage] = useState(0);
   const [ratingFilter, setRatingFilter] = useState<number | undefined>(undefined);
 
-  const { data, isLoading } = useFeedbackList({ page, size: 10, rating: ratingFilter });
+  const { data, isLoading } = useFeedbackList({ rating: ratingFilter });
 
   if (!isAuthenticated) return null;
 
@@ -73,7 +75,6 @@ export default function FeedbacksPage() {
               onChange={(e) => {
                 const val = e.target.value;
                 setRatingFilter(val === '' ? undefined : Number(val));
-                setPage(0);
               }}
               className={selectClass}
             >
@@ -89,11 +90,7 @@ export default function FeedbacksPage() {
 
         <DataTable
           columns={columns}
-          data={data?.content ?? []}
-          totalElements={data?.totalElements}
-          page={page}
-          pageSize={10}
-          onPageChange={setPage}
+          data={data ?? []}
           isLoading={isLoading}
           emptyMessage="등록된 피드백이 없습니다."
         />
