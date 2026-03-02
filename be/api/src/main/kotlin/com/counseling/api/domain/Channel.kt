@@ -19,6 +19,8 @@ data class Channel(
 
     fun withRoomName(name: String): Channel = copy(livekitRoomName = name, updatedAt = Instant.now())
 
+    fun withRecordingPath(path: String): Channel = copy(recordingPath = path, updatedAt = Instant.now())
+
     fun start(): Channel =
         copy(
             status = ChannelStatus.IN_PROGRESS,

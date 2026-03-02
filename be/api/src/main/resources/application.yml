@@ -28,3 +28,7 @@ livekit:
   api-key: ${LIVEKIT_API_KEY:devkey}
   api-secret: ${LIVEKIT_API_SECRET:secret}
   token-ttl-seconds: ${LIVEKIT_TOKEN_TTL_SECONDS:3600}
+
+recording:
+  base-path: ${RECORDING_BASE_PATH:/tmp/recordings}
+  file-format: ${RECORDING_FILE_FORMAT:mp4}
