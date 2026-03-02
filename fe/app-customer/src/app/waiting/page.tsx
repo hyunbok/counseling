@@ -5,45 +5,75 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import useCustomerStore from '@/stores/customer-store';
-import { useEnterQueue, useLeaveQueue, useQueueStatus } from '@/hooks/use-queue';
+import { useEnterQueue, useLeaveQueue, useQueuePositionStream } from '@/hooks/use-queue';
 
 export default function WaitingPage() {
   const router = useRouter();
-  const { queuePosition, customerName, customerContact, channelId, setChannelId, setQueuePosition } =
-    useCustomerStore();
+  const {
+    customerName,
+    customerContact,
+    entryId,
+    queuePosition,
+    setEntryId,
+    setQueuePosition,
+    setChannelId,
+    reset,
+  } = useCustomerStore();
 
   const enterQueue = useEnterQueue();
   const leaveQueue = useLeaveQueue();
-  const queueStatus = useQueueStatus(channelId);
+  const positionStream = useQueuePositionStream(entryId);
 
-  // Enter queue on mount if not already in one
+  // If no customer info, redirect to join page
   useEffect(() => {
-    if (channelId || !customerName || !customerContact) return;
+    if (!customerName || !customerContact) {
+      router.replace('/');
+    }
+  }, [customerName, customerContact, router]);
+
+  // Enter queue on mount if no entryId yet
+  useEffect(() => {
+    if (entryId || !customerName || !customerContact) return;
     enterQueue.mutate(
-      { customerName, customerContact },
+      { name: customerName, contact: customerContact },
       {
         onSuccess: (data) => {
-          if (data?.channelId) setChannelId(data.channelId);
+          setEntryId(data.entryId);
+          setQueuePosition(data.position);
         },
       },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync queue position from polling into Zustand
+  // Sync position from SSE stream
   useEffect(() => {
-    if (queueStatus.data?.position !== undefined) {
-      setQueuePosition(queueStatus.data.position);
+    if (positionStream.position !== null) {
+      setQueuePosition(positionStream.position);
     }
-  }, [queueStatus.data, setQueuePosition]);
+  }, [positionStream.position, setQueuePosition]);
+
+  // Navigate to call when accepted (channelId received)
+  useEffect(() => {
+    if (positionStream.channelId) {
+      setChannelId(positionStream.channelId);
+      router.push(`/call/${positionStream.channelId}`);
+    }
+  }, [positionStream.channelId, setChannelId, router]);
 
   const handleLeave = async () => {
-    if (channelId) {
-      await leaveQueue.mutateAsync(channelId);
+    if (entryId) {
+      try {
+        await leaveQueue.mutateAsync(entryId);
+      } catch {
+        // Continue to home even if leave fails
+      }
     }
+    reset();
     router.push('/');
   };
 
+  const displayPosition = positionStream.position ?? queuePosition;
   const isEntering = enterQueue.isPending;
 
   return (
@@ -80,18 +110,23 @@ export default function WaitingPage() {
             </div>
           )}
 
-          {!isEntering && queuePosition !== null && (
+          {!isEntering && displayPosition !== null && displayPosition > 0 && (
             <div className="rounded-lg bg-indigo-50 dark:bg-indigo-900/20 px-4 py-3 mb-6">
               <p className="text-sm text-indigo-700 dark:text-indigo-300 font-medium">
                 현재 대기 순서
               </p>
               <p className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-                {queuePosition}번
+                {displayPosition}번
               </p>
+              {positionStream.queueSize !== null && (
+                <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-1">
+                  전체 대기 {positionStream.queueSize}명
+                </p>
+              )}
             </div>
           )}
 
-          {!isEntering && queuePosition === null && (
+          {!isEntering && displayPosition === null && !enterQueue.isError && (
             <div className="rounded-lg bg-(--color-bg-surface) dark:bg-(--color-bg-elevated-dark) px-4 py-3 mb-6">
               <p className="text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
                 대기열 정보를 가져오는 중...
@@ -99,10 +134,22 @@ export default function WaitingPage() {
             </div>
           )}
 
-          {enterQueue.isError && (
-            <p className="text-sm text-red-500 dark:text-red-400 mb-4">
-              대기열 입장에 실패했습니다. 다시 시도해 주세요.
-            </p>
+          {(enterQueue.isError || positionStream.error) && (
+            <div className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-3 mb-6">
+              <p className="text-sm text-red-600 dark:text-red-400">
+                {enterQueue.isError
+                  ? '대기열 입장에 실패했습니다.'
+                  : '연결이 끊어졌습니다.'}
+              </p>
+              {positionStream.error && (
+                <button
+                  onClick={positionStream.reconnect}
+                  className="text-sm text-indigo-600 dark:text-indigo-400 underline mt-1"
+                >
+                  다시 연결
+                </button>
+              )}
+            </div>
           )}
 
           <Button
@@ -112,7 +159,7 @@ export default function WaitingPage() {
             className="w-full"
             aria-label="대기열 나가기"
           >
-            대기열 나가기
+            {leaveQueue.isPending ? '나가는 중...' : '대기열 나가기'}
           </Button>
         </div>
       </div>

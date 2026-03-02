@@ -5,18 +5,31 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import useCustomerStore from '@/stores/customer-store';
+import { useEnterQueue } from '@/hooks/use-queue';
 
 export default function JoinPage() {
   const router = useRouter();
-  const { setCustomerInfo } = useCustomerStore();
+  const { setCustomerInfo, setEntryId, setQueuePosition } = useCustomerStore();
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
+  const enterQueue = useEnterQueue();
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !contact.trim()) return;
-    setCustomerInfo(name.trim(), contact.trim());
-    router.push('/waiting');
+
+    try {
+      const result = await enterQueue.mutateAsync({
+        name: name.trim(),
+        contact: contact.trim(),
+      });
+      setCustomerInfo(name.trim(), contact.trim());
+      setEntryId(result.entryId);
+      setQueuePosition(result.position);
+      router.push('/waiting');
+    } catch {
+      // Error handled by mutation state
+    }
   };
 
   return (
@@ -49,7 +62,8 @@ export default function JoinPage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="이름을 입력하세요"
                 required
-                className="rounded-lg border border-gray-300 px-3 py-2 text-(--color-text-primary) placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-(--color-bg-elevated-dark) dark:border-gray-600 dark:text-(--color-text-primary-dark) dark:placeholder-gray-500"
+                disabled={enterQueue.isPending}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-(--color-text-primary) placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-(--color-bg-elevated-dark) dark:border-gray-600 dark:text-(--color-text-primary-dark) dark:placeholder-gray-500 disabled:opacity-50"
               />
             </div>
 
@@ -68,17 +82,25 @@ export default function JoinPage() {
                 onChange={(e) => setContact(e.target.value)}
                 placeholder="연락처를 입력하세요"
                 required
-                className="rounded-lg border border-gray-300 px-3 py-2 text-(--color-text-primary) placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-(--color-bg-elevated-dark) dark:border-gray-600 dark:text-(--color-text-primary-dark) dark:placeholder-gray-500"
+                disabled={enterQueue.isPending}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-(--color-text-primary) placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-(--color-bg-elevated-dark) dark:border-gray-600 dark:text-(--color-text-primary-dark) dark:placeholder-gray-500 disabled:opacity-50"
               />
             </div>
+
+            {enterQueue.isError && (
+              <p className="text-sm text-red-500 dark:text-red-400">
+                상담 신청에 실패했습니다. 다시 시도해 주세요.
+              </p>
+            )}
 
             <Button
               type="submit"
               variant="primary"
               className="w-full mt-2"
+              disabled={enterQueue.isPending}
               aria-label="상담 시작하기"
             >
-              상담 시작
+              {enterQueue.isPending ? '처리 중...' : '상담 시작'}
             </Button>
           </form>
         </div>
