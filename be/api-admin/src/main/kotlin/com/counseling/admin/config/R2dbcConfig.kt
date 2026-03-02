@@ -1,7 +1,7 @@
 package com.counseling.admin.config
 
+import com.counseling.admin.adapter.outbound.persistence.AdminTenantConnectionRegistryImpl
 import com.counseling.admin.adapter.outbound.persistence.AdminTenantRoutingConnectionFactory
-import com.counseling.admin.port.outbound.TenantConnectionRegistry
 import io.r2dbc.pool.ConnectionPool
 import io.r2dbc.pool.ConnectionPoolConfiguration
 import io.r2dbc.spi.ConnectionFactories
@@ -57,6 +57,6 @@ class R2dbcConfig {
 
     @Bean
     @Primary
-    fun tenantConnectionFactory(connectionRegistry: TenantConnectionRegistry): ConnectionFactory =
+    fun tenantConnectionFactory(connectionRegistry: AdminTenantConnectionRegistryImpl): ConnectionFactory =
         AdminTenantRoutingConnectionFactory(connectionRegistry)
 }

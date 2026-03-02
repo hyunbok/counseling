@@ -1,4 +1,4 @@
-package com.counseling.admin.domain
+package com.counseling.admin.application
 
 import reactor.core.publisher.Mono
 import reactor.util.context.Context

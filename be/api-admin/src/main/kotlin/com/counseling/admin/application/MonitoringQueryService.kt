@@ -5,8 +5,6 @@ import com.counseling.admin.port.inbound.AgentStatusInfo
 import com.counseling.admin.port.inbound.MonitoringQuery
 import com.counseling.admin.port.outbound.AdminAgentRepository
 import com.counseling.admin.port.outbound.AdminChannelRepository
-import com.counseling.admin.port.outbound.AgentStatusCacheRepository
-import com.counseling.admin.port.outbound.TenantConnectionRegistry
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
@@ -17,8 +15,6 @@ import reactor.core.publisher.Mono
 class MonitoringQueryService(
     private val channelRepository: AdminChannelRepository,
     private val agentRepository: AdminAgentRepository,
-    private val agentStatusCacheRepository: AgentStatusCacheRepository,
-    private val tenantConnectionRegistry: TenantConnectionRegistry,
 ) : MonitoringQuery {
     override fun getActiveChannels(): Flux<Channel> = channelRepository.findAllActiveChannels()
 

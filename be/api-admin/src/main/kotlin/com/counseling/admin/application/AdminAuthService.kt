@@ -1,7 +1,7 @@
 package com.counseling.admin.application
 
 import com.counseling.admin.domain.AdminRole
-import com.counseling.admin.domain.TenantContext
+import com.counseling.admin.domain.AgentRole
 import com.counseling.admin.domain.auth.TokenPair
 import com.counseling.admin.domain.exception.BadRequestException
 import com.counseling.admin.domain.exception.UnauthorizedException
@@ -128,7 +128,7 @@ class AdminAuthService(
                 .findByUsernameAndNotDeleted(username)
                 .switchIfEmpty(Mono.error(UnauthorizedException("Invalid credentials")))
                 .flatMap { agent ->
-                    if (agent.role.name != "ADMIN") {
+                    if (agent.role != AgentRole.ADMIN) {
                         return@flatMap Mono.error<AdminLoginResult>(
                             UnauthorizedException("Only admin agents can login to admin panel"),
                         )

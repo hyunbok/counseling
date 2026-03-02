@@ -1,6 +1,6 @@
 package com.counseling.admin.adapter.inbound.web.filter
 
-import com.counseling.admin.domain.TenantContext
+import com.counseling.admin.application.TenantContext
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.http.HttpStatus

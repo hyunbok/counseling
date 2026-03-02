@@ -18,7 +18,7 @@ class AdminTenantConnectionRegistryImpl : TenantConnectionRegistry {
     private val log = LoggerFactory.getLogger(AdminTenantConnectionRegistryImpl::class.java)
     private val pools = ConcurrentHashMap<String, ConnectionPool>()
 
-    override fun getConnectionFactory(tenantSlug: String): Mono<ConnectionFactory> =
+    fun getConnectionFactory(tenantSlug: String): Mono<ConnectionFactory> =
         Mono.defer {
             Mono
                 .justOrEmpty(pools[tenantSlug] as ConnectionFactory?)
