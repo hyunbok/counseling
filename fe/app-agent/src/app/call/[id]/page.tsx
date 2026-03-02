@@ -120,7 +120,7 @@ export default function CallPage({ params }: CallPageProps) {
 
           {/* Tab content */}
           <div className="flex-1 overflow-hidden" role="tabpanel">
-            {activeTab === 'chat' && <ChatPanel />}
+            {activeTab === 'chat' && <ChatPanel channelId={id} />}
             {activeTab === 'note' && <NotePanel />}
             {(activeTab === 'file' || activeTab === 'doc') && (
               <div className="flex h-full items-center justify-center">
