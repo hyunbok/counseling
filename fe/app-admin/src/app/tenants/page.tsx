@@ -5,48 +5,94 @@ import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { CreateModal } from '@/components/ui/create-modal';
 import { Button } from '@/components/ui/button';
-import { useTenantList, useCreateTenant, useDeleteTenant } from '@/hooks/use-tenants';
+import { useTenantList, useCreateTenant, useUpdateTenantStatus } from '@/hooks/use-tenants';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import type { Tenant } from '@/types';
 
 const inputClass =
   'w-full rounded-[--radius-input] border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) px-3 py-2 text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-(--color-primary)';
 
-const selectClass =
-  'w-full rounded-[--radius-input] border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) px-3 py-2 text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-(--color-primary)';
-
 const labelClass =
   'block text-sm font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)';
 
+const tenantStatusLabel: Record<string, string> = {
+  ACTIVE: '활성',
+  INACTIVE: '비활성',
+  SUSPENDED: '정지',
+};
+
+const tenantStatusColor: Record<string, string> = {
+  ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  INACTIVE: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+  SUSPENDED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
+
 const columns: Column<Tenant>[] = [
   { key: 'name', label: '이름', sortable: true },
-  { key: 'domain', label: '도메인', sortable: true },
-  { key: 'plan', label: '플랜' },
-  { key: 'agentCount', label: '상담사 수' },
+  { key: 'slug', label: '슬러그', sortable: true },
+  {
+    key: 'status',
+    label: '상태',
+    render: (row) => (
+      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${tenantStatusColor[row.status] ?? 'bg-gray-100 text-gray-600'}`}>
+        {tenantStatusLabel[row.status] ?? row.status}
+      </span>
+    ),
+  },
   { key: 'createdAt', label: '생성일', render: (row) => new Date(row.createdAt).toLocaleDateString('ko-KR') },
 ];
 
+interface TenantForm {
+  name: string;
+  slug: string;
+  dbHost: string;
+  dbPort: string;
+  dbName: string;
+  dbUsername: string;
+  dbPassword: string;
+}
+
+const emptyForm: TenantForm = {
+  name: '',
+  slug: '',
+  dbHost: '',
+  dbPort: '5432',
+  dbName: '',
+  dbUsername: '',
+  dbPassword: '',
+};
+
 export default function TenantsPage() {
   const { isAuthenticated } = useAuthGuard();
-  const [page, setPage] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', domain: '', plan: '' });
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [form, setForm] = useState<TenantForm>(emptyForm);
+  const [deactivateTargetId, setDeactivateTargetId] = useState<string | null>(null);
 
-  const { data, isLoading } = useTenantList({ page, size: 10 });
+  const { data, isLoading } = useTenantList();
   const { mutate: createTenant, isPending } = useCreateTenant();
-  const { mutate: deleteTenant, isPending: isDeleting } = useDeleteTenant();
+  const { mutate: updateTenantStatus, isPending: isDeactivating } = useUpdateTenantStatus();
 
   const handleSubmit = () => {
-    createTenant(form, {
-      onSuccess: () => {
-        setIsModalOpen(false);
-        setForm({ name: '', domain: '', plan: '' });
+    createTenant(
+      {
+        name: form.name,
+        slug: form.slug,
+        dbHost: form.dbHost,
+        dbPort: Number(form.dbPort),
+        dbName: form.dbName,
+        dbUsername: form.dbUsername,
+        dbPassword: form.dbPassword,
       },
-    });
+      {
+        onSuccess: () => {
+          setIsModalOpen(false);
+          setForm(emptyForm);
+        },
+      },
+    );
   };
 
-  const deleteTarget = data?.content.find((t) => t.id === deleteTargetId);
+  const deactivateTarget = data?.find((t) => t.id === deactivateTargetId);
 
   const columnsWithActions: Column<Tenant>[] = [
     ...columns,
@@ -54,12 +100,14 @@ export default function TenantsPage() {
       key: 'actions',
       label: '',
       render: (row) => (
-        <button
-          onClick={() => setDeleteTargetId(row.id)}
-          className="text-xs text-(--color-error) hover:underline"
-        >
-          삭제
-        </button>
+        row.status === 'ACTIVE' ? (
+          <button
+            onClick={() => setDeactivateTargetId(row.id)}
+            className="text-xs text-(--color-error) hover:underline"
+          >
+            비활성화
+          </button>
+        ) : null
       ),
     },
   ];
@@ -83,11 +131,7 @@ export default function TenantsPage() {
 
         <DataTable
           columns={columnsWithActions}
-          data={data?.content ?? []}
-          totalElements={data?.totalElements}
-          page={page}
-          pageSize={10}
-          onPageChange={setPage}
+          data={data ?? []}
           isLoading={isLoading}
           emptyMessage="등록된 테넌트가 없습니다."
         />
@@ -100,58 +144,47 @@ export default function TenantsPage() {
           onSubmit={handleSubmit}
           isPending={isPending}
         >
-          <div className="space-y-1">
-            <label htmlFor="tenant-name" className={labelClass}>이름</label>
-            <input
-              id="tenant-name"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className={inputClass}
-              placeholder="테넌트 이름"
-            />
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="tenant-domain" className={labelClass}>도메인</label>
-            <input
-              id="tenant-domain"
-              value={form.domain}
-              onChange={(e) => setForm((f) => ({ ...f, domain: e.target.value }))}
-              className={inputClass}
-              placeholder="example.com"
-            />
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="tenant-plan" className={labelClass}>플랜</label>
-            <select
-              id="tenant-plan"
-              value={form.plan}
-              onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))}
-              className={selectClass}
-            >
-              <option value="">플랜 선택</option>
-              <option value="BASIC">BASIC</option>
-              <option value="PRO">PRO</option>
-              <option value="ENTERPRISE">ENTERPRISE</option>
-            </select>
-          </div>
+          {[
+            { id: 'tenant-name', field: 'name', label: '이름', placeholder: '테넌트 이름' },
+            { id: 'tenant-slug', field: 'slug', label: '슬러그', placeholder: 'my-company' },
+            { id: 'tenant-db-host', field: 'dbHost', label: 'DB 호스트', placeholder: 'localhost' },
+            { id: 'tenant-db-port', field: 'dbPort', label: 'DB 포트', placeholder: '5432' },
+            { id: 'tenant-db-name', field: 'dbName', label: 'DB 이름', placeholder: 'counseling_db' },
+            { id: 'tenant-db-username', field: 'dbUsername', label: 'DB 사용자', placeholder: 'db_user' },
+            { id: 'tenant-db-password', field: 'dbPassword', label: 'DB 비밀번호', placeholder: '비밀번호', type: 'password' },
+          ].map(({ id, field, label, placeholder, type = 'text' }) => (
+            <div key={field} className="space-y-1">
+              <label htmlFor={id} className={labelClass}>{label}</label>
+              <input
+                id={id}
+                type={type}
+                value={form[field as keyof TenantForm]}
+                onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                className={inputClass}
+                placeholder={placeholder}
+              />
+            </div>
+          ))}
         </CreateModal>
 
-        {/* Delete confirmation modal */}
+        {/* Deactivate confirmation modal */}
         <CreateModal
-          title="테넌트 삭제"
-          open={deleteTargetId !== null}
-          onClose={() => setDeleteTargetId(null)}
+          title="테넌트 비활성화"
+          open={deactivateTargetId !== null}
+          onClose={() => setDeactivateTargetId(null)}
           onSubmit={() => {
-            if (deleteTargetId) {
-              deleteTenant(deleteTargetId, { onSuccess: () => setDeleteTargetId(null) });
+            if (deactivateTargetId) {
+              updateTenantStatus(
+                { id: deactivateTargetId, status: 'INACTIVE' },
+                { onSuccess: () => setDeactivateTargetId(null) },
+              );
             }
           }}
-          isPending={isDeleting}
-          submitLabel="삭제"
+          isPending={isDeactivating}
+          submitLabel="비활성화"
         >
           <p className="text-sm text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
-            <span className="font-semibold">&ldquo;{deleteTarget?.name}&rdquo;</span> 테넌트를 삭제하시겠습니까?
-            이 작업은 되돌릴 수 없습니다.
+            <span className="font-semibold">&ldquo;{deactivateTarget?.name}&rdquo;</span> 테넌트를 비활성화하시겠습니까?
           </p>
         </CreateModal>
       </div>

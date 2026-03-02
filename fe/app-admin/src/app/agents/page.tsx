@@ -5,9 +5,10 @@ import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { CreateModal } from '@/components/ui/create-modal';
 import { Button } from '@/components/ui/button';
-import { useAgentList, useCreateAgent, useDeleteAgent } from '@/hooks/use-agents';
+import { useAgentList, useCreateAgent, useUpdateAgentStatus, useResetAgentPassword } from '@/hooks/use-agents';
+import { useGroupList } from '@/hooks/use-groups';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
-import type { Agent } from '@/types';
+import type { Agent, CreateAgentResult } from '@/types';
 
 const inputClass =
   'w-full rounded-[--radius-input] border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) px-3 py-2 text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-(--color-primary)';
@@ -18,42 +19,47 @@ const selectClass =
 const labelClass =
   'block text-sm font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)';
 
-// Mock tenant and group lists for dropdowns until real endpoints are wired up
-const MOCK_TENANTS = [
-  { id: 'tenant-001', name: '(주)상담플러스' },
-  { id: 'tenant-002', name: '케어24' },
-  { id: 'tenant-003', name: '마음터' },
-];
-
-const MOCK_GROUPS = [
-  { id: 'group-001', name: '서울 1팀', tenantId: 'tenant-001' },
-  { id: 'group-002', name: '서울 2팀', tenantId: 'tenant-001' },
-  { id: 'group-003', name: '부산팀', tenantId: 'tenant-002' },
-];
-
-const statusLabel: Record<Agent['status'], string> = {
-  ACTIVE: '활성',
-  INACTIVE: '비활성',
+const agentStatusLabel: Record<string, string> = {
+  AVAILABLE: '대기 중',
   BUSY: '상담 중',
+  OFFLINE: '오프라인',
 };
 
-const statusColor: Record<Agent['status'], string> = {
-  ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  INACTIVE: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+const agentStatusColor: Record<string, string> = {
+  AVAILABLE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   BUSY: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  OFFLINE: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+};
+
+const roleLabel: Record<string, string> = {
+  AGENT: '상담사',
+  GROUP_ADMIN: '그룹 관리자',
+  COMPANY_ADMIN: '회사 관리자',
 };
 
 const columns: Column<Agent>[] = [
   { key: 'name', label: '이름', sortable: true },
   { key: 'username', label: '아이디', sortable: true },
-  { key: 'email', label: '이메일' },
-  { key: 'groupName', label: '그룹' },
   {
-    key: 'status',
+    key: 'role',
+    label: '역할',
+    render: (row) => <span>{roleLabel[row.role] ?? row.role}</span>,
+  },
+  {
+    key: 'active',
+    label: '활성화',
+    render: (row) => (
+      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${row.active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}`}>
+        {row.active ? '활성' : '비활성'}
+      </span>
+    ),
+  },
+  {
+    key: 'agentStatus',
     label: '상태',
     render: (row) => (
-      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[row.status]}`}>
-        {statusLabel[row.status]}
+      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${agentStatusColor[row.agentStatus] ?? 'bg-gray-100 text-gray-600'}`}>
+        {agentStatusLabel[row.agentStatus] ?? row.agentStatus}
       </span>
     ),
   },
@@ -62,31 +68,34 @@ const columns: Column<Agent>[] = [
 
 export default function AgentsPage() {
   const { isAuthenticated } = useAuthGuard();
-  const [page, setPage] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({ tenantId: '', groupId: '', username: '', name: '', email: '', password: '' });
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [form, setForm] = useState({ groupId: '', username: '', name: '', role: 'AGENT' });
+  const [deactivateTargetId, setDeactivateTargetId] = useState<string | null>(null);
+  const [resetPasswordTargetId, setResetPasswordTargetId] = useState<string | null>(null);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
 
-  const { data, isLoading } = useAgentList({ page, size: 10 });
+  const { data, isLoading } = useAgentList();
+  const { data: groups } = useGroupList();
   const { mutate: createAgent, isPending } = useCreateAgent();
-  const { mutate: deleteAgent, isPending: isDeleting } = useDeleteAgent();
-
-  const availableGroups = MOCK_GROUPS.filter((g) => !form.tenantId || g.tenantId === form.tenantId);
+  const { mutate: updateAgentStatus, isPending: isDeactivating } = useUpdateAgentStatus();
+  const { mutate: resetAgentPassword, isPending: isResetting } = useResetAgentPassword();
 
   const handleSubmit = () => {
     const { groupId, ...rest } = form;
     createAgent(
       { ...rest, ...(groupId ? { groupId } : {}) },
       {
-        onSuccess: () => {
+        onSuccess: (result: CreateAgentResult) => {
           setIsModalOpen(false);
-          setForm({ tenantId: '', groupId: '', username: '', name: '', email: '', password: '' });
+          setForm({ groupId: '', username: '', name: '', role: 'AGENT' });
+          setTempPassword(result.temporaryPassword);
         },
       },
     );
   };
 
-  const deleteTarget = data?.content.find((a) => a.id === deleteTargetId);
+  const deactivateTarget = data?.find((a) => a.id === deactivateTargetId);
+  const resetPasswordTarget = data?.find((a) => a.id === resetPasswordTargetId);
 
   const columnsWithActions: Column<Agent>[] = [
     ...columns,
@@ -94,12 +103,22 @@ export default function AgentsPage() {
       key: 'actions',
       label: '',
       render: (row) => (
-        <button
-          onClick={() => setDeleteTargetId(row.id)}
-          className="text-xs text-(--color-error) hover:underline"
-        >
-          삭제
-        </button>
+        <div className="flex items-center gap-2">
+          {row.active && (
+            <button
+              onClick={() => setDeactivateTargetId(row.id)}
+              className="text-xs text-(--color-error) hover:underline"
+            >
+              비활성화
+            </button>
+          )}
+          <button
+            onClick={() => setResetPasswordTargetId(row.id)}
+            className="text-xs text-(--color-text-secondary) dark:text-(--color-text-secondary-dark) hover:underline"
+          >
+            비밀번호 초기화
+          </button>
+        </div>
       ),
     },
   ];
@@ -123,11 +142,7 @@ export default function AgentsPage() {
 
         <DataTable
           columns={columnsWithActions}
-          data={data?.content ?? []}
-          totalElements={data?.totalElements}
-          page={page}
-          pageSize={10}
-          onPageChange={setPage}
+          data={data ?? []}
           isLoading={isLoading}
           emptyMessage="등록된 상담사가 없습니다."
         />
@@ -141,17 +156,16 @@ export default function AgentsPage() {
           isPending={isPending}
         >
           <div className="space-y-1">
-            <label htmlFor="agent-tenant" className={labelClass}>테넌트</label>
+            <label htmlFor="agent-role" className={labelClass}>역할</label>
             <select
-              id="agent-tenant"
-              value={form.tenantId}
-              onChange={(e) => setForm((f) => ({ ...f, tenantId: e.target.value, groupId: '' }))}
+              id="agent-role"
+              value={form.role}
+              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
               className={selectClass}
             >
-              <option value="">테넌트 선택</option>
-              {MOCK_TENANTS.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
+              <option value="AGENT">상담사</option>
+              <option value="GROUP_ADMIN">그룹 관리자</option>
+              <option value="COMPANY_ADMIN">회사 관리자</option>
             </select>
           </div>
           <div className="space-y-1">
@@ -163,7 +177,7 @@ export default function AgentsPage() {
               className={selectClass}
             >
               <option value="">그룹 없음</option>
-              {availableGroups.map((g) => (
+              {(groups ?? []).map((g) => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </select>
@@ -171,14 +185,12 @@ export default function AgentsPage() {
           {[
             { id: 'agent-username', field: 'username', label: '아이디', placeholder: '아이디' },
             { id: 'agent-name', field: 'name', label: '이름', placeholder: '이름' },
-            { id: 'agent-email', field: 'email', label: '이메일', placeholder: 'example@email.com' },
-            { id: 'agent-password', field: 'password', label: '비밀번호', placeholder: '비밀번호', type: 'password' },
-          ].map(({ id, field, label, placeholder, type = 'text' }) => (
+          ].map(({ id, field, label, placeholder }) => (
             <div key={field} className="space-y-1">
               <label htmlFor={id} className={labelClass}>{label}</label>
               <input
                 id={id}
-                type={type}
+                type="text"
                 value={form[field as keyof typeof form]}
                 onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
                 className={inputClass}
@@ -188,23 +200,67 @@ export default function AgentsPage() {
           ))}
         </CreateModal>
 
-        {/* Delete confirmation modal */}
+        {/* Deactivate confirmation modal */}
         <CreateModal
-          title="상담사 삭제"
-          open={deleteTargetId !== null}
-          onClose={() => setDeleteTargetId(null)}
+          title="상담사 비활성화"
+          open={deactivateTargetId !== null}
+          onClose={() => setDeactivateTargetId(null)}
           onSubmit={() => {
-            if (deleteTargetId) {
-              deleteAgent(deleteTargetId, { onSuccess: () => setDeleteTargetId(null) });
+            if (deactivateTargetId) {
+              updateAgentStatus(
+                { id: deactivateTargetId, active: false },
+                { onSuccess: () => setDeactivateTargetId(null) },
+              );
             }
           }}
-          isPending={isDeleting}
-          submitLabel="삭제"
+          isPending={isDeactivating}
+          submitLabel="비활성화"
         >
           <p className="text-sm text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
-            <span className="font-semibold">&ldquo;{deleteTarget?.name}&rdquo;</span> 상담사를 삭제하시겠습니까?
-            이 작업은 되돌릴 수 없습니다.
+            <span className="font-semibold">&ldquo;{deactivateTarget?.name}&rdquo;</span> 상담사를 비활성화하시겠습니까?
           </p>
+        </CreateModal>
+
+        {/* Reset password confirmation modal */}
+        <CreateModal
+          title="비밀번호 초기화"
+          open={resetPasswordTargetId !== null}
+          onClose={() => setResetPasswordTargetId(null)}
+          onSubmit={() => {
+            if (resetPasswordTargetId) {
+              resetAgentPassword(resetPasswordTargetId, {
+                onSuccess: (result) => {
+                  setResetPasswordTargetId(null);
+                  setTempPassword(result.temporaryPassword);
+                },
+              });
+            }
+          }}
+          isPending={isResetting}
+          submitLabel="초기화"
+        >
+          <p className="text-sm text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
+            <span className="font-semibold">&ldquo;{resetPasswordTarget?.name}&rdquo;</span> 상담사의 비밀번호를 초기화하시겠습니까?
+          </p>
+        </CreateModal>
+
+        {/* Temporary password display modal */}
+        <CreateModal
+          title="임시 비밀번호"
+          open={tempPassword !== null}
+          onClose={() => setTempPassword(null)}
+          onSubmit={() => setTempPassword(null)}
+          isPending={false}
+          submitLabel="확인"
+        >
+          <p className="text-sm text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
+            임시 비밀번호가 생성되었습니다. 상담사에게 전달해 주세요.
+          </p>
+          <div className="mt-2 rounded-[--radius-input] border border-gray-200 dark:border-gray-600 bg-(--color-bg-surface) dark:bg-(--color-bg-elevated-dark) px-4 py-3">
+            <p className="font-mono text-base font-semibold text-(--color-text-primary) dark:text-(--color-text-primary-dark) tracking-widest">
+              {tempPassword}
+            </p>
+          </div>
         </CreateModal>
       </div>
     </SidebarLayout>
