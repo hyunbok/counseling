@@ -13,6 +13,7 @@ import com.counseling.api.domain.exception.ConflictException
 import com.counseling.api.domain.exception.NotFoundException
 import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
+import com.counseling.api.port.outbound.ChatNotificationPort
 import com.counseling.api.port.outbound.EndpointRepository
 import com.counseling.api.port.outbound.LiveKitPort
 import io.kotest.core.spec.style.StringSpec
@@ -34,6 +35,7 @@ class ChannelServiceTest :
         val endpointRepository = mockk<EndpointRepository>()
         val agentRepository = mockk<AgentRepository>()
         val liveKitPort = mockk<LiveKitPort>()
+        val chatNotificationPort = mockk<ChatNotificationPort>(relaxed = true)
         val liveKitProperties =
             LiveKitProperties(
                 url = "wss://livekit.example.com",
@@ -48,6 +50,7 @@ class ChannelServiceTest :
                 agentRepository,
                 liveKitPort,
                 liveKitProperties,
+                chatNotificationPort,
             )
 
         val tenantId = "tenant-test"

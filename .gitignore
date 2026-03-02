@@ -61,3 +61,4 @@ docker-compose.override.yml
 coverage/
 .nyc_output/
 *.hprof
+.worktrees/

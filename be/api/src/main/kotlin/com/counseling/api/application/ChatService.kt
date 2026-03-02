@@ -9,6 +9,7 @@ import com.counseling.api.port.outbound.ChannelRepository
 import com.counseling.api.port.outbound.ChatMessageReadRepository
 import com.counseling.api.port.outbound.ChatMessageRepository
 import com.counseling.api.port.outbound.ChatNotificationPort
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
@@ -23,6 +24,8 @@ class ChatService(
     private val chatMessageReadRepository: ChatMessageReadRepository,
     private val chatNotificationPort: ChatNotificationPort,
 ) : ChatUseCase {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     override fun sendMessage(command: SendMessageCommand): Mono<ChatMessage> =
         channelRepository
             .findByIdAndNotDeleted(command.channelId)
@@ -42,10 +45,20 @@ class ChatService(
                     )
                 chatMessageRepository
                     .save(message)
-                    .flatMap { saved ->
-                        chatMessageReadRepository.save(saved).thenReturn(saved)
-                    }.doOnNext { saved ->
+                    .doOnNext { saved ->
                         chatNotificationPort.emitMessage(command.channelId, saved)
+                    }.flatMap { saved ->
+                        chatMessageReadRepository
+                            .save(saved)
+                            .thenReturn(saved)
+                            .onErrorResume { e ->
+                                log.error(
+                                    "Failed to project chat message {} to read store: {}",
+                                    saved.id,
+                                    e.message,
+                                )
+                                Mono.just(saved)
+                            }
                     }
             }
 }

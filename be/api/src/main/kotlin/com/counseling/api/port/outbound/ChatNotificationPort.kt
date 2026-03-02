@@ -11,4 +11,6 @@ interface ChatNotificationPort {
     )
 
     fun subscribeMessages(channelId: UUID): Flux<ChatMessage>
+
+    fun removeChannel(channelId: UUID)
 }

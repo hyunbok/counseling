@@ -2,10 +2,16 @@ package com.counseling.api.adapter.outbound.persistence
 
 import com.counseling.api.domain.ChatMessage
 import com.counseling.api.domain.SenderType
+import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.index.CompoundIndex
+import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
 import java.util.UUID
 
+@Document(collection = "chat_messages")
+@CompoundIndex(name = "idx_channel_created", def = "{'channelId': 1, 'createdAt': -1}")
 data class ChatMessageDocument(
+    @Id
     val id: String,
     val channelId: String,
     val senderType: String,

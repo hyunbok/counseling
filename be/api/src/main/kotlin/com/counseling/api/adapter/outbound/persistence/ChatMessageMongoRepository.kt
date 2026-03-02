@@ -28,10 +28,18 @@ class ChatMessageMongoRepository(
         before: Instant?,
         limit: Int,
     ): Flux<ChatMessage> {
-        val criteria = Criteria.where("channelId").`is`(channelId.toString())
-        if (before != null) {
-            criteria.and("createdAt").lt(before)
-        }
+        val criteria =
+            if (before != null) {
+                Criteria
+                    .where("channelId")
+                    .`is`(channelId.toString())
+                    .and("createdAt")
+                    .lt(before)
+            } else {
+                Criteria
+                    .where("channelId")
+                    .`is`(channelId.toString())
+            }
         val query =
             Query
                 .query(criteria)

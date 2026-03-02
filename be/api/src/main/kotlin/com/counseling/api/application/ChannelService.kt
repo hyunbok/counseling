@@ -12,6 +12,7 @@ import com.counseling.api.port.inbound.ChannelUseCase
 import com.counseling.api.port.inbound.TokenResult
 import com.counseling.api.port.outbound.AgentRepository
 import com.counseling.api.port.outbound.ChannelRepository
+import com.counseling.api.port.outbound.ChatNotificationPort
 import com.counseling.api.port.outbound.EndpointRepository
 import com.counseling.api.port.outbound.LiveKitPort
 import org.springframework.context.annotation.Profile
@@ -28,6 +29,7 @@ class ChannelService(
     private val agentRepository: AgentRepository,
     private val liveKitPort: LiveKitPort,
     private val liveKitProperties: LiveKitProperties,
+    private val chatNotificationPort: ChatNotificationPort,
 ) : ChannelUseCase {
     override fun getAgentToken(
         channelId: UUID,
@@ -125,7 +127,9 @@ class ChannelService(
                         agentRepository
                             .findByIdAndNotDeleted(agentId)
                             .flatMap { agent -> agentRepository.save(agent.updateStatus(AgentStatus.ONLINE)) },
-                    ).then()
+                    ).doOnSuccess {
+                        chatNotificationPort.removeChannel(channelId)
+                    }.then()
             }
 
     override fun getChannel(channelId: UUID): Mono<ChannelDetail> =
