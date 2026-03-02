@@ -48,7 +48,9 @@ class RecordingStreamService(
                     .flatMap { channel ->
                         if (channel.agentId != agentId) {
                             return@flatMap Mono.error(
-                                UnauthorizedException("Agent $agentId is not authorized to access recording $recordingId"),
+                                UnauthorizedException(
+                                    "Agent $agentId is not authorized to access recording $recordingId",
+                                ),
                             )
                         }
                         val filePath =
