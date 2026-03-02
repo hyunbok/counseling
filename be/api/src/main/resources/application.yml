@@ -38,5 +38,16 @@ recording:
   base-path: ${RECORDING_BASE_PATH:/tmp/recordings}
   file-format: ${RECORDING_FILE_FORMAT:mp4}
 
+file-storage:
+  base-path: ${FILE_STORAGE_BASE_PATH:/tmp/shared-files}
+  max-file-size: ${FILE_STORAGE_MAX_SIZE:10485760}
+
+spring:
+  webflux:
+    multipart:
+      max-in-memory-size: 10485760
+      max-disk-usage-per-part: 10485760
+      max-parts: 5
+
 notification:
   mail-from: ${NOTIFICATION_MAIL_FROM:noreply@counseling.com}
