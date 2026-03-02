@@ -22,3 +22,7 @@ livekit:
   api-key: test-api-key
   api-secret: test-api-secret
   token-ttl-seconds: 3600
+
+recording:
+  base-path: /tmp/test-recordings
+  file-format: mp4
