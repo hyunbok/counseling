@@ -3,70 +3,48 @@
 import { useState } from 'react';
 import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { useHistory, ChannelSummary } from '@/hooks/use-history';
 
-interface SessionRecord {
-  id: string;
-  date: string;
-  customerName: string;
-  type: string;
-  duration: string;
-  memoSummary: string;
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return d.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
-const PLACEHOLDER_SESSIONS: SessionRecord[] = [
-  {
-    id: '1',
-    date: '2026-03-01 14:30',
-    customerName: '김민준',
-    type: '일반 상담',
-    duration: '23분',
-    memoSummary: '계약 관련 문의 — 갱신 조건 안내 완료',
-  },
-  {
-    id: '2',
-    date: '2026-03-01 11:15',
-    customerName: '이서연',
-    type: '기술 지원',
-    duration: '15분',
-    memoSummary: '앱 오류 해결 — 재설치 후 정상 작동',
-  },
-  {
-    id: '3',
-    date: '2026-02-28 16:00',
-    customerName: '박지훈',
-    type: '일반 상담',
-    duration: '31분',
-    memoSummary: '해지 상담 — 혜택 안내 후 유지',
-  },
-  {
-    id: '4',
-    date: '2026-02-28 10:45',
-    customerName: '최수아',
-    type: '결제 문의',
-    duration: '9분',
-    memoSummary: '과금 오류 확인 — 환불 처리 예정',
-  },
-  {
-    id: '5',
-    date: '2026-02-27 15:20',
-    customerName: '정도현',
-    type: '일반 상담',
-    duration: '27분',
-    memoSummary: '서비스 안내 — 요금제 변경 완료',
-  },
-];
+function formatDuration(startedAt: string | null, endedAt: string | null): string {
+  if (!startedAt || !endedAt) return '-';
+  const diff = new Date(endedAt).getTime() - new Date(startedAt).getTime();
+  const minutes = Math.round(diff / 60000);
+  return `${minutes}분`;
+}
+
+function statusLabel(status: ChannelSummary['status']): { text: string; className: string } {
+  switch (status) {
+    case 'CLOSED':
+      return { text: '완료', className: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' };
+    case 'IN_PROGRESS':
+      return { text: '진행중', className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' };
+    default:
+      return { text: '대기', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' };
+  }
+}
 
 export default function HistoryPage() {
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
+  const pageSize = 20;
 
-  const filtered = PLACEHOLDER_SESSIONS.filter((s) => {
-    const matchesSearch =
-      !search.trim() ||
-      s.customerName.includes(search.trim()) ||
-      s.memoSummary.includes(search.trim());
-    return matchesSearch;
+  const { data: channels, isLoading, isError } = useHistory({ page, size: pageSize });
+
+  const filtered = (channels ?? []).filter((ch) => {
+    if (!search.trim()) return true;
+    return ch.customerName?.includes(search.trim());
   });
 
   return (
@@ -79,43 +57,13 @@ export default function HistoryPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-3 items-end">
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor="start-date"
-              className="text-xs font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)"
-            >
-              시작일
-            </label>
-            <input
-              id="start-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-(--color-text-primary) dark:bg-(--color-bg-elevated-dark) dark:border-gray-600 dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor="end-date"
-              className="text-xs font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)"
-            >
-              종료일
-            </label>
-            <input
-              id="end-date"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-(--color-text-primary) dark:bg-(--color-bg-elevated-dark) dark:border-gray-600 dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
           <div className="relative flex-1 min-w-48">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="고객명 또는 메모 검색"
+              placeholder="고객명 검색"
               className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm text-(--color-text-primary) dark:bg-(--color-bg-elevated-dark) dark:border-gray-600 dark:text-(--color-text-primary-dark) placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               aria-label="상담 이력 검색"
             />
@@ -134,74 +82,93 @@ export default function HistoryPage() {
                   고객명
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
-                  유형
+                  상태
                 </th>
                 <th className="px-4 py-3 text-left font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
                   소요시간
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
-                  메모 요약
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filtered.length === 0 ? (
+              {isLoading ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={4}
+                    className="px-4 py-12 text-center text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)"
+                  >
+                    불러오는 중...
+                  </td>
+                </tr>
+              ) : isError ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-4 py-12 text-center text-red-500 dark:text-red-400"
+                  >
+                    데이터를 불러오는 중 오류가 발생했습니다.
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={4}
                     className="px-4 py-12 text-center text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)"
                   >
                     상담 이력이 없습니다.
                   </td>
                 </tr>
               ) : (
-                filtered.map((session) => (
-                  <tr
-                    key={session.id}
-                    className="hover:bg-(--color-bg-surface) dark:hover:bg-(--color-bg-elevated-dark)/50 transition-colors"
-                  >
-                    <td className="px-4 py-3 text-(--color-text-primary) dark:text-(--color-text-primary-dark) whitespace-nowrap">
-                      {session.date}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-(--color-text-primary) dark:text-(--color-text-primary-dark)">
-                      {session.customerName}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full bg-(--color-bg-surface) dark:bg-(--color-bg-elevated-dark) px-2.5 py-0.5 text-xs font-medium text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
-                        {session.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
-                      {session.duration}
-                    </td>
-                    <td className="px-4 py-3 text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark) max-w-xs truncate">
-                      {session.memoSummary}
-                    </td>
-                  </tr>
-                ))
+                filtered.map((ch) => {
+                  const badge = statusLabel(ch.status);
+                  return (
+                    <tr
+                      key={ch.id}
+                      className="hover:bg-(--color-bg-surface) dark:hover:bg-(--color-bg-elevated-dark)/50 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-(--color-text-primary) dark:text-(--color-text-primary-dark) whitespace-nowrap">
+                        {formatDateTime(ch.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-(--color-text-primary) dark:text-(--color-text-primary-dark)">
+                        {ch.customerName ?? '-'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}
+                        >
+                          {badge.text}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-(--color-text-secondary) dark:text-(--color-text-secondary-dark)">
+                        {formatDuration(ch.startedAt, ch.endedAt)}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination placeholder */}
+        {/* Pagination */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
             총 {filtered.length}건
           </p>
           <div className="flex items-center gap-2">
             <button
-              disabled
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
               className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark) disabled:opacity-50"
               aria-label="이전 페이지"
             >
               이전
             </button>
             <span className="text-sm font-medium text-(--color-text-primary) dark:text-(--color-text-primary-dark)">
-              1
+              {page + 1}
             </span>
             <button
-              disabled
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!channels || channels.length < pageSize}
               className="rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark) disabled:opacity-50"
               aria-label="다음 페이지"
             >
