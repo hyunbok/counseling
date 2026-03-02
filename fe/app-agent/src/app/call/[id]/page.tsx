@@ -8,6 +8,7 @@ import { ConnectionState } from 'livekit-client';
 import { VideoRoom } from '@/components/call/video-room';
 import { ChatPanel } from '@/components/call/chat-panel';
 import { NotePanel } from '@/components/call/note-panel';
+import { FilePanel } from '@/components/call/file-panel';
 import { ToolBar } from '@/components/call/tool-bar';
 import useCallStore from '@/stores/call-store';
 import { useRecording } from '@/hooks/use-recording';
@@ -148,7 +149,8 @@ function CallPageInner({ channelId }: { channelId: string }) {
           <div className="flex-1 overflow-hidden" role="tabpanel">
             {activeTab === 'chat' && <ChatPanel channelId={channelId} />}
             {activeTab === 'note' && <NotePanel channelId={channelId} />}
-            {(activeTab === 'file' || activeTab === 'doc') && (
+            {activeTab === 'file' && <FilePanel channelId={channelId} />}
+            {activeTab === 'doc' && (
               <div className="flex h-full items-center justify-center">
                 <p className="text-sm text-gray-500">준비 중입니다.</p>
               </div>
