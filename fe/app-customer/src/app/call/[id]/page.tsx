@@ -10,6 +10,7 @@ import {
 import '@livekit/components-styles';
 import useCustomerStore from '@/stores/customer-store';
 import api from '@/lib/api';
+import { ChatPanel } from '@/components/chat/chat-panel';
 
 interface TokenResponse {
   token: string;
@@ -98,6 +99,7 @@ export default function CallPage({ params }: CallPageProps) {
       >
         <VideoConference />
         <RoomAudioRenderer />
+        <ChatPanel channelId={channelId} customerName={customerName} />
       </LiveKitRoom>
     </div>
   );
