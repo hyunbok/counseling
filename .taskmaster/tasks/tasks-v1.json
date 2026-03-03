@@ -1026,13 +1026,14 @@
           19,
           20
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-03-03T14:51:01.759975+00:00"
       }
     ],
     "metadata": {
       "created": "2026-02-26T13:43:47.139Z",
-      "updated": "2026-02-26T13:43:47.139Z",
+      "updated": "2026-03-03T14:51:01.760072+00:00",
       "description": "Tasks for master context"
     }
   }
