@@ -99,8 +99,6 @@ export const ToolBar = ({
         {/* Co-browse */}
         {channelId && agentId && onRequestCoBrowse && onEndCoBrowse && (
           <CoBrowseToolbarButton
-            channelId={channelId}
-            agentId={agentId}
             session={coBrowseSession ?? null}
             onRequest={onRequestCoBrowse}
             onEnd={onEndCoBrowse}

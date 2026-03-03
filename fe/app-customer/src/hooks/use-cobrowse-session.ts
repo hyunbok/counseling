@@ -23,6 +23,12 @@ export function useCoBrowseSession(channelId: string) {
   const abortRef = useRef<AbortController | null>(null);
   const localTrackRef = useRef<MediaStreamTrack | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const stopLocalTrackRef = useRef(() => {
+    if (localTrackRef.current) {
+      localTrackRef.current.stop();
+      localTrackRef.current = null;
+    }
+  });
 
   // Initial state query
   useQuery<CoBrowseSession | null>({
@@ -57,6 +63,7 @@ export function useCoBrowseSession(channelId: string) {
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
     const tenantId = process.env.NEXT_PUBLIC_TENANT_ID ?? 'default';
+    let isActive = true;
 
     (async () => {
       try {
@@ -77,9 +84,9 @@ export function useCoBrowseSession(channelId: string) {
         const decoder = new TextDecoder();
         let buffer = '';
 
-        while (true) {
+        while (isActive) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done || !isActive) break;
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
@@ -89,6 +96,7 @@ export function useCoBrowseSession(channelId: string) {
             if (line.startsWith('data:')) {
               try {
                 const session: CoBrowseSession = JSON.parse(line.slice(5).trim());
+                if (!isActive) break;
                 if (session.status === 'REQUESTED') {
                   setPendingRequest(session);
                   sessionIdRef.current = session.sessionId;
@@ -100,7 +108,7 @@ export function useCoBrowseSession(channelId: string) {
                   setPendingRequest(null);
                   setIsSharing(false);
                   sessionIdRef.current = null;
-                  stopLocalTrack();
+                  stopLocalTrackRef.current();
                 }
               } catch {
                 // Skip malformed
@@ -114,15 +122,13 @@ export function useCoBrowseSession(channelId: string) {
     })();
 
     return () => {
+      isActive = false;
       controller.abort();
     };
   }, [channelId]);
 
   const stopLocalTrack = useCallback(() => {
-    if (localTrackRef.current) {
-      localTrackRef.current.stop();
-      localTrackRef.current = null;
-    }
+    stopLocalTrackRef.current();
   }, []);
 
   const endCoBrowse = useCallback(async () => {
@@ -134,10 +140,10 @@ export function useCoBrowseSession(channelId: string) {
     } catch {
       // Ignore errors
     }
-    stopLocalTrack();
+    stopLocalTrackRef.current();
     setIsSharing(false);
     sessionIdRef.current = null;
-  }, [channelId, stopLocalTrack]);
+  }, [channelId]);
 
   const acceptCoBrowse = useCallback(async () => {
     const sessionId = sessionIdRef.current;
@@ -157,12 +163,13 @@ export function useCoBrowseSession(channelId: string) {
 
       localTrackRef.current = videoTrack;
 
+      // Confirm session with backend FIRST, before publishing track
+      await api.post(`/api/channels/${channelId}/co-browsing/${sessionId}/start`);
+
       await room.localParticipant.publishTrack(videoTrack, {
         name: 'cobrowse',
         source: Track.Source.ScreenShare,
       });
-
-      await api.post(`/api/channels/${channelId}/co-browsing/${sessionId}/start`);
 
       setIsSharing(true);
       setPendingRequest(null);
@@ -171,8 +178,12 @@ export function useCoBrowseSession(channelId: string) {
         endCoBrowse();
       };
     } catch {
-      // User cancelled or error
+      // User cancelled, /start failed, or publishTrack failed — clean up both sides
       stopLocalTrack();
+      const sid = sessionIdRef.current;
+      if (sid) {
+        api.post(`/api/channels/${channelId}/co-browsing/${sid}/end`).catch(() => {});
+      }
     }
   }, [channelId, room, endCoBrowse, stopLocalTrack]);
 

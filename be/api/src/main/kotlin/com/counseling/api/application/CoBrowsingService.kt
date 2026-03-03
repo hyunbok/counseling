@@ -15,6 +15,7 @@ import com.counseling.api.port.outbound.CoBrowsingSessionReadRepository
 import com.counseling.api.port.outbound.CoBrowsingSessionRepository
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Instant
@@ -63,7 +64,11 @@ class CoBrowsingService(
                             )
                         coBrowsingSessionRepository
                             .save(session)
-                            .doOnNext { saved ->
+                            .onErrorMap(DataIntegrityViolationException::class.java) {
+                                ConflictException(
+                                    "Co-browsing session already active for channel: ${command.channelId}",
+                                )
+                            }.doOnNext { saved ->
                                 coBrowsingNotificationPort.emitSessionUpdate(command.channelId, saved)
                             }.flatMap { saved ->
                                 coBrowsingSessionReadRepository
@@ -86,6 +91,9 @@ class CoBrowsingService(
             .findByIdAndNotDeleted(command.sessionId)
             .switchIfEmpty(Mono.error(NotFoundException("Co-browsing session not found: ${command.sessionId}")))
             .flatMap { session ->
+                if (session.channelId != command.channelId) {
+                    return@flatMap Mono.error(NotFoundException("Co-browsing session not found: ${command.sessionId}"))
+                }
                 if (session.status != CoBrowsingStatus.REQUESTED) {
                     return@flatMap Mono.error(
                         ConflictException("Co-browsing session is not in REQUESTED state: ${command.sessionId}"),
@@ -121,6 +129,9 @@ class CoBrowsingService(
             .findByIdAndNotDeleted(command.sessionId)
             .switchIfEmpty(Mono.error(NotFoundException("Co-browsing session not found: ${command.sessionId}")))
             .flatMap { session ->
+                if (session.channelId != command.channelId) {
+                    return@flatMap Mono.error(NotFoundException("Co-browsing session not found: ${command.sessionId}"))
+                }
                 if (session.status == CoBrowsingStatus.ENDED) {
                     return@flatMap Mono.error(
                         ConflictException("Co-browsing session already ended: ${command.sessionId}"),

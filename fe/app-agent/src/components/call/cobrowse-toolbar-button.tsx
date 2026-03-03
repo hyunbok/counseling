@@ -4,8 +4,6 @@ import { ComputerDesktopIcon } from '@heroicons/react/24/outline';
 import type { CoBrowsingSession } from '@/hooks/use-cobrowse';
 
 interface CoBrowseToolbarButtonProps {
-  channelId: string;
-  agentId: string;
   session: CoBrowsingSession | null;
   onRequest: () => void;
   onEnd: () => void;

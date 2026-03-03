@@ -20,6 +20,9 @@ class CoBrowsingQueryService(
     private val coBrowsingSessionReadRepository: CoBrowsingSessionReadRepository,
     private val coBrowsingNotificationPort: CoBrowsingNotificationPort,
 ) : CoBrowsingQuery {
+    // Intentionally queries write store (PostgreSQL) for active session:
+    // the unique partial index guarantees at most one active session per channel,
+    // and active session reads must reflect the latest state without projection delay.
     override fun getActiveSession(channelId: UUID): Mono<CoBrowsingSession> =
         coBrowsingSessionRepository.findActiveByChannelId(channelId)
 
