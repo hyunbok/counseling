@@ -25,7 +25,7 @@ export const useQueueList = () => {
       const { data } = await api.get<QueueItem[]>('/api/queue');
       return data;
     },
-    refetchInterval: 5000,
+    refetchInterval: 10_000,
     retry: 3,
   });
 };
