@@ -4,7 +4,7 @@ import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LiveKitRoom, RoomAudioRenderer, useConnectionState } from '@livekit/components-react';
 import '@livekit/components-styles';
-import { ConnectionState } from 'livekit-client';
+import { ConnectionState, DefaultReconnectPolicy } from 'livekit-client';
 import { VideoRoom } from '@/components/call/video-room';
 import { ChatPanel } from '@/components/call/chat-panel';
 import { NotePanel } from '@/components/call/note-panel';
@@ -14,6 +14,8 @@ import useCallStore from '@/stores/call-store';
 import useAuthStore from '@/stores/auth-store';
 import { useRecording } from '@/hooks/use-recording';
 import { useCoBrowse } from '@/hooks/use-cobrowse';
+import { useReconnection } from '@/hooks/use-reconnection';
+import { ReconnectionOverlay } from '@/components/call/reconnection-overlay';
 import api from '@/lib/api';
 
 interface CallPageProps {
@@ -36,6 +38,11 @@ interface TokenResponse {
   livekitUrl: string;
 }
 
+const roomOptions = {
+  reconnectPolicy: new DefaultReconnectPolicy([300, 600, 1200, 2400, 4800, 8000, 10000, 10000, 10000, 10000]),
+  disconnectOnPageLeave: false,
+};
+
 function CallPageInner({ channelId }: { channelId: string }) {
   const router = useRouter();
   const { customerName, activeTab, setActiveTab } = useCallStore();
@@ -45,6 +52,7 @@ function CallPageInner({ channelId }: { channelId: string }) {
   const isConnected = connectionState === ConnectionState.Connected;
   const { isRecording, startRecording, stopRecording } = useRecording(channelId);
   const { session: coBrowseSession, requestCoBrowse, endCoBrowse } = useCoBrowse(channelId);
+  const { status: connectionStatus, retryCount, elapsedMs: reconnectElapsedMs } = useReconnection();
 
   // Auto-start recording when connected
   useEffect(() => {
@@ -54,13 +62,25 @@ function CallPageInner({ channelId }: { channelId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected]);
 
-  // Elapsed timer
+  // Elapsed timer (paused during reconnection)
   useEffect(() => {
+    if (connectionStatus === 'reconnecting') return;
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [connectionStatus]);
+
+  // Handle permanent disconnect
+  useEffect(() => {
+    if (connectionStatus === 'disconnected') {
+      if (isRecording) stopRecording();
+      try { api.post(`/api/channels/${channelId}/close`); } catch {}
+      useCallStore.getState().reset();
+      router.push('/dashboard');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectionStatus]);
 
   const formatElapsed = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -86,16 +106,23 @@ function CallPageInner({ channelId }: { channelId: string }) {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-gray-900 text-white">
+    <div className="relative flex h-screen flex-col bg-gray-900 text-white">
       {/* Top bar */}
       <div className="flex h-14 items-center justify-between px-4 bg-gray-800/80 backdrop-blur-sm border-b border-gray-700">
         <div className="flex items-center gap-3">
           <span className="font-semibold text-white">{customerName ?? '고객'}</span>
           {/* Connection status dot */}
-          <span
-            className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-amber-500'}`}
-            aria-label={isConnected ? '연결됨' : '연결 중'}
-          />
+          {connectionStatus === 'reconnecting' ? (
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="text-xs text-amber-400">재연결 중</span>
+            </span>
+          ) : (
+            <span
+              className={`h-2 w-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}
+              aria-label={connectionStatus === 'connected' ? '연결됨' : '연결 끊김'}
+            />
+          )}
         </div>
         <div className="flex items-center gap-3">
           {/* Elapsed timer */}
@@ -182,6 +209,8 @@ function CallPageInner({ channelId }: { channelId: string }) {
           }}
         />
       </div>
+
+      <ReconnectionOverlay status={connectionStatus} retryCount={retryCount} elapsedMs={reconnectElapsedMs} />
     </div>
   );
 }
@@ -216,11 +245,6 @@ export default function CallPage({ params }: CallPageProps) {
 
     fetchToken();
   }, [channelId, agentToken, livekitUrl]);
-
-  const handleDisconnected = () => {
-    useCallStore.getState().reset();
-    router.push('/dashboard');
-  };
 
   if (isLoading) {
     return (
@@ -257,7 +281,7 @@ export default function CallPage({ params }: CallPageProps) {
         connect={true}
         video={true}
         audio={true}
-        onDisconnected={handleDisconnected}
+        options={roomOptions}
         style={{ height: '100vh' }}
       >
         <RoomAudioRenderer />
