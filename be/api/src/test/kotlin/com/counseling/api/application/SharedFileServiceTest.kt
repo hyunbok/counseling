@@ -65,6 +65,7 @@ class SharedFileServiceTest :
             channelId: UUID = UUID.randomUUID(),
             contentType: String = "image/png",
             fileSize: Long = 1024L,
+            content: ByteArray = byteArrayOf(1, 2, 3),
         ): UploadFileCommand =
             UploadFileCommand(
                 channelId = channelId,
@@ -73,7 +74,7 @@ class SharedFileServiceTest :
                 originalFilename = "test.png",
                 contentType = contentType,
                 fileSize = fileSize,
-                content = byteArrayOf(1, 2, 3),
+                content = content,
             )
 
         "upload should store, save, notify, and project to read repository" {
@@ -108,7 +109,12 @@ class SharedFileServiceTest :
         }
 
         "upload should fail with BadRequestException when file size exceeds limit" {
-            val command = makeCommand(fileSize = 20_971_520L)
+            val oversizedContent = ByteArray(10_485_761) // 10MB + 1 byte
+            val command =
+                makeCommand(
+                    fileSize = 10_485_761L,
+                    content = oversizedContent,
+                )
 
             StepVerifier
                 .create(sharedFileService.upload(command))
