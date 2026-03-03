@@ -214,6 +214,9 @@ class ChannelServiceTest :
             every { channelRepository.save(any()) } answers { Mono.just(firstArg()) }
             every { agentRepository.findByIdAndNotDeleted(agent.id) } returns Mono.just(agent)
             every { agentRepository.save(any()) } answers { Mono.just(firstArg()) }
+            every {
+                historyReadRepository.updateStatus(any(), any(), any(), any(), any())
+            } returns Mono.empty()
 
             StepVerifier
                 .create(channelService.closeChannel(channel.id, agent.id))

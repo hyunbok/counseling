@@ -26,3 +26,11 @@ livekit:
 recording:
   base-path: /tmp/test-recordings
   file-format: mp4
+
+file-storage:
+  base-path: /tmp/test-shared-files
+  max-file-size: 10485760
+
+capture-storage:
+  base-path: /tmp/test-screen-captures
+  max-file-size: 10485760

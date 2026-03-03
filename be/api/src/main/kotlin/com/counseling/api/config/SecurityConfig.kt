@@ -60,6 +60,8 @@ class SecurityConfig {
                     .permitAll()
                     .pathMatchers(HttpMethod.POST, "/api/channels/*/feedback")
                     .permitAll()
+                    .pathMatchers(HttpMethod.GET, "/api/channels/*/captures", "/api/channels/*/captures/**")
+                    .permitAll()
                     .pathMatchers("/api/**")
                     .authenticated()
                     .anyExchange()

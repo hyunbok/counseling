@@ -201,6 +201,9 @@ class RecordingServiceTest :
             every { liveKitEgressPort.stopEgress(activeRecording.egressId) } returns Mono.empty()
             every { recordingRepository.save(any()) } answers { Mono.just(firstArg()) }
             every { channelRepository.save(any()) } answers { Mono.just(firstArg()) }
+            every {
+                historyReadRepository.updateRecording(any(), any(), any())
+            } returns Mono.empty()
 
             StepVerifier
                 .create(

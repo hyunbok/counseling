@@ -43,6 +43,18 @@ class ScreenCaptureServiceTest :
 
         afterEach { clearAllMocks() }
 
+        val pngHeader =
+            byteArrayOf(
+                0x89.toByte(),
+                0x50,
+                0x4E,
+                0x47,
+                0x0D,
+                0x0A,
+                0x1A,
+                0x0A,
+            )
+
         fun makeCapture(channelId: UUID = UUID.randomUUID()): ScreenCapture {
             val now = Instant.now()
             return ScreenCapture(
@@ -62,7 +74,7 @@ class ScreenCaptureServiceTest :
         fun makeCommand(
             channelId: UUID = UUID.randomUUID(),
             contentType: String = "image/png",
-            content: ByteArray = byteArrayOf(1, 2, 3),
+            content: ByteArray = pngHeader + byteArrayOf(0, 0, 0),
             note: String? = null,
         ): CaptureScreenCommand =
             CaptureScreenCommand(
@@ -126,6 +138,15 @@ class ScreenCaptureServiceTest :
                 .verify()
         }
 
+        "capture should fail with BadRequestException when content is not valid PNG" {
+            val command = makeCommand(content = byteArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+
+            StepVerifier
+                .create(screenCaptureService.capture(command))
+                .expectError(BadRequestException::class.java)
+                .verify()
+        }
+
         "capture should succeed even when Mongo projection fails" {
             val command = makeCommand()
 
@@ -138,6 +159,22 @@ class ScreenCaptureServiceTest :
                 .assertNext { saved ->
                     saved.channelId shouldBe command.channelId
                 }.verifyComplete()
+        }
+
+        "capture should rollback file storage when database save fails" {
+            val command = makeCommand()
+
+            every { fileStoragePort.store(any(), any()) } returns Mono.empty()
+            every { screenCaptureRepository.save(any()) } returns
+                Mono.error(RuntimeException("DB connection failed"))
+            every { fileStoragePort.delete(any()) } returns Mono.empty()
+
+            StepVerifier
+                .create(screenCaptureService.capture(command))
+                .expectErrorMessage("DB connection failed")
+                .verify()
+
+            verify { fileStoragePort.delete(any()) }
         }
 
         "download should return ScreenCaptureResource from storage" {
@@ -163,6 +200,20 @@ class ScreenCaptureServiceTest :
             val captureId = UUID.randomUUID()
 
             every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.empty()
+
+            StepVerifier
+                .create(screenCaptureService.download(channelId, captureId))
+                .expectError(NotFoundException::class.java)
+                .verify()
+        }
+
+        "download should fail with NotFoundException when capture belongs to different channel" {
+            val channelId = UUID.randomUUID()
+            val otherChannelId = UUID.randomUUID()
+            val captureId = UUID.randomUUID()
+            val capture = makeCapture(otherChannelId).copy(id = captureId)
+
+            every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.just(capture)
 
             StepVerifier
                 .create(screenCaptureService.download(channelId, captureId))
@@ -199,5 +250,37 @@ class ScreenCaptureServiceTest :
                 .create(screenCaptureService.delete(channelId, captureId))
                 .expectError(NotFoundException::class.java)
                 .verify()
+        }
+
+        "delete should fail with NotFoundException when capture belongs to different channel" {
+            val channelId = UUID.randomUUID()
+            val otherChannelId = UUID.randomUUID()
+            val captureId = UUID.randomUUID()
+            val capture = makeCapture(otherChannelId).copy(id = captureId)
+
+            every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.just(capture)
+
+            StepVerifier
+                .create(screenCaptureService.delete(channelId, captureId))
+                .expectError(NotFoundException::class.java)
+                .verify()
+        }
+
+        "delete should complete even when markDeleted in read store fails" {
+            val channelId = UUID.randomUUID()
+            val captureId = UUID.randomUUID()
+            val capture = makeCapture(channelId).copy(id = captureId)
+
+            every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.just(capture)
+            every { screenCaptureRepository.softDelete(captureId) } returns Mono.empty()
+            every { screenCaptureReadRepository.markDeleted(captureId) } returns
+                Mono.error(RuntimeException("Mongo down"))
+            every { fileStoragePort.delete(capture.storagePath) } returns Mono.empty()
+
+            StepVerifier
+                .create(screenCaptureService.delete(channelId, captureId))
+                .verifyComplete()
+
+            verify { fileStoragePort.delete(capture.storagePath) }
         }
     })

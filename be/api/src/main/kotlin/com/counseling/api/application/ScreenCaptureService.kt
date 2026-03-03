@@ -42,6 +42,9 @@ class ScreenCaptureService(
         if (command.note != null && command.note.length > 500) {
             return Mono.error(BadRequestException("Note exceeds maximum length of 500 characters"))
         }
+        if (command.content.size < 8 || !command.content.copyOfRange(0, 8).contentEquals(PNG_MAGIC)) {
+            return Mono.error(BadRequestException("Content is not a valid PNG file"))
+        }
 
         val storedFilename = "${UUID.randomUUID()}.png"
         val storagePath = "${captureStorageProperties.basePath}/${command.channelId}/$storedFilename"
@@ -138,4 +141,18 @@ class ScreenCaptureService(
                             },
                     ).then(fileStoragePort.delete(capture.storagePath))
             }
+
+    companion object {
+        private val PNG_MAGIC =
+            byteArrayOf(
+                0x89.toByte(),
+                0x50,
+                0x4E,
+                0x47,
+                0x0D,
+                0x0A,
+                0x1A,
+                0x0A,
+            )
+    }
 }

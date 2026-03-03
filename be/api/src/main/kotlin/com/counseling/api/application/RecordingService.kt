@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -143,10 +144,12 @@ class RecordingService(
                                                         startedAt = saved.startedAt,
                                                         stoppedAt = saved.stoppedAt,
                                                     ),
-                                            ).onErrorResume { e ->
+                                            ).timeout(Duration.ofSeconds(5))
+                                            .onErrorResume { e ->
                                                 log.error(
-                                                    "Failed to update recording projection for channel {}",
+                                                    "Failed to update recording projection for channel {}: {}",
                                                     channelId,
+                                                    e.message,
                                                     e,
                                                 )
                                                 Mono.empty()

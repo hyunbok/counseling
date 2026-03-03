@@ -212,6 +212,7 @@ class QueueServiceTest :
             every { liveKitPort.createRoom(any()) } returns Mono.just(testRoomName)
             every { liveKitPort.generateToken(any(), any(), any(), any(), any()) } returns "test-jwt-token"
             every { queueRepository.getSize(tenantId) } returns Mono.just(0L)
+            every { historyReadRepository.upsert(any()) } returns Mono.empty()
 
             StepVerifier
                 .create(

@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -89,10 +90,12 @@ class FeedbackService(
                                                                 comment = s.comment,
                                                                 createdAt = s.createdAt,
                                                             ),
-                                                    ).onErrorResume { e ->
+                                                    ).timeout(Duration.ofSeconds(5))
+                                                    .onErrorResume { e ->
                                                         log.error(
-                                                            "Failed to update history feedback for channel {}",
+                                                            "Failed to update history feedback for channel {}: {}",
                                                             s.channelId,
+                                                            e.message,
                                                             e,
                                                         )
                                                         Mono.empty()
