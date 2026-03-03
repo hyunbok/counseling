@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   LiveKitRoom,
@@ -12,6 +12,11 @@ import useCustomerStore from '@/stores/customer-store';
 import api from '@/lib/api';
 import { ChatPanel } from '@/components/chat/chat-panel';
 import { FilePanel } from '@/components/call/file-panel';
+import { CoBrowseRequestDialog } from '@/components/call/cobrowse-request-dialog';
+import { CoBrowsePointerOverlay } from '@/components/call/cobrowse-pointer-overlay';
+import { CoBrowseHighlightOverlay } from '@/components/call/cobrowse-highlight-overlay';
+import { useCoBrowseSession } from '@/hooks/use-cobrowse-session';
+import { useCoBrowseDataChannel } from '@/hooks/use-cobrowse-data-channel';
 
 interface TokenResponse {
   token: string;
@@ -22,6 +27,39 @@ interface TokenResponse {
 
 interface CallPageProps {
   params: Promise<{ id: string }>;
+}
+
+function CallInner({ channelId }: { channelId: string }) {
+  const mainContentRef = useRef<HTMLDivElement>(null);
+  const { pendingRequest, acceptCoBrowse, declineCoBrowse, isSharing } =
+    useCoBrowseSession(channelId);
+  const { remotePointer, highlightRect } = useCoBrowseDataChannel();
+  const { customerName } = useCustomerStore();
+
+  return (
+    <div className="relative h-full" ref={mainContentRef}>
+      <VideoConference />
+      <RoomAudioRenderer />
+      <ChatPanel channelId={channelId} customerName={customerName} />
+      <FilePanel channelId={channelId} customerName={customerName} />
+
+      {pendingRequest && (
+        <CoBrowseRequestDialog onAccept={acceptCoBrowse} onDecline={declineCoBrowse} />
+      )}
+
+      {isSharing && remotePointer && (
+        <CoBrowsePointerOverlay
+          x={remotePointer.x}
+          y={remotePointer.y}
+          containerRef={mainContentRef}
+        />
+      )}
+
+      {isSharing && highlightRect && (
+        <CoBrowseHighlightOverlay rect={highlightRect} containerRef={mainContentRef} />
+      )}
+    </div>
+  );
 }
 
 export default function CallPage({ params }: CallPageProps) {
@@ -98,10 +136,7 @@ export default function CallPage({ params }: CallPageProps) {
         onDisconnected={handleDisconnected}
         style={{ height: '100vh' }}
       >
-        <VideoConference />
-        <RoomAudioRenderer />
-        <ChatPanel channelId={channelId} customerName={customerName} />
-        <FilePanel channelId={channelId} customerName={customerName} />
+        <CallInner channelId={channelId} />
       </LiveKitRoom>
     </div>
   );
