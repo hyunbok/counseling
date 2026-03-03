@@ -225,7 +225,7 @@ class QueueService(
                                                         counselNote = null,
                                                     ),
                                                 ).timeout(Duration.ofSeconds(5))
-                                            .onErrorResume { e ->
+                                                .onErrorResume { e ->
                                                     log.error(
                                                         "Failed to create history projection for channel {}: {}",
                                                         channelId,
