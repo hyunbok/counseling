@@ -8,6 +8,15 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:local}
   jackson:
     default-property-inclusion: non_null
+  data:
+    redis:
+      lettuce:
+        pool:
+          max-active: 50
+          max-idle: 25
+          min-idle: 5
+    mongodb:
+      auto-index-creation: true
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
