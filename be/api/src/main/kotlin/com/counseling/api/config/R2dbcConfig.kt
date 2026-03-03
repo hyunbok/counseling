@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.Profile
 import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.binding.BindMarkersFactory
 import java.time.Duration
 
 @Configuration
@@ -59,4 +60,15 @@ class R2dbcConfig {
     @Primary
     fun tenantConnectionFactory(connectionRegistry: TenantConnectionRegistry): ConnectionFactory =
         TenantRoutingConnectionFactory(connectionRegistry)
+
+    @Bean
+    @Primary
+    fun tenantDatabaseClient(
+        @Qualifier("tenantConnectionFactory") connectionFactory: ConnectionFactory,
+    ): DatabaseClient =
+        DatabaseClient
+            .builder()
+            .connectionFactory(connectionFactory)
+            .bindMarkers(BindMarkersFactory.indexed("$", 1))
+            .build()
 }

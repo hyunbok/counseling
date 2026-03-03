@@ -57,38 +57,78 @@ export async function waitForVideoCall(page: Page): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /**
- * Seed a test agent account via the backend API.
- * Returns silently if the agent already exists (409).
+ * Verify test agent exists by attempting login.
+ * The test agent must be seeded in the database before running E2E tests.
+ * See docs/tasks/v1-25-e2e-testing-performance-plan.md for DB seeding instructions.
  */
 export async function seedTestAgent(
   username = 'test-agent',
   password = 'test-password',
-  name = '테스트 상담사',
 ): Promise<void> {
-  const res = await fetch(`${BACKEND_URL}/api/agents`, {
+  const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, name }),
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Tenant-Id': 'default',
+    },
+    body: JSON.stringify({ username, password }),
   });
 
-  if (res.status === 409) {
-    return; // already exists
+  if (res.ok) {
+    return; // agent exists and can log in
   }
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`seedTestAgent failed: ${res.status} ${body}`);
+  const body = await res.text();
+  throw new Error(
+    `Test agent verification failed (${res.status}): ${body}. ` +
+      'Ensure the test agent is seeded in the tenant DB.',
+  );
+}
+
+/**
+ * Clear all entries from the queue by fetching and deleting each.
+ */
+export async function clearQueue(): Promise<void> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/queue`, {
+      headers: {
+        'X-Tenant-Id': 'default',
+        Authorization: `Bearer ${await getAgentToken()}`,
+      },
+    });
+    if (!res.ok) return;
+    const entries: { entryId: string }[] = await res.json();
+    await Promise.all(
+      entries.map((e) =>
+        fetch(`${BACKEND_URL}/api/queue/${e.entryId}`, {
+          method: 'DELETE',
+          headers: { 'X-Tenant-Id': 'default' },
+        }),
+      ),
+    );
+  } catch {
+    // Best-effort cleanup
   }
 }
 
 /**
+ * Reset agent status to ONLINE by logging in.
+ */
+async function getAgentToken(): Promise<string> {
+  const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Tenant-Id': 'default' },
+    body: JSON.stringify({ username: 'test-agent', password: 'test-password' }),
+  });
+  if (!res.ok) return '';
+  const data = await res.json();
+  return data.accessToken ?? '';
+}
+
+/**
  * Clean up E2E test data after a test run.
- * Calls the backend cleanup endpoint if available.
+ * Clears the queue and resets agent state.
  */
 export async function cleanupTestData(): Promise<void> {
-  try {
-    await fetch(`${BACKEND_URL}/api/test/cleanup`, { method: 'DELETE' });
-  } catch {
-    // Cleanup endpoint is optional — swallow errors
-  }
+  await clearQueue();
 }

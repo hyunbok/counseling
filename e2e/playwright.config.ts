@@ -9,22 +9,7 @@ export default defineConfig({
   reporter: 'html',
   globalSetup: require.resolve('./global-setup'),
   use: {
+    ...devices['Desktop Chrome'],
     trace: 'on-first-retry',
   },
-  projects: [
-    {
-      name: 'customer',
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000',
-      },
-    },
-    {
-      name: 'agent',
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3100',
-      },
-    },
-  ],
 });

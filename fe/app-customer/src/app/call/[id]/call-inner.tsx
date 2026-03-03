@@ -21,6 +21,7 @@ import { ReconnectionOverlay } from '@/components/call/reconnection-overlay';
 export function CallInner({ channelId }: { channelId: string }) {
   const router = useRouter();
   const mainContentRef = useRef<HTMLDivElement>(null);
+  const isLeavingRef = useRef(false);
   const { pendingRequest, acceptCoBrowse, declineCoBrowse, isSharing } =
     useCoBrowseSession(channelId);
   const { remotePointer, highlightRect } = useCoBrowseDataChannel();
@@ -28,7 +29,8 @@ export function CallInner({ channelId }: { channelId: string }) {
   const { status: connectionStatus, retryCount, elapsedMs } = useReconnection();
 
   useEffect(() => {
-    if (connectionStatus === 'disconnected') {
+    if (connectionStatus === 'disconnected' && !isLeavingRef.current) {
+      isLeavingRef.current = true;
       router.push('/feedback');
     }
   }, [connectionStatus, router]);

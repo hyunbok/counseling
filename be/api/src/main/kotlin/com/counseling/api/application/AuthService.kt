@@ -1,5 +1,6 @@
 package com.counseling.api.application
 
+import com.counseling.api.domain.AgentStatus
 import com.counseling.api.domain.TenantContext
 import com.counseling.api.domain.auth.TokenPair
 import com.counseling.api.domain.exception.BadRequestException
@@ -40,16 +41,17 @@ class AuthService(
                             if (!matches) {
                                 Mono.error(UnauthorizedException("Invalid credentials"))
                             } else {
-                                val tokenPair = jwtTokenProvider.generateTokenPair(agent.id, tenantId, agent.role)
-                                Mono.just(
+                                val onlineAgent = agent.updateStatus(AgentStatus.ONLINE)
+                                agentRepository.save(onlineAgent).map { saved ->
+                                    val tokenPair = jwtTokenProvider.generateTokenPair(saved.id, tenantId, saved.role)
                                     LoginResult(
                                         tokenPair = tokenPair,
-                                        agentId = agent.id,
-                                        username = agent.username,
-                                        name = agent.name,
-                                        role = agent.role,
-                                    ),
-                                )
+                                        agentId = saved.id,
+                                        username = saved.username,
+                                        name = saved.name,
+                                        role = saved.role,
+                                    )
+                                }
                             }
                         }
                 }

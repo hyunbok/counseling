@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import useAuthStore from '@/stores/auth-store';
 
 export function useQueueStream() {
   const queryClient = useQueryClient();
+  const accessToken = useAuthStore((s) => s.accessToken);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -11,13 +13,21 @@ export function useQueueStream() {
     abortRef.current = controller;
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+    const tenantId = process.env.NEXT_PUBLIC_TENANT_ID ?? 'default';
 
     let isActive = true;
 
     (async () => {
       try {
+        const headers: Record<string, string> = {
+          Accept: 'text/event-stream',
+          'X-Tenant-Id': tenantId,
+        };
+        if (accessToken) {
+          headers['Authorization'] = `Bearer ${accessToken}`;
+        }
         const response = await fetch(`${baseUrl}/api/queue/stream`, {
-          headers: { Accept: 'text/event-stream' },
+          headers,
           signal: controller.signal,
         });
         if (!response.ok || !response.body) return;
@@ -48,5 +58,5 @@ export function useQueueStream() {
       isActive = false;
       controller.abort();
     };
-  }, [queryClient]);
+  }, [queryClient, accessToken]);
 }

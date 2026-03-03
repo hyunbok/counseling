@@ -35,6 +35,7 @@ export function CallPageInner({ channelId }: { channelId: string }) {
   const { status: connectionStatus, retryCount, elapsedMs: reconnectElapsedMs } = useReconnection();
   const isConnected = connectionStatus === 'connected';
   const isRecordingRef = useRef(isRecording);
+  const isLeavingRef = useRef(false);
 
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -58,7 +59,8 @@ export function CallPageInner({ channelId }: { channelId: string }) {
 
   // Handle permanent disconnect
   useEffect(() => {
-    if (connectionStatus === 'disconnected') {
+    if (connectionStatus === 'disconnected' && !isLeavingRef.current) {
+      isLeavingRef.current = true;
       if (isRecordingRef.current) stopRecording();
       api.post(`/api/channels/${channelId}/close`).catch((err: unknown) => {
         console.error('[CallPage] Failed to close channel on disconnect:', err);
@@ -75,6 +77,8 @@ export function CallPageInner({ channelId }: { channelId: string }) {
   };
 
   const handleEndCall = async () => {
+    if (isLeavingRef.current) return;
+    isLeavingRef.current = true;
     if (isRecording) {
       stopRecording();
     }

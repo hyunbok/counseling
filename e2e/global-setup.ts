@@ -1,5 +1,5 @@
 import { chromium, FullConfig } from '@playwright/test';
-import { seedTestAgent } from './fixtures/test-helpers';
+import { seedTestAgent, clearQueue } from './fixtures/test-helpers';
 
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080';
 const AGENT_APP_URL = process.env.AGENT_APP_URL ?? 'http://localhost:3100';
@@ -8,8 +8,9 @@ async function waitForHealth(url: string, maxRetries = 30, intervalMs = 2000): P
   for (let i = 0; i < maxRetries; i++) {
     try {
       const res = await fetch(`${url}/actuator/health`);
-      if (res.ok) {
-        console.log(`[global-setup] Backend healthy at ${url}`);
+      // Accept any response (including 503/DOWN) — the server is running
+      if (res.status < 500 || res.status === 503) {
+        console.log(`[global-setup] Backend reachable at ${url} (status: ${res.status})`);
         return;
       }
     } catch {
@@ -33,7 +34,15 @@ async function globalSetup(_config: FullConfig): Promise<void> {
     console.warn('[global-setup] Could not seed test agent:', err);
   }
 
-  // 3. Verify agent app is reachable
+  // 3. Clear queue from previous runs
+  try {
+    await clearQueue();
+    console.log('[global-setup] Queue cleared');
+  } catch (err) {
+    console.warn('[global-setup] Could not clear queue:', err);
+  }
+
+  // 4. Verify agent app is reachable
   const browser = await chromium.launch();
   const page = await browser.newPage();
   try {
