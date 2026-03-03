@@ -8,6 +8,7 @@ import {
   RoomAudioRenderer,
 } from '@livekit/components-react';
 import '@livekit/components-styles';
+import { DefaultReconnectPolicy } from 'livekit-client';
 import useCustomerStore from '@/stores/customer-store';
 import api from '@/lib/api';
 import { ChatPanel } from '@/components/chat/chat-panel';
@@ -17,6 +18,13 @@ import { CoBrowsePointerOverlay } from '@/components/call/cobrowse-pointer-overl
 import { CoBrowseHighlightOverlay } from '@/components/call/cobrowse-highlight-overlay';
 import { useCoBrowseSession } from '@/hooks/use-cobrowse-session';
 import { useCoBrowseDataChannel } from '@/hooks/use-cobrowse-data-channel';
+import { useReconnection } from '@/hooks/use-reconnection';
+import { ReconnectionOverlay } from '@/components/call/reconnection-overlay';
+
+const roomOptions = {
+  reconnectPolicy: new DefaultReconnectPolicy([300, 600, 1200, 2400, 4800, 8000, 10000, 10000, 10000, 10000]),
+  disconnectOnPageLeave: false,
+};
 
 interface TokenResponse {
   token: string;
@@ -30,11 +38,19 @@ interface CallPageProps {
 }
 
 function CallInner({ channelId }: { channelId: string }) {
+  const router = useRouter();
   const mainContentRef = useRef<HTMLDivElement>(null);
   const { pendingRequest, acceptCoBrowse, declineCoBrowse, isSharing } =
     useCoBrowseSession(channelId);
   const { remotePointer, highlightRect } = useCoBrowseDataChannel();
   const { customerName } = useCustomerStore();
+  const { status: connectionStatus, retryCount, elapsedMs } = useReconnection();
+
+  useEffect(() => {
+    if (connectionStatus === 'disconnected') {
+      router.push('/feedback');
+    }
+  }, [connectionStatus, router]);
 
   return (
     <div className="relative h-full" ref={mainContentRef}>
@@ -58,6 +74,8 @@ function CallInner({ channelId }: { channelId: string }) {
       {isSharing && highlightRect && (
         <CoBrowseHighlightOverlay rect={highlightRect} containerRef={mainContentRef} />
       )}
+
+      <ReconnectionOverlay status={connectionStatus} retryCount={retryCount} elapsedMs={elapsedMs} />
     </div>
   );
 }
@@ -94,10 +112,6 @@ export default function CallPage({ params }: CallPageProps) {
     fetchToken();
   }, [channelId, customerName, router]);
 
-  const handleDisconnected = () => {
-    router.push('/feedback');
-  };
-
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-900 text-white">
@@ -133,7 +147,7 @@ export default function CallPage({ params }: CallPageProps) {
         connect={true}
         video={true}
         audio={true}
-        onDisconnected={handleDisconnected}
+        options={roomOptions}
         style={{ height: '100vh' }}
       >
         <CallInner channelId={channelId} />
