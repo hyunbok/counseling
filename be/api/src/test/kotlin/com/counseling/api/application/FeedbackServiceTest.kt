@@ -96,6 +96,9 @@ class FeedbackServiceTest :
                 Mono.just(firstArg())
             }
             every { notificationUseCase.send(any()) } returns Mono.just(makeNotification())
+            every {
+                historyReadRepository.updateFeedback(any(), any(), any())
+            } returns Mono.empty()
 
             StepVerifier
                 .create(
@@ -129,6 +132,9 @@ class FeedbackServiceTest :
             every { feedbackReadRepository.save(any(), tenantId) } answers {
                 Mono.just(firstArg())
             }
+            every {
+                historyReadRepository.updateFeedback(any(), any(), any())
+            } returns Mono.empty()
 
             StepVerifier
                 .create(
@@ -189,6 +195,9 @@ class FeedbackServiceTest :
             every {
                 feedbackReadRepository.save(any(), tenantId)
             } returns Mono.error(RuntimeException("MongoDB unavailable"))
+            every {
+                historyReadRepository.updateFeedback(any(), any(), any())
+            } returns Mono.empty()
 
             StepVerifier
                 .create(

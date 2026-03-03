@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.time.Duration
 import java.util.UUID
 
 @Service
@@ -146,10 +147,12 @@ class ChannelService(
                                         status = "CLOSED",
                                         endedAt = closedChannel.endedAt,
                                         durationSeconds = durationSeconds,
-                                    ).onErrorResume { e ->
+                                    ).timeout(Duration.ofSeconds(5))
+                                    .onErrorResume { e ->
                                         log.error(
-                                            "Failed to update history status for channel {}",
+                                            "Failed to update history status for channel {}: {}",
                                             channelId,
+                                            e.message,
                                             e,
                                         )
                                         Mono.empty()

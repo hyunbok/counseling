@@ -36,6 +36,7 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -223,10 +224,12 @@ class QueueService(
                                                         feedback = null,
                                                         counselNote = null,
                                                     ),
-                                                ).onErrorResume { e ->
+                                                ).timeout(Duration.ofSeconds(5))
+                                            .onErrorResume { e ->
                                                     log.error(
-                                                        "Failed to create history projection for channel {}",
+                                                        "Failed to create history projection for channel {}: {}",
                                                         channelId,
+                                                        e.message,
                                                         e,
                                                     )
                                                     Mono.empty()

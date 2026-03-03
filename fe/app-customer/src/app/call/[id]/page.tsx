@@ -11,6 +11,7 @@ import '@livekit/components-styles';
 import useCustomerStore from '@/stores/customer-store';
 import api from '@/lib/api';
 import { ChatPanel } from '@/components/chat/chat-panel';
+import { FilePanel } from '@/components/call/file-panel';
 
 interface TokenResponse {
   token: string;
@@ -100,6 +101,7 @@ export default function CallPage({ params }: CallPageProps) {
         <VideoConference />
         <RoomAudioRenderer />
         <ChatPanel channelId={channelId} customerName={customerName} />
+        <FilePanel channelId={channelId} customerName={customerName} />
       </LiveKitRoom>
     </div>
   );
