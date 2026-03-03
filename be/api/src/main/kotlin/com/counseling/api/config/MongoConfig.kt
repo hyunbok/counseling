@@ -13,6 +13,8 @@ class MongoConfig {
     @Bean
     fun mongoClientSettingsBuilderCustomizer(): MongoClientSettingsBuilderCustomizer =
         MongoClientSettingsBuilderCustomizer { builder ->
+            // secondaryPreferred: distributes reads across replicas in production.
+            // Falls back to primary on single-node (local dev) — safe for all environments.
             builder
                 .readPreference(ReadPreference.secondaryPreferred())
                 .writeConcern(WriteConcern.MAJORITY)

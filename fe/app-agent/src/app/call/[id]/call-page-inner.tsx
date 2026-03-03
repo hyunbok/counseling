@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { RoomAudioRenderer } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { VideoRoom } from '@/components/call/video-room';
 import { ChatPanel } from '@/components/call/chat-panel';

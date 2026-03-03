@@ -28,11 +28,12 @@ class RedisConfig(
             standaloneConfig.setPassword(redisProperties.password)
         }
 
+        val pool = redisProperties.lettuce.pool
         val poolConfig =
             GenericObjectPoolConfig<StatefulConnection<*, *>>().apply {
-                maxTotal = 50
-                maxIdle = 25
-                minIdle = 5
+                maxTotal = pool.maxActive
+                maxIdle = pool.maxIdle
+                minIdle = pool.minIdle
             }
         val clientConfig =
             LettucePoolingClientConfiguration
