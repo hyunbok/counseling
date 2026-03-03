@@ -11,7 +11,9 @@ import { NotePanel } from '@/components/call/note-panel';
 import { FilePanel } from '@/components/call/file-panel';
 import { ToolBar } from '@/components/call/tool-bar';
 import useCallStore from '@/stores/call-store';
+import useAuthStore from '@/stores/auth-store';
 import { useRecording } from '@/hooks/use-recording';
+import { useCoBrowse } from '@/hooks/use-cobrowse';
 import api from '@/lib/api';
 
 interface CallPageProps {
@@ -37,10 +39,12 @@ interface TokenResponse {
 function CallPageInner({ channelId }: { channelId: string }) {
   const router = useRouter();
   const { customerName, activeTab, setActiveTab } = useCallStore();
+  const agentId = useAuthStore((s) => s.user?.id ?? '');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const connectionState = useConnectionState();
   const isConnected = connectionState === ConnectionState.Connected;
   const { isRecording, startRecording, stopRecording } = useRecording(channelId);
+  const { session: coBrowseSession, requestCoBrowse, endCoBrowse } = useCoBrowse(channelId);
 
   // Auto-start recording when connected
   useEffect(() => {
@@ -122,7 +126,12 @@ function CallPageInner({ channelId }: { channelId: string }) {
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Video area */}
-        <VideoRoom />
+        <VideoRoom
+          coBrowseSession={coBrowseSession}
+          onEndCoBrowse={() => {
+            if (coBrowseSession) endCoBrowse(coBrowseSession.sessionId);
+          }}
+        />
 
         {/* Side panel */}
         <div className="flex w-80 shrink-0 flex-col bg-gray-800 border-l border-gray-700">
@@ -161,7 +170,17 @@ function CallPageInner({ channelId }: { channelId: string }) {
 
       {/* Toolbar (floating pill) */}
       <div className="px-4 py-4 bg-gray-900/80">
-        <ToolBar onCapture={handleCapture} onEndCall={handleEndCall} />
+        <ToolBar
+          onCapture={handleCapture}
+          onEndCall={handleEndCall}
+          channelId={channelId}
+          agentId={agentId}
+          coBrowseSession={coBrowseSession}
+          onRequestCoBrowse={() => requestCoBrowse()}
+          onEndCoBrowse={() => {
+            if (coBrowseSession) endCoBrowse(coBrowseSession.sessionId);
+          }}
+        />
       </div>
     </div>
   );

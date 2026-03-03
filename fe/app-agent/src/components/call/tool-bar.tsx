@@ -11,13 +11,28 @@ import {
 import { MicrophoneIcon as MicrophoneSolidIcon } from '@heroicons/react/24/solid';
 import { useTrackToggle } from '@livekit/components-react';
 import { Track } from 'livekit-client';
+import { CoBrowseToolbarButton } from '@/components/call/cobrowse-toolbar-button';
+import type { CoBrowsingSession } from '@/hooks/use-cobrowse';
 
 interface ToolBarProps {
   onCapture: () => void;
   onEndCall: () => void;
+  channelId?: string;
+  agentId?: string;
+  coBrowseSession?: CoBrowsingSession | null;
+  onRequestCoBrowse?: () => void;
+  onEndCoBrowse?: () => void;
 }
 
-export const ToolBar = ({ onCapture, onEndCall }: ToolBarProps) => {
+export const ToolBar = ({
+  onCapture,
+  onEndCall,
+  channelId,
+  agentId,
+  coBrowseSession,
+  onRequestCoBrowse,
+  onEndCoBrowse,
+}: ToolBarProps) => {
   const { enabled: micEnabled, toggle: toggleMic } = useTrackToggle({
     source: Track.Source.Microphone,
   });
@@ -80,6 +95,17 @@ export const ToolBar = ({ onCapture, onEndCall }: ToolBarProps) => {
         >
           <ComputerDesktopIcon className="h-6 w-6" />
         </button>
+
+        {/* Co-browse */}
+        {channelId && agentId && onRequestCoBrowse && onEndCoBrowse && (
+          <CoBrowseToolbarButton
+            channelId={channelId}
+            agentId={agentId}
+            session={coBrowseSession ?? null}
+            onRequest={onRequestCoBrowse}
+            onEnd={onEndCoBrowse}
+          />
+        )}
 
         {/* Capture */}
         <button

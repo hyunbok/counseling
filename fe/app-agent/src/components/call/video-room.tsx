@@ -8,8 +8,15 @@ import {
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import { VideoCameraSlashIcon } from '@heroicons/react/24/outline';
+import { CoBrowseViewer } from '@/components/call/cobrowse-viewer';
+import type { CoBrowsingSession } from '@/hooks/use-cobrowse';
 
-export const VideoRoom = () => {
+interface VideoRoomProps {
+  coBrowseSession?: CoBrowsingSession | null;
+  onEndCoBrowse?: () => void;
+}
+
+export const VideoRoom = ({ coBrowseSession, onEndCoBrowse }: VideoRoomProps) => {
   const { localParticipant, isCameraEnabled } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
   const remote = remoteParticipants[0]; // 1:1 call
@@ -17,6 +24,12 @@ export const VideoRoom = () => {
   const remoteCameraPublication = remote?.getTrackPublication(Track.Source.Camera);
   const remoteAudioPublication = remote?.getTrackPublication(Track.Source.Microphone);
   const localCameraPublication = localParticipant.getTrackPublication(Track.Source.Camera);
+
+  const isCoBrowseActive = coBrowseSession?.status === 'ACTIVE';
+
+  if (isCoBrowseActive && onEndCoBrowse) {
+    return <CoBrowseViewer onEnd={onEndCoBrowse} />;
+  }
 
   return (
     <div className="relative flex flex-1 items-center justify-center bg-gray-950">

@@ -10,9 +10,11 @@ interface CallState {
   livekitUrl: string | null;
   activeTab: ActiveTab;
   notesDraft: string;
+  coBrowsingSessionId: string | null;
   setChannel: (channelId: string, customerName: string, agentToken?: string, livekitUrl?: string) => void;
   setActiveTab: (tab: ActiveTab) => void;
   setNotesDraft: (draft: string) => void;
+  setCoBrowsingSession: (id: string | null) => void;
   reset: () => void;
 }
 
@@ -25,10 +27,12 @@ const useCallStore = create<CallState>()(
       livekitUrl: null,
       activeTab: 'chat',
       notesDraft: '',
+      coBrowsingSessionId: null,
       setChannel: (channelId, customerName, agentToken, livekitUrl) =>
         set({ channelId, customerName, agentToken: agentToken ?? null, livekitUrl: livekitUrl ?? null }),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setNotesDraft: (draft) => set({ notesDraft: draft }),
+      setCoBrowsingSession: (id) => set({ coBrowsingSessionId: id }),
       reset: () =>
         set({
           channelId: null,
@@ -37,6 +41,7 @@ const useCallStore = create<CallState>()(
           livekitUrl: null,
           activeTab: 'chat',
           notesDraft: '',
+          coBrowsingSessionId: null,
         }),
     }),
     {
