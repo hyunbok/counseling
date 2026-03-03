@@ -1,65 +1,55 @@
-# === OS ===
-.DS_Store
-Thumbs.db
 
-# === IDE ===
-.idea/
-.vscode/
-*.iml
-*.iws
-*.ipr
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
+!**/gradle/wrapper/gradle-wrapper.jar
+!.env.example
+!/storage/
+!/storage/**/.gitkeep
+!/storage/*/
+# === Build / Gradle ===
 # === Claude Code ===
-.claude/
-.worktrees/
-
+# === Coverage / Test ===
+# === Docker ===
 # === Env ===
+# === IDE ===
+# === Logs ===
+# === Node / Frontend ===
+# === OS ===
+# === Storage (runtime — keep .gitkeep only) ===
+*.class
+*.hprof
+*.iml
+*.ipr
+*.iws
+*.jar
+*.log
+*.njsproj
+*.ntvs*
+*.sln
+*.suo
+*.sw?
+*.war
+.DS_Store
+.claude/
 .env
 .env.*
-!.env.example
-
-# === Node / Frontend ===
-node_modules/
-.pnpm-store/
-dist/
-.next/
-out/
-.turbo/
-
-# === Build / Gradle ===
-build/
 .gradle/
+.idea/
 .kotlin/
+.next/
+.nyc_output/
+.pnpm-store/
+.turbo/
+.vscode/
+.worktrees/
+/storage/**
+Thumbs.db
 bin/
-*.class
-*.jar
-*.war
-!**/gradle/wrapper/gradle-wrapper.jar
-
-# === Logs ===
-*.log
+build/
+coverage/
+dist/
+docker-compose.override.yml
 logs/
+node_modules/
 npm-debug.log*
+out/
 yarn-debug.log*
 yarn-error.log*
-
-# === Docker ===
-docker-compose.override.yml
-
-# === Storage (runtime — keep .gitkeep only) ===
-/storage/**
-!/storage/
-!/storage/*/
-!/storage/**/.gitkeep
-
-# === Coverage / Test ===
-coverage/
-.nyc_output/
-*.hprof
-.worktrees/
-.worktrees/
