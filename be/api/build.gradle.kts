@@ -42,6 +42,7 @@ dependencies {
 
     // Redis Reactive
     implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
+    implementation("org.apache.commons:commons-pool2:2.12.0")
 
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
