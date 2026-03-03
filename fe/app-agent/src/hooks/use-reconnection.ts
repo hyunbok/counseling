@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useRef, useState } from 'react';
 import { useRoomContext } from '@livekit/components-react';
 import { RoomEvent } from 'livekit-client';
@@ -45,13 +47,11 @@ export function useReconnection() {
     };
 
     room.on(RoomEvent.Reconnecting, handleReconnecting);
-    room.on(RoomEvent.SignalReconnecting, handleReconnecting);
     room.on(RoomEvent.Reconnected, handleReconnected);
     room.on(RoomEvent.Disconnected, handleDisconnected);
 
     return () => {
       room.off(RoomEvent.Reconnecting, handleReconnecting);
-      room.off(RoomEvent.SignalReconnecting, handleReconnecting);
       room.off(RoomEvent.Reconnected, handleReconnected);
       room.off(RoomEvent.Disconnected, handleDisconnected);
       stopTimer();

@@ -1,10 +1,10 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LiveKitRoom, RoomAudioRenderer, useConnectionState } from '@livekit/components-react';
+import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import '@livekit/components-styles';
-import { ConnectionState, DefaultReconnectPolicy } from 'livekit-client';
+import { DefaultReconnectPolicy } from 'livekit-client';
 import { VideoRoom } from '@/components/call/video-room';
 import { ChatPanel } from '@/components/call/chat-panel';
 import { NotePanel } from '@/components/call/note-panel';
@@ -48,19 +48,22 @@ function CallPageInner({ channelId }: { channelId: string }) {
   const { customerName, activeTab, setActiveTab } = useCallStore();
   const agentId = useAuthStore((s) => s.user?.id ?? '');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const connectionState = useConnectionState();
-  const isConnected = connectionState === ConnectionState.Connected;
   const { isRecording, startRecording, stopRecording } = useRecording(channelId);
   const { session: coBrowseSession, requestCoBrowse, endCoBrowse } = useCoBrowse(channelId);
   const { status: connectionStatus, retryCount, elapsedMs: reconnectElapsedMs } = useReconnection();
+  const isConnected = connectionStatus === 'connected';
+  const isRecordingRef = useRef(isRecording);
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
 
   // Auto-start recording when connected
   useEffect(() => {
-    if (isConnected && !isRecording) {
+    if (isConnected && !isRecordingRef.current) {
       startRecording();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected]);
+  }, [isConnected, startRecording]);
 
   // Elapsed timer (paused during reconnection)
   useEffect(() => {
@@ -74,13 +77,14 @@ function CallPageInner({ channelId }: { channelId: string }) {
   // Handle permanent disconnect
   useEffect(() => {
     if (connectionStatus === 'disconnected') {
-      if (isRecording) stopRecording();
-      try { api.post(`/api/channels/${channelId}/close`); } catch {}
+      if (isRecordingRef.current) stopRecording();
+      api.post(`/api/channels/${channelId}/close`).catch((err: unknown) => {
+        console.error('[CallPage] Failed to close channel on disconnect:', err);
+      });
       useCallStore.getState().reset();
       router.push('/dashboard');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connectionStatus]);
+  }, [connectionStatus, stopRecording, channelId, router]);
 
   const formatElapsed = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
