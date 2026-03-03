@@ -62,6 +62,16 @@ class SecurityConfig {
                     .permitAll()
                     .pathMatchers(HttpMethod.GET, "/api/channels/*/captures", "/api/channels/*/captures/**")
                     .permitAll()
+                    .pathMatchers(
+                        HttpMethod.GET,
+                        "/api/channels/*/co-browsing/active",
+                        "/api/channels/*/co-browsing/stream",
+                    ).permitAll()
+                    .pathMatchers(
+                        HttpMethod.POST,
+                        "/api/channels/*/co-browsing/*/start",
+                        "/api/channels/*/co-browsing/*/end",
+                    ).permitAll()
                     .pathMatchers("/api/**")
                     .authenticated()
                     .anyExchange()
