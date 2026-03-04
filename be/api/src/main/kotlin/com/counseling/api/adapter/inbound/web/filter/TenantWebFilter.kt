@@ -3,6 +3,7 @@ package com.counseling.api.adapter.inbound.web.filter
 import com.counseling.api.domain.TenantContext
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
@@ -26,6 +27,10 @@ class TenantWebFilter : WebFilter {
         exchange: ServerWebExchange,
         chain: WebFilterChain,
     ): Mono<Void> {
+        if (exchange.request.method == HttpMethod.OPTIONS) {
+            return chain.filter(exchange)
+        }
+
         val path = exchange.request.uri.path
 
         if (TENANT_EXEMPT_PREFIXES.any { path.startsWith(it) }) {

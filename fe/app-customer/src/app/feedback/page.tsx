@@ -20,9 +20,7 @@ export default function FeedbackPage() {
 
   const submitFeedback = useMutation({
     mutationFn: async (params: { rating: number; comment: string }) => {
-      await api.post('/api/feedback', {
-        channelId,
-        customerName,
+      await api.post(`/api/channels/${channelId}/feedback`, {
         rating: params.rating,
         comment: params.comment,
       });

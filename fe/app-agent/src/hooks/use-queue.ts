@@ -8,6 +8,15 @@ interface QueueItem {
   createdAt: string;
 }
 
+interface QueueApiItem {
+  entryId: string;
+  name: string;
+  contact: string;
+  enteredAt: string;
+  waitDurationSeconds: number;
+  position: number;
+}
+
 interface AcceptResponse {
   channelId: string;
   customerName: string;
@@ -22,10 +31,15 @@ export const useQueueList = () => {
   return useQuery<QueueItem[]>({
     queryKey: ['queue'],
     queryFn: async () => {
-      const { data } = await api.get<QueueItem[]>('/api/queue');
-      return data;
+      const { data } = await api.get<QueueApiItem[]>('/api/queue');
+      return data.map((item) => ({
+        id: item.entryId,
+        customerName: item.name,
+        waitTime: item.waitDurationSeconds,
+        createdAt: item.enteredAt,
+      }));
     },
-    refetchInterval: 5000,
+    refetchInterval: 10_000,
     retry: 3,
   });
 };

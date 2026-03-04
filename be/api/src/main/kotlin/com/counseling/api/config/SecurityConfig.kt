@@ -32,6 +32,7 @@ class SecurityConfig {
         val jwtFilter = JwtAuthenticationWebFilter(jwtTokenProvider, tokenBlacklistRepository)
 
         return http
+            .cors {}
             .csrf { it.disable() }
             .httpBasic { it.disable() }
             .formLogin { it.disable() }

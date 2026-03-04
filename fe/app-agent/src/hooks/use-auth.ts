@@ -8,12 +8,11 @@ interface LoginParams {
 }
 
 interface LoginResponse {
-  user: {
+  agent: {
     id: string;
     name: string;
     username: string;
     role: string;
-    groupName?: string;
   };
   accessToken: string;
   refreshToken: string;
@@ -28,7 +27,7 @@ export const useLogin = () => {
       return data;
     },
     onSuccess: (data) => {
-      setAuth(data.user, data.accessToken, data.refreshToken);
+      setAuth(data.agent, data.accessToken, data.refreshToken);
     },
   });
 };
