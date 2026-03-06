@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Profile
+import org.springframework.core.Ordered
 import org.springframework.stereotype.Component
 
 @Component
@@ -14,8 +15,11 @@ import org.springframework.stereotype.Component
 class TenantBootstrap(
     private val tenantRepository: TenantRepository,
     private val connectionRegistry: TenantConnectionRegistry,
-) : ApplicationRunner {
+) : ApplicationRunner,
+    Ordered {
     private val log = LoggerFactory.getLogger(TenantBootstrap::class.java)
+
+    override fun getOrder(): Int = Ordered.HIGHEST_PRECEDENCE + 1
 
     override fun run(args: ApplicationArguments) {
         tenantRepository

@@ -10,8 +10,7 @@ group = "com.counseling"
 version = "0.0.1-SNAPSHOT"
 
 kotlin {
-    // Kotlin 2.3.0 cannot parse JDK 25 version string — locked to 24 until fixed
-    jvmToolchain(24)
+    jvmToolchain(25)
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict")
     }
@@ -36,6 +35,11 @@ dependencies {
     // R2DBC (PostgreSQL, reactive)
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     runtimeOnly("org.postgresql:r2dbc-postgresql")
+
+    // Flyway (DB migration — uses JDBC)
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+    runtimeOnly("org.postgresql:postgresql")
 
     // MongoDB Reactive
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")

@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS tenants (
     updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
     deleted       BOOLEAN      NOT NULL DEFAULT FALSE
 );
-CREATE INDEX idx_tenants_status ON tenants(status) WHERE deleted = FALSE;
-CREATE INDEX idx_tenants_slug ON tenants(slug) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_tenants_status ON tenants(status) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_tenants_slug ON tenants(slug) WHERE deleted = FALSE;
 
 CREATE TABLE IF NOT EXISTS super_admins (
     id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -23,4 +23,4 @@ CREATE TABLE IF NOT EXISTS super_admins (
     updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
     deleted       BOOLEAN      NOT NULL DEFAULT FALSE
 );
-CREATE INDEX idx_super_admins_username ON super_admins(username) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_super_admins_username ON super_admins(username) WHERE deleted = FALSE;

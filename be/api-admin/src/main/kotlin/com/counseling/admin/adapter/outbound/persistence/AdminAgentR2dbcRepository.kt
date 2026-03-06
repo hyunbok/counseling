@@ -93,8 +93,13 @@ class AdminAgentR2dbcRepository(
         size: Int,
     ): Flux<Agent> =
         databaseClient
-            .sql("SELECT * FROM agents WHERE group_id = :groupId AND deleted = false ORDER BY created_at DESC LIMIT :limit OFFSET :offset")
-            .bind("groupId", groupId)
+            .sql(
+                """
+                SELECT * FROM agents
+                WHERE group_id = :groupId AND deleted = false
+                ORDER BY created_at DESC LIMIT :limit OFFSET :offset
+                """.trimIndent(),
+            ).bind("groupId", groupId)
             .bind("limit", size)
             .bind("offset", page * size)
             .map { row -> mapToAgent(row) }

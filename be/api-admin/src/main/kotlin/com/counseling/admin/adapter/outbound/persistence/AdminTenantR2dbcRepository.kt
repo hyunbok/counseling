@@ -89,8 +89,13 @@ class AdminTenantR2dbcRepository(
         size: Int,
     ): Flux<Tenant> =
         databaseClient
-            .sql("SELECT * FROM tenants WHERE status = :status AND deleted = false ORDER BY created_at DESC LIMIT :limit OFFSET :offset")
-            .bind("status", status)
+            .sql(
+                """
+                SELECT * FROM tenants
+                WHERE status = :status AND deleted = false
+                ORDER BY created_at DESC LIMIT :limit OFFSET :offset
+                """.trimIndent(),
+            ).bind("status", status)
             .bind("limit", size)
             .bind("offset", page * size)
             .map { row -> mapToTenant(row) }

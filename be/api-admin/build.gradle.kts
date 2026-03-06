@@ -10,8 +10,7 @@ group = "com.counseling"
 version = "0.0.1-SNAPSHOT"
 
 kotlin {
-    // Kotlin 2.3.0 cannot parse JDK 25 version string — locked to 24 until fixed
-    jvmToolchain(24)
+    jvmToolchain(25)
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict")
     }
