@@ -16,6 +16,8 @@ interface GroupManagementUseCase {
     fun listGroupsWithAgentCount(): Flux<GroupWithAgentCount>
 
     fun listGroupsPaged(
+        search: String?,
+        status: String?,
         page: Int,
         size: Int,
     ): Mono<PagedResult<GroupWithAgentCount>>

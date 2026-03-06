@@ -16,5 +16,5 @@ class AdminTenantRoutingConnectionFactory(
             .flatMap { tenantSlug -> connectionRegistry.getConnectionFactory(tenantSlug) }
             .flatMap { factory -> Mono.from(factory.create()) }
 
-    override fun getMetadata(): ConnectionFactoryMetadata = ConnectionFactoryMetadata { "tenant-routing-postgresql" }
+    override fun getMetadata(): ConnectionFactoryMetadata = ConnectionFactoryMetadata { "PostgreSQL" }
 }

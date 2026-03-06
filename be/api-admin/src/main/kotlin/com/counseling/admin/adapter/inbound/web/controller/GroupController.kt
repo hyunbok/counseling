@@ -29,10 +29,12 @@ class GroupController(
 ) {
     @GetMapping
     fun listGroups(
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false) status: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): Mono<PageResponse<GroupResponse>> =
-        groupManagementUseCase.listGroupsPaged(page, size).map { result ->
+        groupManagementUseCase.listGroupsPaged(search, status, page, size).map { result ->
             PageResponse(
                 content =
                     result.content.map { item ->

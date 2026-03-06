@@ -59,4 +59,9 @@ class R2dbcConfig {
     @Primary
     fun tenantConnectionFactory(connectionRegistry: AdminTenantConnectionRegistryImpl): ConnectionFactory =
         AdminTenantRoutingConnectionFactory(connectionRegistry)
+
+    @Bean
+    @Primary
+    fun tenantDatabaseClient(tenantConnectionFactory: ConnectionFactory): DatabaseClient =
+        DatabaseClient.create(tenantConnectionFactory)
 }

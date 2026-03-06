@@ -34,7 +34,10 @@ interface AgentManagementUseCase {
     fun listAgentsWithGroupName(groupId: UUID?): Flux<AgentWithGroupName>
 
     fun listAgentsPaged(
-        groupId: UUID?,
+        search: String?,
+        role: String?,
+        active: Boolean?,
+        agentStatus: String?,
         page: Int,
         size: Int,
     ): Mono<PagedResult<AgentWithGroupName>>

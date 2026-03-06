@@ -36,13 +36,15 @@ class GroupManagementService(
             }
 
     override fun listGroupsPaged(
+        search: String?,
+        status: String?,
         page: Int,
         size: Int,
     ): Mono<PagedResult<GroupWithAgentCount>> =
         Mono
             .zip(
-                groupRepository.findAllByNotDeleted(page, size).collectList(),
-                groupRepository.countAllByNotDeleted(),
+                groupRepository.searchByNotDeleted(search, status, page, size).collectList(),
+                groupRepository.countSearchByNotDeleted(search, status),
             ).flatMap { (groups, total) ->
                 Flux
                     .fromIterable(groups)

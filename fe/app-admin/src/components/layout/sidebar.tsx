@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   HomeIcon,
@@ -8,8 +9,11 @@ import {
   UsersIcon,
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
+  ArrowRightStartOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { TenantSelector } from '@/components/layout/tenant-selector';
+import { useLogout } from '@/hooks/use-auth';
 import useAuthStore from '@/stores/auth-store';
 import type { AdminRole } from '@/types';
 
@@ -45,7 +49,9 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ activePath }: SidebarProps) => {
+  const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const { mutate: logout } = useLogout();
 
   const navItems = user ? allNavItems.filter((item) => item.roles.includes(user.role)) : [];
 
@@ -57,6 +63,9 @@ export const Sidebar = ({ activePath }: SidebarProps) => {
           관리자 콘솔
         </span>
       </div>
+
+      {/* Tenant selector (SUPER_ADMIN only) */}
+      <TenantSelector />
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -83,16 +92,25 @@ export const Sidebar = ({ activePath }: SidebarProps) => {
         </ul>
       </nav>
 
-      {/* User info + theme toggle */}
+      {/* User info + theme toggle + logout */}
       <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-4 space-y-3">
         {user && (
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium text-(--color-text-primary) dark:text-(--color-text-primary-dark)">
-              {user.name}
-            </span>
-            <span className="text-xs text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
-              {roleBadgeLabel[user.role]}
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium text-(--color-text-primary) dark:text-(--color-text-primary-dark)">
+                {user.name}
+              </span>
+              <span className="text-xs text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
+                {roleBadgeLabel[user.role]}
+              </span>
+            </div>
+            <button
+              onClick={() => logout(undefined, { onSettled: () => router.push('/login') })}
+              title="로그아웃"
+              className="p-1.5 rounded-md text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark) hover:text-(--color-error) hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <ArrowRightStartOnRectangleIcon className="h-5 w-5" />
+            </button>
           </div>
         )}
         <ThemeToggle />

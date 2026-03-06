@@ -6,16 +6,16 @@ import type { AdminRole } from '@/types';
 interface LoginParams {
   username: string;
   password: string;
+  type: string;
 }
 
 interface LoginResponse {
-  user: {
+  admin: {
     id: string;
-    name: string;
+    name?: string;
     username: string;
-    role: AdminRole;
+    role: string;
     tenantId?: string;
-    tenantName?: string;
   };
   accessToken: string;
   refreshToken: string;
@@ -30,7 +30,18 @@ export const useLogin = () => {
       return data;
     },
     onSuccess: (data) => {
-      setAuth(data.user, data.accessToken, data.refreshToken);
+      const admin = data.admin;
+      setAuth(
+        {
+          id: admin.id,
+          name: admin.name ?? admin.username,
+          username: admin.username,
+          role: admin.role as AdminRole,
+          tenantId: admin.tenantId,
+        },
+        data.accessToken,
+        data.refreshToken,
+      );
     },
   });
 };

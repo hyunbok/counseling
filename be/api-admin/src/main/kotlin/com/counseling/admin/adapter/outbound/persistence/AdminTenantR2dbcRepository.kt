@@ -58,6 +58,17 @@ class AdminTenantR2dbcRepository(
             .map { row -> mapToTenant(row) }
             .one()
 
+    override fun findByDbHostAndDbPort(
+        dbHost: String,
+        dbPort: Int,
+    ): Mono<Tenant> =
+        databaseClient
+            .sql("SELECT * FROM tenants WHERE db_host = :dbHost AND db_port = :dbPort AND deleted = false LIMIT 1")
+            .bind("dbHost", dbHost)
+            .bind("dbPort", dbPort)
+            .map { row -> mapToTenant(row) }
+            .first()
+
     override fun findAllByDeletedFalse(
         page: Int,
         size: Int,
@@ -108,6 +119,62 @@ class AdminTenantR2dbcRepository(
             .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
             .one()
             .defaultIfEmpty(0L)
+
+    override fun searchByDeletedFalse(
+        search: String?,
+        status: String?,
+        page: Int,
+        size: Int,
+    ): Flux<Tenant> {
+        val conditions = mutableListOf("deleted = false")
+        if (!search.isNullOrBlank()) {
+            conditions.add("(LOWER(name) LIKE :search OR LOWER(slug) LIKE :search)")
+        }
+        if (!status.isNullOrBlank()) {
+            conditions.add("status = :status")
+        }
+        val where = conditions.joinToString(" AND ")
+        var spec =
+            databaseClient.sql(
+                "SELECT * FROM tenants WHERE $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset",
+            )
+        if (!search.isNullOrBlank()) {
+            spec = spec.bind("search", "%${search.lowercase()}%")
+        }
+        if (!status.isNullOrBlank()) {
+            spec = spec.bind("status", status)
+        }
+        return spec
+            .bind("limit", size)
+            .bind("offset", page * size)
+            .map { row -> mapToTenant(row) }
+            .all()
+    }
+
+    override fun countSearchByDeletedFalse(
+        search: String?,
+        status: String?,
+    ): Mono<Long> {
+        val conditions = mutableListOf("deleted = false")
+        if (!search.isNullOrBlank()) {
+            conditions.add("(LOWER(name) LIKE :search OR LOWER(slug) LIKE :search)")
+        }
+        if (!status.isNullOrBlank()) {
+            conditions.add("status = :status")
+        }
+        val where = conditions.joinToString(" AND ")
+        var spec = databaseClient.sql("SELECT COUNT(*) as cnt FROM tenants WHERE $where")
+        if (!search.isNullOrBlank()) {
+            spec = spec.bind("search", "%${search.lowercase()}%")
+        }
+        if (!status.isNullOrBlank()) {
+            spec = spec.bind("status", status)
+        }
+        return spec
+            .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
+            .one()
+            .defaultIfEmpty(0L)
+    }
 
     private fun mapToTenant(row: io.r2dbc.spi.Readable): Tenant =
         Tenant(

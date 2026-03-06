@@ -3,7 +3,6 @@ package com.counseling.admin.adapter.inbound.web.filter
 import com.counseling.admin.application.TenantContext
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
@@ -39,8 +38,8 @@ class AdminTenantWebFilter : WebFilter {
 
         val tenantId = exchange.request.headers.getFirst(TENANT_HEADER)
         if (tenantId.isNullOrBlank()) {
-            exchange.response.statusCode = HttpStatus.BAD_REQUEST
-            return exchange.response.setComplete()
+            // SUPER_ADMIN may not have a tenant — allow through without tenant context
+            return chain.filter(exchange)
         }
 
         return chain

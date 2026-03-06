@@ -34,11 +34,14 @@ class AgentController(
 ) {
     @GetMapping
     fun listAgents(
-        @RequestParam(required = false) groupId: UUID?,
+        @RequestParam(required = false) search: String?,
+        @RequestParam(required = false) role: String?,
+        @RequestParam(required = false) active: Boolean?,
+        @RequestParam(required = false) agentStatus: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): Mono<PageResponse<AgentResponse>> =
-        agentManagementUseCase.listAgentsPaged(groupId, page, size).map { result ->
+        agentManagementUseCase.listAgentsPaged(search, role, active, agentStatus, page, size).map { result ->
             PageResponse(
                 content =
                     result.content.map { item ->

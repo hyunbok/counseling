@@ -6,6 +6,7 @@ import com.counseling.admin.port.inbound.MonitoringQuery
 import org.springframework.context.annotation.Profile
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -29,8 +30,10 @@ class MonitoringController(
         }
 
     @GetMapping("/agents")
-    fun getAgentStatuses(): Mono<List<AgentStatusResponse>> =
-        monitoringQuery.getAgentStatuses().map { statuses ->
+    fun getAgentStatuses(
+        @RequestParam(required = false) status: String?,
+    ): Mono<List<AgentStatusResponse>> =
+        monitoringQuery.getAgentStatuses(status).map { statuses ->
             statuses.map { info ->
                 AgentStatusResponse(
                     agentId = info.agentId,

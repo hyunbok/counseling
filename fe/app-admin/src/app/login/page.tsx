@@ -10,8 +10,14 @@ const inputClass =
   'w-full rounded-[--radius-input] border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) px-3 py-2 text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-(--color-primary)';
 
 function getErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error) && error.response?.status === 401) {
-    return '아이디 또는 비밀번호가 올바르지 않습니다.';
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
+    if (status === 401) {
+      return '아이디 또는 비밀번호가 올바르지 않습니다.';
+    }
+    if (status === 400) {
+      return '입력 정보를 확인해주세요.';
+    }
   }
   return '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
 }
@@ -25,7 +31,7 @@ export default function LoginPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     login(
-      { username, password },
+      { username, password, type: 'SUPER_ADMIN' },
       {
         onSuccess: () => {
           router.push('/dashboard');
@@ -59,6 +65,8 @@ export default function LoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              onInvalid={(e) => e.currentTarget.setCustomValidity('아이디를 입력해주세요.')}
+              onInput={(e) => e.currentTarget.setCustomValidity('')}
               required
               autoComplete="username"
               className={inputClass}
@@ -78,6 +86,8 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onInvalid={(e) => e.currentTarget.setCustomValidity('비밀번호를 입력해주세요.')}
+              onInput={(e) => e.currentTarget.setCustomValidity('')}
               required
               autoComplete="current-password"
               className={inputClass}

@@ -52,7 +52,10 @@ class AgentManagementService(
             }
 
     override fun listAgentsPaged(
-        groupId: UUID?,
+        search: String?,
+        role: String?,
+        active: Boolean?,
+        agentStatus: String?,
         page: Int,
         size: Int,
     ): Mono<PagedResult<AgentWithGroupName>> =
@@ -60,28 +63,17 @@ class AgentManagementService(
             .findAllByNotDeleted()
             .collectMap({ it.id }, { it.name })
             .flatMap { groupNameMap ->
-                val agentFlux =
-                    if (groupId != null) {
-                        agentRepository.findAllByGroupIdAndNotDeleted(groupId, page, size)
-                    } else {
-                        agentRepository.findAllByNotDeleted(page, size)
-                    }
-                val countMono =
-                    if (groupId != null) {
-                        agentRepository.countAllByGroupIdAndNotDeleted(groupId)
-                    } else {
-                        agentRepository.countAllByNotDeleted()
-                    }
                 Mono
                     .zip(
-                        agentFlux
+                        agentRepository
+                            .searchByNotDeleted(search, role, active, agentStatus, page, size)
                             .map { agent ->
                                 AgentWithGroupName(
                                     agent = agent,
                                     groupName = agent.groupId?.let { groupNameMap[it] },
                                 )
                             }.collectList(),
-                        countMono,
+                        agentRepository.countSearchByNotDeleted(search, role, active, agentStatus),
                     ).map { (content, total) -> PagedResult(content, total, page, size) }
             }
 

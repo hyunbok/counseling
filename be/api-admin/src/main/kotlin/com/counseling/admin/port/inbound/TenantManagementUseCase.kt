@@ -26,6 +26,7 @@ data class UpdateTenantCommand(
 
 interface TenantManagementUseCase {
     fun listTenants(
+        search: String?,
         status: String?,
         page: Int,
         size: Int,

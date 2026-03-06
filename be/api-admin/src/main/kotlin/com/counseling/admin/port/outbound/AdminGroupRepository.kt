@@ -20,4 +20,16 @@ interface AdminGroupRepository {
     fun countAllByNotDeleted(): Mono<Long>
 
     fun findByNameAndNotDeleted(name: String): Mono<Group>
+
+    fun searchByNotDeleted(
+        search: String?,
+        status: String?,
+        page: Int,
+        size: Int,
+    ): Flux<Group>
+
+    fun countSearchByNotDeleted(
+        search: String?,
+        status: String?,
+    ): Mono<Long>
 }

@@ -2,12 +2,29 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Group } from '@/types';
 
-// BE returns plain array (Flux<GroupResponse>), not paginated
-export const useGroupList = () => {
-  return useQuery<Group[]>({
-    queryKey: ['groups'],
+interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+interface GroupListParams {
+  search?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+}
+
+export const useGroupList = (params: GroupListParams = {}) => {
+  const { search, status, page = 0, size = 10 } = params;
+  return useQuery<PageResponse<Group>>({
+    queryKey: ['groups', { search, status, page, size }],
     queryFn: async () => {
-      const { data } = await api.get<Group[]>('/api-adm/groups');
+      const { data } = await api.get<PageResponse<Group>>('/api-adm/groups', {
+        params: { search: search || undefined, status: status || undefined, page, size },
+      });
       return data;
     },
   });

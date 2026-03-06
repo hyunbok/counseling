@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { CreateModal } from '@/components/ui/create-modal';
@@ -32,10 +32,14 @@ const agentStatusColor: Record<string, string> = {
 };
 
 const roleLabel: Record<string, string> = {
-  AGENT: '상담사',
-  GROUP_ADMIN: '그룹 관리자',
-  COMPANY_ADMIN: '회사 관리자',
+  COUNSELOR: '상담사',
+  ADMIN: '관리자',
 };
+
+const PAGE_SIZE = 10;
+
+const selectFilterClass =
+  'rounded-[--radius-input] border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) px-3 py-2 text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-(--color-primary)';
 
 const columns: Column<Agent>[] = [
   { key: 'name', label: '이름', sortable: true },
@@ -69,13 +73,54 @@ const columns: Column<Agent>[] = [
 export default function AgentsPage() {
   const { isAuthenticated } = useAuthGuard();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({ groupId: '', username: '', name: '', role: 'AGENT' });
+  const [form, setForm] = useState({ groupId: '', username: '', name: '', role: 'COUNSELOR' });
   const [deactivateTargetId, setDeactivateTargetId] = useState<string | null>(null);
   const [resetPasswordTargetId, setResetPasswordTargetId] = useState<string | null>(null);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
 
-  const { data, isLoading } = useAgentList();
-  const { data: groups } = useGroupList();
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [activeFilter, setActiveFilter] = useState('');
+  const [agentStatusFilter, setAgentStatusFilter] = useState('');
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const handleRoleChange = useCallback((value: string) => {
+    setRoleFilter(value);
+    setPage(0);
+  }, []);
+
+  const handleActiveChange = useCallback((value: string) => {
+    setActiveFilter(value);
+    setPage(0);
+  }, []);
+
+  const handleAgentStatusChange = useCallback((value: string) => {
+    setAgentStatusFilter(value);
+    setPage(0);
+  }, []);
+
+  const { data: pageData, isLoading } = useAgentList({
+    search: debouncedSearch,
+    role: roleFilter,
+    active: activeFilter,
+    agentStatus: agentStatusFilter,
+    page,
+    size: PAGE_SIZE,
+  });
+  const { data: groupsPage } = useGroupList({ size: 100 });
+  const groups = groupsPage?.content;
+  const agents = pageData?.content ?? [];
+  const totalElements = pageData?.totalElements ?? 0;
+  const totalPages = pageData?.totalPages ?? 0;
   const { mutate: createAgent, isPending } = useCreateAgent();
   const { mutate: updateAgentStatus, isPending: isDeactivating } = useUpdateAgentStatus();
   const { mutate: resetAgentPassword, isPending: isResetting } = useResetAgentPassword();
@@ -87,15 +132,15 @@ export default function AgentsPage() {
       {
         onSuccess: (result: CreateAgentResult) => {
           setIsModalOpen(false);
-          setForm({ groupId: '', username: '', name: '', role: 'AGENT' });
+          setForm({ groupId: '', username: '', name: '', role: 'COUNSELOR' });
           setTempPassword(result.temporaryPassword);
         },
       },
     );
   };
 
-  const deactivateTarget = data?.find((a) => a.id === deactivateTargetId);
-  const resetPasswordTarget = data?.find((a) => a.id === resetPasswordTargetId);
+  const deactivateTarget = agents.find((a) => a.id === deactivateTargetId);
+  const resetPasswordTarget = agents.find((a) => a.id === resetPasswordTargetId);
 
   const columnsWithActions: Column<Agent>[] = [
     ...columns,
@@ -140,12 +185,86 @@ export default function AgentsPage() {
           <Button onClick={() => setIsModalOpen(true)}>상담사 추가</Button>
         </div>
 
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="이름/아이디 검색"
+            className={`${inputClass} max-w-xs`}
+          />
+          <select
+            value={roleFilter}
+            onChange={(e) => handleRoleChange(e.target.value)}
+            className={selectFilterClass}
+          >
+            <option value="">전체 역할</option>
+            <option value="COUNSELOR">상담사</option>
+            <option value="ADMIN">관리자</option>
+          </select>
+          <select
+            value={activeFilter}
+            onChange={(e) => handleActiveChange(e.target.value)}
+            className={selectFilterClass}
+          >
+            <option value="">전체 활성화</option>
+            <option value="true">활성</option>
+            <option value="false">비활성</option>
+          </select>
+          <select
+            value={agentStatusFilter}
+            onChange={(e) => handleAgentStatusChange(e.target.value)}
+            className={selectFilterClass}
+          >
+            <option value="">전체 상태</option>
+            <option value="AVAILABLE">대기 중</option>
+            <option value="BUSY">상담 중</option>
+            <option value="OFFLINE">오프라인</option>
+          </select>
+          {totalElements > 0 && (
+            <span className="text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
+              총 {totalElements}건
+            </span>
+          )}
+        </div>
+
         <DataTable
           columns={columnsWithActions}
-          data={data ?? []}
+          data={agents}
           isLoading={isLoading}
-          emptyMessage="등록된 상담사가 없습니다."
+          emptyMessage="조건에 맞는 상담사가 없습니다."
         />
+
+        {/* Pagination */}
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) text-(--color-text-secondary) dark:text-(--color-text-secondary-dark) disabled:opacity-40 disabled:cursor-not-allowed hover:border-(--color-primary) transition-colors"
+          >
+            이전
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i)}
+              className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                page === i
+                  ? 'bg-(--color-primary) text-white border-(--color-primary)'
+                  : 'border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) text-(--color-text-secondary) dark:text-(--color-text-secondary-dark) hover:border-(--color-primary)'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) text-(--color-text-secondary) dark:text-(--color-text-secondary-dark) disabled:opacity-40 disabled:cursor-not-allowed hover:border-(--color-primary) transition-colors"
+          >
+            다음
+          </button>
+        </div>
 
         {/* Create modal */}
         <CreateModal
@@ -163,9 +282,8 @@ export default function AgentsPage() {
               onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
               className={selectClass}
             >
-              <option value="AGENT">상담사</option>
-              <option value="GROUP_ADMIN">그룹 관리자</option>
-              <option value="COMPANY_ADMIN">회사 관리자</option>
+              <option value="COUNSELOR">상담사</option>
+              <option value="ADMIN">관리자</option>
             </select>
           </div>
           <div className="space-y-1">

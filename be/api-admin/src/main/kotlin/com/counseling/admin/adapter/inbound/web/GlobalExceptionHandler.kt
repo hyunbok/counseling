@@ -66,6 +66,19 @@ class GlobalExceptionHandler {
             path = exchange.request.uri.path,
         )
 
+    @ExceptionHandler(IllegalStateException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun handleIllegalState(
+        ex: IllegalStateException,
+        exchange: ServerWebExchange,
+    ): ErrorResponse =
+        ErrorResponse(
+            status = HttpStatus.BAD_REQUEST.value(),
+            error = HttpStatus.BAD_REQUEST.reasonPhrase,
+            message = ex.message ?: "Invalid request",
+            path = exchange.request.uri.path,
+        )
+
     @ExceptionHandler(ForbiddenException::class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     fun handleForbidden(

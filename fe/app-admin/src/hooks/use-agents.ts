@@ -2,12 +2,40 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Agent, CreateAgentResult } from '@/types';
 
-// BE returns plain array (Flux<AgentResponse>), not paginated
-export const useAgentList = () => {
-  return useQuery<Agent[]>({
-    queryKey: ['agents'],
+interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+interface AgentListParams {
+  search?: string;
+  role?: string;
+  active?: string;
+  agentStatus?: string;
+  page?: number;
+  size?: number;
+  enabled?: boolean;
+}
+
+export const useAgentList = (params: AgentListParams = {}) => {
+  const { search, role, agentStatus, active, page = 0, size = 10, enabled = true } = params;
+  return useQuery<PageResponse<Agent>>({
+    queryKey: ['agents', { search, role, active, agentStatus, page, size }],
+    enabled,
     queryFn: async () => {
-      const { data } = await api.get<Agent[]>('/api-adm/agents');
+      const { data } = await api.get<PageResponse<Agent>>('/api-adm/agents', {
+        params: {
+          search: search || undefined,
+          role: role || undefined,
+          active: active === '' ? undefined : active === 'true' ? true : active === 'false' ? false : undefined,
+          agentStatus: agentStatus || undefined,
+          page,
+          size,
+        },
+      });
       return data;
     },
   });

@@ -2,12 +2,29 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Tenant } from '@/types';
 
-// BE returns plain array (Flux<TenantSummaryResponse>), not paginated
-export const useTenantList = () => {
-  return useQuery<Tenant[]>({
-    queryKey: ['tenants'],
+interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+interface TenantListParams {
+  search?: string;
+  status?: string;
+  page?: number;
+  size?: number;
+}
+
+export const useTenantList = (params: TenantListParams = {}) => {
+  const { search, status, page = 0, size = 10 } = params;
+  return useQuery<PageResponse<Tenant>>({
+    queryKey: ['tenants', { search, status, page, size }],
     queryFn: async () => {
-      const { data } = await api.get<Tenant[]>('/api-adm/tenants');
+      const { data } = await api.get<PageResponse<Tenant>>('/api-adm/tenants', {
+        params: { search: search || undefined, status: status || undefined, page, size },
+      });
       return data;
     },
   });

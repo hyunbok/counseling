@@ -76,6 +76,62 @@ class AdminGroupR2dbcRepository(
             .map { row -> mapToGroup(row) }
             .one()
 
+    override fun searchByNotDeleted(
+        search: String?,
+        status: String?,
+        page: Int,
+        size: Int,
+    ): Flux<Group> {
+        val conditions = mutableListOf("deleted = FALSE")
+        if (!search.isNullOrBlank()) {
+            conditions.add("LOWER(name) LIKE :search")
+        }
+        if (!status.isNullOrBlank()) {
+            conditions.add("status = :status")
+        }
+        val where = conditions.joinToString(" AND ")
+        var spec =
+            databaseClient.sql(
+                "SELECT * FROM groups WHERE $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset",
+            )
+        if (!search.isNullOrBlank()) {
+            spec = spec.bind("search", "%${search.lowercase()}%")
+        }
+        if (!status.isNullOrBlank()) {
+            spec = spec.bind("status", status)
+        }
+        return spec
+            .bind("limit", size)
+            .bind("offset", page * size)
+            .map { row -> mapToGroup(row) }
+            .all()
+    }
+
+    override fun countSearchByNotDeleted(
+        search: String?,
+        status: String?,
+    ): Mono<Long> {
+        val conditions = mutableListOf("deleted = FALSE")
+        if (!search.isNullOrBlank()) {
+            conditions.add("LOWER(name) LIKE :search")
+        }
+        if (!status.isNullOrBlank()) {
+            conditions.add("status = :status")
+        }
+        val where = conditions.joinToString(" AND ")
+        var spec = databaseClient.sql("SELECT COUNT(*) as cnt FROM groups WHERE $where")
+        if (!search.isNullOrBlank()) {
+            spec = spec.bind("search", "%${search.lowercase()}%")
+        }
+        if (!status.isNullOrBlank()) {
+            spec = spec.bind("status", status)
+        }
+        return spec
+            .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
+            .one()
+            .defaultIfEmpty(0L)
+    }
+
     private fun mapToGroup(row: Readable): Group =
         Group(
             id = row.get("id", UUID::class.java)!!,

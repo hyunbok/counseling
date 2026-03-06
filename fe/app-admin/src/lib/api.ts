@@ -10,11 +10,18 @@ const api = axios.create({
   },
 });
 
-// Attach Bearer token on every request
+// Attach Bearer token and X-Tenant-Id on every request
 api.interceptors.request.use((config) => {
-  const accessToken = useAuthStore.getState().accessToken;
+  const { accessToken, user, selectedTenantId } = useAuthStore.getState();
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  if (user?.role === 'SUPER_ADMIN') {
+    if (selectedTenantId) {
+      config.headers['X-Tenant-Id'] = selectedTenantId;
+    }
+  } else if (user?.tenantId) {
+    config.headers['X-Tenant-Id'] = user.tenantId;
   }
   return config;
 });
@@ -24,7 +31,8 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isLoginRequest = originalRequest.url?.includes('/auth/login');
+    if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
       originalRequest._retry = true;
       const { refreshToken, setTokens, logout } = useAuthStore.getState();
       if (refreshToken) {

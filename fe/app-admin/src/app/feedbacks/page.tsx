@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { SidebarLayout } from '@/components/layout/sidebar-layout';
 import { DataTable, type Column } from '@/components/ui/data-table';
 import { useFeedbackList } from '@/hooks/use-feedbacks';
@@ -9,6 +9,8 @@ import type { Feedback } from '@/types';
 
 const selectClass =
   'rounded-lg border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) px-3 py-1.5 text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) focus:outline-none focus:ring-2 focus:ring-(--color-primary)';
+
+const PAGE_SIZE = 10;
 
 const columns: Column<Feedback>[] = [
   {
@@ -43,8 +45,17 @@ const columns: Column<Feedback>[] = [
 export default function FeedbacksPage() {
   const { isAuthenticated } = useAuthGuard();
   const [ratingFilter, setRatingFilter] = useState<number | undefined>(undefined);
+  const [page, setPage] = useState(0);
 
-  const { data, isLoading } = useFeedbackList({ rating: ratingFilter });
+  const handleRatingChange = useCallback((value: number | undefined) => {
+    setRatingFilter(value);
+    setPage(0);
+  }, []);
+
+  const { data: pageData, isLoading } = useFeedbackList({ rating: ratingFilter, page, size: PAGE_SIZE });
+  const feedbacks = pageData?.content ?? [];
+  const totalElements = pageData?.totalElements ?? 0;
+  const totalPages = pageData?.totalPages ?? 0;
 
   if (!isAuthenticated) return null;
 
@@ -74,7 +85,7 @@ export default function FeedbacksPage() {
               value={ratingFilter ?? ''}
               onChange={(e) => {
                 const val = e.target.value;
-                setRatingFilter(val === '' ? undefined : Number(val));
+                handleRatingChange(val === '' ? undefined : Number(val));
               }}
               className={selectClass}
             >
@@ -88,12 +99,49 @@ export default function FeedbacksPage() {
           </div>
         </div>
 
+        {totalElements > 0 && (
+          <span className="text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
+            총 {totalElements}건
+          </span>
+        )}
+
         <DataTable
           columns={columns}
-          data={data ?? []}
+          data={feedbacks}
           isLoading={isLoading}
           emptyMessage="등록된 피드백이 없습니다."
         />
+
+        {/* Pagination */}
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) text-(--color-text-secondary) dark:text-(--color-text-secondary-dark) disabled:opacity-40 disabled:cursor-not-allowed hover:border-(--color-primary) transition-colors"
+          >
+            이전
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i)}
+              className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                page === i
+                  ? 'bg-(--color-primary) text-white border-(--color-primary)'
+                  : 'border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) text-(--color-text-secondary) dark:text-(--color-text-secondary-dark) hover:border-(--color-primary)'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) text-(--color-text-secondary) dark:text-(--color-text-secondary-dark) disabled:opacity-40 disabled:cursor-not-allowed hover:border-(--color-primary) transition-colors"
+          >
+            다음
+          </button>
+        </div>
       </div>
     </SidebarLayout>
   );

@@ -12,6 +12,11 @@ interface AdminTenantRepository {
 
     fun findBySlug(slug: String): Mono<Tenant>
 
+    fun findByDbHostAndDbPort(
+        dbHost: String,
+        dbPort: Int,
+    ): Mono<Tenant>
+
     fun findAllByDeletedFalse(
         page: Int,
         size: Int,
@@ -28,4 +33,16 @@ interface AdminTenantRepository {
     ): Flux<Tenant>
 
     fun countAllByStatusAndDeletedFalse(status: String): Mono<Long>
+
+    fun searchByDeletedFalse(
+        search: String?,
+        status: String?,
+        page: Int,
+        size: Int,
+    ): Flux<Tenant>
+
+    fun countSearchByDeletedFalse(
+        search: String?,
+        status: String?,
+    ): Mono<Long>
 }

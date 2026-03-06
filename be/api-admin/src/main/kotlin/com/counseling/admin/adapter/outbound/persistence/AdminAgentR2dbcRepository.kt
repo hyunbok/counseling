@@ -115,6 +115,90 @@ class AdminAgentR2dbcRepository(
 
     override fun countByGroupIdAndNotDeleted(groupId: UUID): Mono<Long> = countAllByGroupIdAndNotDeleted(groupId)
 
+    override fun searchByNotDeleted(
+        search: String?,
+        role: String?,
+        active: Boolean?,
+        agentStatus: String?,
+        page: Int,
+        size: Int,
+    ): Flux<Agent> {
+        val conditions = mutableListOf("deleted = FALSE")
+        if (!search.isNullOrBlank()) {
+            conditions.add("(LOWER(name) LIKE :search OR LOWER(username) LIKE :search)")
+        }
+        if (!role.isNullOrBlank()) {
+            conditions.add("role = :role")
+        }
+        if (active != null) {
+            conditions.add("active = :active")
+        }
+        if (!agentStatus.isNullOrBlank()) {
+            conditions.add("agent_status = :agentStatus")
+        }
+        val where = conditions.joinToString(" AND ")
+        var spec =
+            databaseClient.sql(
+                "SELECT * FROM agents WHERE $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset",
+            )
+        if (!search.isNullOrBlank()) {
+            spec = spec.bind("search", "%${search.lowercase()}%")
+        }
+        if (!role.isNullOrBlank()) {
+            spec = spec.bind("role", role)
+        }
+        if (active != null) {
+            spec = spec.bind("active", active)
+        }
+        if (!agentStatus.isNullOrBlank()) {
+            spec = spec.bind("agentStatus", agentStatus)
+        }
+        return spec
+            .bind("limit", size)
+            .bind("offset", page * size)
+            .map { row -> mapToAgent(row) }
+            .all()
+    }
+
+    override fun countSearchByNotDeleted(
+        search: String?,
+        role: String?,
+        active: Boolean?,
+        agentStatus: String?,
+    ): Mono<Long> {
+        val conditions = mutableListOf("deleted = FALSE")
+        if (!search.isNullOrBlank()) {
+            conditions.add("(LOWER(name) LIKE :search OR LOWER(username) LIKE :search)")
+        }
+        if (!role.isNullOrBlank()) {
+            conditions.add("role = :role")
+        }
+        if (active != null) {
+            conditions.add("active = :active")
+        }
+        if (!agentStatus.isNullOrBlank()) {
+            conditions.add("agent_status = :agentStatus")
+        }
+        val where = conditions.joinToString(" AND ")
+        var spec = databaseClient.sql("SELECT COUNT(*) as cnt FROM agents WHERE $where")
+        if (!search.isNullOrBlank()) {
+            spec = spec.bind("search", "%${search.lowercase()}%")
+        }
+        if (!role.isNullOrBlank()) {
+            spec = spec.bind("role", role)
+        }
+        if (active != null) {
+            spec = spec.bind("active", active)
+        }
+        if (!agentStatus.isNullOrBlank()) {
+            spec = spec.bind("agentStatus", agentStatus)
+        }
+        return spec
+            .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
+            .one()
+            .defaultIfEmpty(0L)
+    }
+
     private fun mapToAgent(row: io.r2dbc.spi.Readable): Agent =
         Agent(
             id = row.get("id", UUID::class.java)!!,

@@ -32,4 +32,20 @@ interface AdminAgentRepository {
     fun countAllByGroupIdAndNotDeleted(groupId: UUID): Mono<Long>
 
     fun countByGroupIdAndNotDeleted(groupId: UUID): Mono<Long>
+
+    fun searchByNotDeleted(
+        search: String?,
+        role: String?,
+        active: Boolean?,
+        agentStatus: String?,
+        page: Int,
+        size: Int,
+    ): Flux<Agent>
+
+    fun countSearchByNotDeleted(
+        search: String?,
+        role: String?,
+        active: Boolean?,
+        agentStatus: String?,
+    ): Mono<Long>
 }
