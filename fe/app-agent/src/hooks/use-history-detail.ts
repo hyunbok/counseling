@@ -10,8 +10,18 @@ export interface HistoryRecording {
   durationSeconds: number | null;
 }
 
+export interface CustomerDevice {
+  deviceType: string | null;
+  deviceBrand: string | null;
+  osName: string | null;
+  osVersion: string | null;
+  browserName: string | null;
+  browserVersion: string | null;
+}
+
 export interface HistoryDetail extends HistoryItem {
   customerContact: string | null;
+  customerDevice: CustomerDevice | null;
   recording: HistoryRecording | null;
   feedback: { rating: number; comment: string | null } | null;
   counselNote: { noteId: string; content: string; createdAt: string; updatedAt: string } | null;

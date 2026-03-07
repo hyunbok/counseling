@@ -39,6 +39,7 @@ class HistoryMongoRepository(
                 .set("groupName", projection.groupName)
                 .set("customerName", projection.customerName)
                 .set("customerContact", projection.customerContact)
+                .set("customerDevice", projection.customerDevice?.let { EmbeddedCustomerDevice.fromInfo(it) })
                 .set("status", projection.status)
                 .set("startedAt", projection.startedAt)
                 .set("endedAt", projection.endedAt)
@@ -162,17 +163,60 @@ class HistoryMongoRepository(
         tenantId: String,
         agentId: UUID?,
         groupId: UUID?,
+        status: String?,
+        customerName: String?,
         dateFrom: Instant?,
         dateTo: Instant?,
-        before: Instant?,
+        skip: Int,
         limit: Int,
     ): Mono<List<HistoryProjection>> {
+        val criteria = buildCriteria(tenantId, agentId, groupId, status, customerName, dateFrom, dateTo)
+        val query =
+            Query
+                .query(criteria)
+                .with(Sort.by(Sort.Direction.DESC, "startedAt"))
+                .skip(skip.toLong())
+                .limit(limit)
+        return mongoTemplate
+            .find(query, ChannelHistoryDocument::class.java, COLLECTION_NAME)
+            .map { it.toProjection() }
+            .collectList()
+    }
+
+    override fun countByTenantId(
+        tenantId: String,
+        agentId: UUID?,
+        groupId: UUID?,
+        status: String?,
+        customerName: String?,
+        dateFrom: Instant?,
+        dateTo: Instant?,
+    ): Mono<Long> {
+        val criteria = buildCriteria(tenantId, agentId, groupId, status, customerName, dateFrom, dateTo)
+        return mongoTemplate.count(Query.query(criteria), COLLECTION_NAME)
+    }
+
+    private fun buildCriteria(
+        tenantId: String,
+        agentId: UUID?,
+        groupId: UUID?,
+        status: String?,
+        customerName: String?,
+        dateFrom: Instant?,
+        dateTo: Instant?,
+    ): Criteria {
         var criteria = Criteria.where("tenantId").`is`(tenantId)
         if (agentId != null) {
             criteria = criteria.and("agentId").`is`(agentId.toString())
         }
         if (groupId != null) {
             criteria = criteria.and("groupId").`is`(groupId.toString())
+        }
+        if (status != null) {
+            criteria = criteria.and("status").`is`(status)
+        }
+        if (!customerName.isNullOrBlank()) {
+            criteria = criteria.and("customerName").regex(customerName, "i")
         }
         if (dateFrom != null && dateTo != null) {
             criteria = criteria.and("startedAt").gte(dateFrom).lte(dateTo)
@@ -181,18 +225,7 @@ class HistoryMongoRepository(
         } else if (dateTo != null) {
             criteria = criteria.and("startedAt").lte(dateTo)
         }
-        if (before != null) {
-            criteria = criteria.and("endedAt").lt(before)
-        }
-        val query =
-            Query
-                .query(criteria)
-                .with(Sort.by(Sort.Direction.DESC, "endedAt"))
-                .limit(limit)
-        return mongoTemplate
-            .find(query, ChannelHistoryDocument::class.java, COLLECTION_NAME)
-            .map { it.toProjection() }
-            .collectList()
+        return criteria
     }
 
     override fun findByChannelId(

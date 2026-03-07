@@ -39,6 +39,7 @@ interface QueueUseCase {
         name: String,
         contact: String,
         groupId: UUID?,
+        userAgent: String? = null,
     ): Mono<EnterQueueResult>
 
     fun leaveQueue(entryId: UUID): Mono<Void>

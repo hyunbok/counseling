@@ -3,6 +3,21 @@ package com.counseling.api.adapter.inbound.web.dto
 import java.time.Instant
 import java.util.UUID
 
+data class DashboardRecentItemResponse(
+    val channelId: UUID,
+    val customerName: String?,
+    val status: String,
+    val startedAt: Instant?,
+    val durationSeconds: Long?,
+    val feedbackRating: Int?,
+)
+
+data class DashboardSummaryResponse(
+    val todayCount: Int,
+    val avgDurationSeconds: Long?,
+    val recentItems: List<DashboardRecentItemResponse>,
+)
+
 data class HistoryItemResponse(
     val channelId: UUID,
     val agentId: UUID?,
@@ -21,7 +36,10 @@ data class HistoryItemResponse(
 
 data class HistoryListResponse(
     val items: List<HistoryItemResponse>,
-    val hasMore: Boolean,
+    val totalCount: Long,
+    val page: Int,
+    val size: Int,
+    val totalPages: Int,
 )
 
 data class HistoryRecordingResponse(
@@ -44,6 +62,15 @@ data class HistoryCounselNoteResponse(
     val updatedAt: Instant,
 )
 
+data class CustomerDeviceResponse(
+    val deviceType: String?,
+    val deviceBrand: String?,
+    val osName: String?,
+    val osVersion: String?,
+    val browserName: String?,
+    val browserVersion: String?,
+)
+
 data class HistoryDetailResponse(
     val channelId: UUID,
     val agentId: UUID?,
@@ -52,6 +79,7 @@ data class HistoryDetailResponse(
     val groupName: String?,
     val customerName: String?,
     val customerContact: String?,
+    val customerDevice: CustomerDeviceResponse?,
     val status: String,
     val startedAt: Instant?,
     val endedAt: Instant?,

@@ -18,6 +18,8 @@ data class Agent(
 ) {
     fun changePassword(newHash: String): Agent = copy(passwordHash = newHash, updatedAt = Instant.now())
 
+    fun changeName(newName: String): Agent = copy(name = newName, updatedAt = Instant.now())
+
     fun isActive(): Boolean = !deleted
 
     fun updateStatus(status: AgentStatus): Agent = copy(agentStatus = status, updatedAt = Instant.now())

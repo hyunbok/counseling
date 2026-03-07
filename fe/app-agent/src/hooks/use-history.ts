@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
 export interface HistoryItem {
@@ -19,32 +19,42 @@ export interface HistoryItem {
 
 export interface HistoryListResponse {
   items: HistoryItem[];
-  hasMore: boolean;
+  totalCount: number;
+  page: number;
+  size: number;
+  totalPages: number;
 }
 
 export interface HistoryFilters {
   groupId?: string;
+  status?: string;
+  customerName?: string;
   dateFrom?: string;
   dateTo?: string;
+  page?: number;
+  size?: number;
 }
 
 export function useHistory(filters: HistoryFilters = {}) {
-  return useInfiniteQuery<HistoryListResponse>({
+  const page = filters.page ?? 0;
+  const size = filters.size ?? 20;
+
+  return useQuery<HistoryListResponse>({
     queryKey: ['history', filters],
-    queryFn: async ({ pageParam }) => {
+    queryFn: async () => {
+      const params: Record<string, string | number | undefined> = {
+        groupId: filters.groupId,
+        status: filters.status,
+        customerName: filters.customerName || undefined,
+        dateFrom: filters.dateFrom ? new Date(filters.dateFrom).toISOString() : undefined,
+        dateTo: filters.dateTo ? new Date(`${filters.dateTo}T23:59:59`).toISOString() : undefined,
+        page,
+        size,
+      };
       const { data } = await api.get<HistoryListResponse>('/api/history', {
-        params: {
-          ...filters,
-          before: pageParam as string | undefined,
-          limit: 20,
-        },
+        params,
       });
       return data;
-    },
-    initialPageParam: undefined,
-    getNextPageParam: (lastPage) => {
-      if (!lastPage.hasMore || lastPage.items.length === 0) return undefined;
-      return lastPage.items[lastPage.items.length - 1].endedAt ?? undefined;
     },
   });
 }

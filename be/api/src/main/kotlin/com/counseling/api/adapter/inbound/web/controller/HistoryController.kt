@@ -1,5 +1,8 @@
 package com.counseling.api.adapter.inbound.web.controller
 
+import com.counseling.api.adapter.inbound.web.dto.CustomerDeviceResponse
+import com.counseling.api.adapter.inbound.web.dto.DashboardRecentItemResponse
+import com.counseling.api.adapter.inbound.web.dto.DashboardSummaryResponse
 import com.counseling.api.adapter.inbound.web.dto.HistoryCounselNoteResponse
 import com.counseling.api.adapter.inbound.web.dto.HistoryDetailResponse
 import com.counseling.api.adapter.inbound.web.dto.HistoryFeedbackResponse
@@ -29,6 +32,8 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 @RestController
@@ -38,14 +43,42 @@ class HistoryController(
     private val historyQuery: HistoryQuery,
     private val recordingStreamUseCase: RecordingStreamUseCase,
 ) {
+    @GetMapping("/dashboard-summary")
+    fun getDashboardSummary(): Mono<DashboardSummaryResponse> =
+        authenticatedAgent().flatMap { agent ->
+            val zone = ZoneId.systemDefault()
+            val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant()
+            historyQuery
+                .getDashboardSummary(agent.tenantId, agent.agentId, todayStart)
+                .map { summary ->
+                    DashboardSummaryResponse(
+                        todayCount = summary.todayCount,
+                        avgDurationSeconds = summary.avgDurationSeconds,
+                        recentItems =
+                            summary.recentItems.map {
+                                DashboardRecentItemResponse(
+                                    channelId = it.channelId,
+                                    customerName = it.customerName,
+                                    status = it.status,
+                                    startedAt = it.startedAt,
+                                    durationSeconds = it.durationSeconds,
+                                    feedbackRating = it.feedbackRating,
+                                )
+                            },
+                    )
+                }
+        }
+
     @GetMapping
     fun listHistory(
         @RequestParam(required = false) agentId: UUID?,
         @RequestParam(required = false) groupId: UUID?,
+        @RequestParam(required = false) status: String?,
+        @RequestParam(required = false) customerName: String?,
         @RequestParam(required = false) dateFrom: Instant?,
         @RequestParam(required = false) dateTo: Instant?,
-        @RequestParam(required = false) before: Instant?,
-        @RequestParam(defaultValue = "20") limit: Int,
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
     ): Mono<HistoryListResponse> =
         authenticatedAgent().flatMap { agent ->
             val effectiveAgentId =
@@ -58,17 +91,22 @@ class HistoryController(
                 HistoryFilter(
                     agentId = effectiveAgentId,
                     groupId = groupId,
+                    status = status,
+                    customerName = customerName,
                     dateFrom = dateFrom,
                     dateTo = dateTo,
-                    before = before,
-                    limit = limit.coerceIn(1, 100),
+                    page = page.coerceAtLeast(0),
+                    size = size.coerceIn(1, 100),
                 )
             historyQuery
                 .list(agent.tenantId, filter)
                 .map { result ->
                     HistoryListResponse(
                         items = result.items.map { it.toResponse() },
-                        hasMore = result.hasMore,
+                        totalCount = result.totalCount,
+                        page = result.page,
+                        size = result.size,
+                        totalPages = result.totalPages,
                     )
                 }
         }
@@ -179,6 +217,17 @@ class HistoryController(
             groupName = groupName,
             customerName = customerName,
             customerContact = customerContact,
+            customerDevice =
+                customerDevice?.let {
+                    CustomerDeviceResponse(
+                        deviceType = it.deviceType,
+                        deviceBrand = it.deviceBrand,
+                        osName = it.osName,
+                        osVersion = it.osVersion,
+                        browserName = it.browserName,
+                        browserVersion = it.browserVersion,
+                    )
+                },
             status = status,
             startedAt = startedAt,
             endedAt = endedAt,

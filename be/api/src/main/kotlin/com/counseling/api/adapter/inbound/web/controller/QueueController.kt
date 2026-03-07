@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
@@ -36,9 +37,10 @@ class QueueController(
     @ResponseStatus(HttpStatus.CREATED)
     fun enter(
         @RequestBody request: EnterQueueRequest,
+        @RequestHeader("User-Agent", required = false) userAgent: String?,
     ): Mono<EnterQueueResponse> =
         queueUseCase
-            .enterQueue(request.name, request.contact, request.groupId)
+            .enterQueue(request.name, request.contact, request.groupId, userAgent)
             .map { result ->
                 EnterQueueResponse(
                     entryId = result.entry.id,

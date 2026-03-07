@@ -1,5 +1,6 @@
 package com.counseling.api.port.outbound
 
+import com.counseling.api.domain.CustomerDeviceInfo
 import reactor.core.publisher.Mono
 import java.time.Instant
 import java.util.UUID
@@ -13,6 +14,7 @@ data class HistoryProjection(
     val groupName: String?,
     val customerName: String?,
     val customerContact: String?,
+    val customerDevice: CustomerDeviceInfo?,
     val status: String,
     val startedAt: Instant?,
     val endedAt: Instant?,
@@ -76,11 +78,23 @@ interface HistoryReadRepository {
         tenantId: String,
         agentId: UUID?,
         groupId: UUID?,
+        status: String?,
+        customerName: String?,
         dateFrom: Instant?,
         dateTo: Instant?,
-        before: Instant?,
+        skip: Int,
         limit: Int,
     ): Mono<List<HistoryProjection>>
+
+    fun countByTenantId(
+        tenantId: String,
+        agentId: UUID?,
+        groupId: UUID?,
+        status: String?,
+        customerName: String?,
+        dateFrom: Instant?,
+        dateTo: Instant?,
+    ): Mono<Long>
 
     fun findByChannelId(
         channelId: UUID,

@@ -1,6 +1,7 @@
 package com.counseling.api.application
 
 import com.counseling.api.config.LiveKitProperties
+import com.counseling.api.config.UserAgentParser
 import com.counseling.api.domain.AgentStatus
 import com.counseling.api.domain.Channel
 import com.counseling.api.domain.ChannelStatus
@@ -53,6 +54,7 @@ class QueueService(
     private val notificationUseCase: NotificationUseCase,
     private val historyReadRepository: HistoryReadRepository,
     private val groupRepository: GroupRepository,
+    private val userAgentParser: UserAgentParser,
 ) : QueueUseCase {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -60,6 +62,7 @@ class QueueService(
         name: String,
         contact: String,
         groupId: UUID?,
+        userAgent: String?,
     ): Mono<EnterQueueResult> =
         TenantContext.getTenantId().flatMap { tenantId ->
             val entry =
@@ -69,6 +72,7 @@ class QueueService(
                     customerContact = contact,
                     groupId = groupId,
                     enteredAt = Instant.now(),
+                    userAgent = userAgent,
                 )
             queueRepository
                 .add(tenantId, entry)
@@ -216,6 +220,7 @@ class QueueService(
                                                         groupName = groupName.ifBlank { null },
                                                         customerName = entry.customerName,
                                                         customerContact = entry.customerContact,
+                                                        customerDevice = userAgentParser.parse(entry.userAgent),
                                                         status = "IN_PROGRESS",
                                                         startedAt = now,
                                                         endedAt = null,

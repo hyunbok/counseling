@@ -41,9 +41,11 @@ export function CallPageInner({ channelId }: { channelId: string }) {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
 
-  // Auto-start recording when connected
+  // Auto-start recording once when connected
+  const autoStartedRef = useRef(false);
   useEffect(() => {
-    if (isConnected && !isRecordingRef.current) {
+    if (isConnected && !isRecordingRef.current && !autoStartedRef.current) {
+      autoStartedRef.current = true;
       startRecording();
     }
   }, [isConnected, startRecording]);
@@ -77,9 +79,8 @@ export function CallPageInner({ channelId }: { channelId: string }) {
   };
 
   const handleEndCall = async () => {
-    if (isLeavingRef.current) return;
     isLeavingRef.current = true;
-    if (isRecording) {
+    if (isRecordingRef.current) {
       stopRecording();
     }
     try {

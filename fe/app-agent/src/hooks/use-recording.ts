@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 
@@ -63,10 +64,18 @@ export function useRecording(channelId: string) {
     },
   });
 
+  const startRecording = useCallback(() => {
+    if (!startMutation.isPending) startMutation.mutate();
+  }, [startMutation]);
+
+  const stopRecording = useCallback(() => {
+    if (!stopMutation.isPending) stopMutation.mutate();
+  }, [stopMutation]);
+
   return {
     isRecording,
-    startRecording: () => startMutation.mutate(),
-    stopRecording: () => stopMutation.mutate(),
+    startRecording,
+    stopRecording,
     isStarting: startMutation.isPending,
     isStopping: stopMutation.isPending,
   };

@@ -59,6 +59,9 @@ dependencies {
     // JSON (Jackson 3.x — Spring Boot 4)
     implementation("tools.jackson.module:jackson-module-kotlin")
 
+    // User-Agent parsing
+    implementation("nl.basjes.parse.useragent:yauaa:7.30.0")
+
     // Mail
     implementation("org.springframework.boot:spring-boot-starter-mail")
 

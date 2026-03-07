@@ -33,4 +33,9 @@ interface AuthUseCase {
         currentPassword: String,
         newPassword: String,
     ): Mono<Void>
+
+    fun changeName(
+        agentId: UUID,
+        newName: String,
+    ): Mono<Void>
 }

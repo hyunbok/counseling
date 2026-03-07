@@ -1,5 +1,6 @@
 package com.counseling.api.adapter.outbound.persistence
 
+import com.counseling.api.domain.CustomerDeviceInfo
 import com.counseling.api.port.outbound.CounselNoteProjection
 import com.counseling.api.port.outbound.FeedbackProjection
 import com.counseling.api.port.outbound.HistoryProjection
@@ -42,6 +43,7 @@ data class ChannelHistoryDocument(
     val groupName: String?,
     val customerName: String?,
     val customerContact: String?,
+    val customerDevice: EmbeddedCustomerDevice?,
     val status: String,
     val startedAt: Instant?,
     val endedAt: Instant?,
@@ -60,6 +62,7 @@ data class ChannelHistoryDocument(
             groupName = groupName,
             customerName = customerName,
             customerContact = customerContact,
+            customerDevice = customerDevice?.toInfo(),
             status = status,
             startedAt = startedAt,
             endedAt = endedAt,
@@ -81,6 +84,7 @@ data class ChannelHistoryDocument(
                 groupName = projection.groupName,
                 customerName = projection.customerName,
                 customerContact = projection.customerContact,
+                customerDevice = projection.customerDevice?.let { EmbeddedCustomerDevice.fromInfo(it) },
                 status = projection.status,
                 startedAt = projection.startedAt,
                 endedAt = projection.endedAt,
@@ -163,6 +167,40 @@ data class EmbeddedCounselNote(
                 content = projection.content,
                 createdAt = projection.createdAt,
                 updatedAt = projection.updatedAt,
+            )
+    }
+}
+
+data class EmbeddedCustomerDevice(
+    val deviceType: String?,
+    val deviceBrand: String?,
+    val osName: String?,
+    val osVersion: String?,
+    val browserName: String?,
+    val browserVersion: String?,
+    val rawUserAgent: String?,
+) {
+    fun toInfo(): CustomerDeviceInfo =
+        CustomerDeviceInfo(
+            deviceType = deviceType,
+            deviceBrand = deviceBrand,
+            osName = osName,
+            osVersion = osVersion,
+            browserName = browserName,
+            browserVersion = browserVersion,
+            rawUserAgent = rawUserAgent,
+        )
+
+    companion object {
+        fun fromInfo(info: CustomerDeviceInfo): EmbeddedCustomerDevice =
+            EmbeddedCustomerDevice(
+                deviceType = info.deviceType,
+                deviceBrand = info.deviceBrand,
+                osName = info.osName,
+                osVersion = info.osVersion,
+                browserName = info.browserName,
+                browserVersion = info.browserVersion,
+                rawUserAgent = info.rawUserAgent,
             )
     }
 }

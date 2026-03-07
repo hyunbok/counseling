@@ -9,4 +9,5 @@ data class QueueEntry(
     val customerContact: String,
     val groupId: UUID?,
     val enteredAt: Instant,
+    val userAgent: String? = null,
 )

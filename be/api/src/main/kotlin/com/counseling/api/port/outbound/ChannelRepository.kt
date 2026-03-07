@@ -19,4 +19,6 @@ interface ChannelRepository {
         agentId: UUID,
         status: ChannelStatus,
     ): Flux<Channel>
+
+    fun findByLivekitRoomNameAndNotDeleted(roomName: String): Mono<Channel>
 }

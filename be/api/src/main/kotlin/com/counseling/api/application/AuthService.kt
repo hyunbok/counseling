@@ -151,4 +151,15 @@ class AuthService(
                         }
                     }
             }
+
+    override fun changeName(
+        agentId: UUID,
+        newName: String,
+    ): Mono<Void> =
+        agentRepository
+            .findByIdAndNotDeleted(agentId)
+            .switchIfEmpty(Mono.error(UnauthorizedException("Agent not found")))
+            .flatMap { agent ->
+                agentRepository.save(agent.changeName(newName)).then()
+            }
 }

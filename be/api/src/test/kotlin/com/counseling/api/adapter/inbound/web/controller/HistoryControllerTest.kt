@@ -55,6 +55,7 @@ class HistoryControllerTest :
                 groupName = null,
                 customerName = "Customer",
                 customerContact = null,
+                customerDevice = null,
                 status = "CLOSED",
                 startedAt = now.minusSeconds(300),
                 endedAt = now,
@@ -65,9 +66,9 @@ class HistoryControllerTest :
             )
 
         "list() use case returns paginated HistoryListResult" {
-            val filter = HistoryFilter(agentId = agentId, limit = 20)
+            val filter = HistoryFilter(agentId = agentId, size = 20)
             val items = listOf(makeListItem())
-            val result = HistoryListResult(items = items, hasMore = false)
+            val result = HistoryListResult(items = items, totalCount = 1, page = 0, size = 20, totalPages = 1)
 
             every { historyQuery.list(tenantId, filter) } returns Mono.just(result)
 
@@ -75,22 +76,7 @@ class HistoryControllerTest :
                 .create(historyQuery.list(tenantId, filter))
                 .assertNext { queryResult ->
                     queryResult.items.size shouldBe 1
-                    queryResult.hasMore shouldBe false
-                }.verifyComplete()
-        }
-
-        "list() use case sets hasMore when more results exist" {
-            val filter = HistoryFilter(agentId = agentId, limit = 2)
-            val items = (1..2).map { makeListItem(id = UUID.randomUUID()) }
-            val result = HistoryListResult(items = items, hasMore = true)
-
-            every { historyQuery.list(tenantId, filter) } returns Mono.just(result)
-
-            StepVerifier
-                .create(historyQuery.list(tenantId, filter))
-                .assertNext { queryResult ->
-                    queryResult.items.size shouldBe 2
-                    queryResult.hasMore shouldBe true
+                    queryResult.totalCount shouldBe 1
                 }.verifyComplete()
         }
 
@@ -120,10 +106,9 @@ class HistoryControllerTest :
 
         "COUNSELOR role should only see own records" {
             val counselorAgentId = UUID.randomUUID()
-            val otherAgentId = UUID.randomUUID()
-            val filterForCounselor = HistoryFilter(agentId = counselorAgentId, limit = 20)
+            val filterForCounselor = HistoryFilter(agentId = counselorAgentId, size = 20)
             val items = listOf(makeListItem(itemAgentId = counselorAgentId))
-            val result = HistoryListResult(items = items, hasMore = false)
+            val result = HistoryListResult(items = items, totalCount = 1, page = 0, size = 20, totalPages = 1)
 
             every { historyQuery.list(tenantId, filterForCounselor) } returns Mono.just(result)
 
@@ -136,9 +121,9 @@ class HistoryControllerTest :
         }
 
         "ADMIN role can list all records" {
-            val adminFilter = HistoryFilter(limit = 20)
+            val adminFilter = HistoryFilter(size = 20)
             val items = (1..3).map { makeListItem(itemAgentId = UUID.randomUUID()) }
-            val result = HistoryListResult(items = items, hasMore = false)
+            val result = HistoryListResult(items = items, totalCount = 3, page = 0, size = 20, totalPages = 1)
 
             every { historyQuery.list(tenantId, adminFilter) } returns Mono.just(result)
 
@@ -146,7 +131,7 @@ class HistoryControllerTest :
                 .create(historyQuery.list(tenantId, adminFilter))
                 .assertNext { queryResult ->
                     queryResult.items.size shouldBe 3
-                    queryResult.hasMore shouldBe false
+                    queryResult.totalCount shouldBe 3
                 }.verifyComplete()
         }
     })

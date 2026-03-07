@@ -1,6 +1,7 @@
 package com.counseling.api.adapter.inbound.web.controller
 
 import com.counseling.api.adapter.inbound.web.dto.AgentInfo
+import com.counseling.api.adapter.inbound.web.dto.ChangeNameRequest
 import com.counseling.api.adapter.inbound.web.dto.ChangePasswordRequest
 import com.counseling.api.adapter.inbound.web.dto.LoginRequest
 import com.counseling.api.adapter.inbound.web.dto.LoginResponse
@@ -81,6 +82,18 @@ class AuthController(
                 agentId = principal.agentId,
                 currentPassword = request.currentPassword,
                 newPassword = request.newPassword,
+            )
+        }
+
+    @PutMapping("/name")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun changeName(
+        @RequestBody request: ChangeNameRequest,
+    ): Mono<Void> =
+        authenticatedAgent().flatMap { principal ->
+            authUseCase.changeName(
+                agentId = principal.agentId,
+                newName = request.name,
             )
         }
 

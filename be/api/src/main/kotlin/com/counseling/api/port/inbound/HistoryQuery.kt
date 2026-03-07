@@ -1,5 +1,6 @@
 package com.counseling.api.port.inbound
 
+import com.counseling.api.domain.CustomerDeviceInfo
 import reactor.core.publisher.Mono
 import java.time.Instant
 import java.util.UUID
@@ -7,10 +8,12 @@ import java.util.UUID
 data class HistoryFilter(
     val agentId: UUID? = null,
     val groupId: UUID? = null,
+    val status: String? = null,
+    val customerName: String? = null,
     val dateFrom: Instant? = null,
     val dateTo: Instant? = null,
-    val before: Instant? = null,
-    val limit: Int = 20,
+    val page: Int = 0,
+    val size: Int = 20,
 )
 
 data class HistoryListItem(
@@ -31,7 +34,10 @@ data class HistoryListItem(
 
 data class HistoryListResult(
     val items: List<HistoryListItem>,
-    val hasMore: Boolean,
+    val totalCount: Long,
+    val page: Int,
+    val size: Int,
+    val totalPages: Int,
 )
 
 data class HistoryDetailRecording(
@@ -63,6 +69,7 @@ data class HistoryDetail(
     val groupName: String?,
     val customerName: String?,
     val customerContact: String?,
+    val customerDevice: CustomerDeviceInfo?,
     val status: String,
     val startedAt: Instant?,
     val endedAt: Instant?,
@@ -70,6 +77,12 @@ data class HistoryDetail(
     val recording: HistoryDetailRecording?,
     val feedback: HistoryDetailFeedback?,
     val counselNote: HistoryDetailCounselNote?,
+)
+
+data class DashboardSummary(
+    val todayCount: Int,
+    val avgDurationSeconds: Long?,
+    val recentItems: List<HistoryListItem>,
 )
 
 interface HistoryQuery {
@@ -82,4 +95,10 @@ interface HistoryQuery {
         tenantId: String,
         channelId: UUID,
     ): Mono<HistoryDetail>
+
+    fun getDashboardSummary(
+        tenantId: String,
+        agentId: UUID,
+        todayStart: Instant,
+    ): Mono<DashboardSummary>
 }

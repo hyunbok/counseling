@@ -31,6 +31,12 @@ api.interceptors.response.use(
           const { data } = await axios.post(
             `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/auth/refresh`,
             { refreshToken },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Tenant-Id': process.env.NEXT_PUBLIC_TENANT_ID ?? 'default',
+              },
+            },
           );
           setTokens(data.accessToken, data.refreshToken);
           originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;

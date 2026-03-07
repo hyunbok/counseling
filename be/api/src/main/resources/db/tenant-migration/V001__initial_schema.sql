@@ -3,7 +3,7 @@
 -- ============================================================
 
 -- agents
-CREATE TABLE agents (
+CREATE TABLE IF NOT EXISTS agents (
     id            UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     username      VARCHAR(50)  NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
@@ -20,10 +20,10 @@ CREATE TABLE agents (
     CONSTRAINT ck_agents_role CHECK (role IN ('ADMIN', 'COUNSELOR')),
     CONSTRAINT ck_agents_status CHECK (agent_status IN ('ONLINE', 'OFFLINE', 'BUSY', 'AWAY', 'WRAP_UP'))
 );
-CREATE INDEX idx_agents_username_active ON agents (username) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_agents_username_active ON agents (username) WHERE deleted = FALSE;
 
 -- groups
-CREATE TABLE groups (
+CREATE TABLE IF NOT EXISTS groups (
     id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     name       VARCHAR(100) NOT NULL,
     status     VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
@@ -32,12 +32,16 @@ CREATE TABLE groups (
     deleted    BOOLEAN      NOT NULL DEFAULT FALSE,
     CONSTRAINT ck_groups_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
 );
-CREATE INDEX idx_groups_active ON groups (id) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_groups_active ON groups (id) WHERE deleted = FALSE;
 
-ALTER TABLE agents ADD CONSTRAINT fk_agents_group FOREIGN KEY (group_id) REFERENCES groups(id);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_agents_group') THEN
+        ALTER TABLE agents ADD CONSTRAINT fk_agents_group FOREIGN KEY (group_id) REFERENCES groups(id);
+    END IF;
+END $$;
 
 -- companies
-CREATE TABLE companies (
+CREATE TABLE IF NOT EXISTS companies (
     id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     name       VARCHAR(200) NOT NULL,
     contact    VARCHAR(100),
@@ -47,7 +51,7 @@ CREATE TABLE companies (
 );
 
 -- channels
-CREATE TABLE channels (
+CREATE TABLE IF NOT EXISTS channels (
     id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     agent_id          UUID        REFERENCES agents(id),
     status            VARCHAR(20) NOT NULL DEFAULT 'WAITING',
@@ -60,12 +64,12 @@ CREATE TABLE channels (
     deleted           BOOLEAN     NOT NULL DEFAULT FALSE,
     CONSTRAINT ck_channels_status CHECK (status IN ('WAITING', 'IN_PROGRESS', 'CLOSED'))
 );
-CREATE INDEX idx_channels_agent_active ON channels (agent_id) WHERE deleted = FALSE;
-CREATE INDEX idx_channels_status_active ON channels (status) WHERE deleted = FALSE;
-CREATE INDEX idx_channels_livekit_room ON channels (livekit_room_name) WHERE livekit_room_name IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_channels_agent_active ON channels (agent_id) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_channels_status_active ON channels (status) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_channels_livekit_room ON channels (livekit_room_name) WHERE livekit_room_name IS NOT NULL;
 
 -- endpoints
-CREATE TABLE endpoints (
+CREATE TABLE IF NOT EXISTS endpoints (
     id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id       UUID        NOT NULL REFERENCES channels(id),
     type             VARCHAR(20) NOT NULL,
@@ -75,10 +79,10 @@ CREATE TABLE endpoints (
     left_at          TIMESTAMPTZ,
     CONSTRAINT ck_endpoints_type CHECK (type IN ('AGENT', 'CUSTOMER'))
 );
-CREATE INDEX idx_endpoints_channel ON endpoints (channel_id);
+CREATE INDEX IF NOT EXISTS idx_endpoints_channel ON endpoints (channel_id);
 
 -- chat_messages
-CREATE TABLE chat_messages (
+CREATE TABLE IF NOT EXISTS chat_messages (
     id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id  UUID         NOT NULL REFERENCES channels(id),
     sender_type VARCHAR(20)  NOT NULL,
@@ -87,10 +91,10 @@ CREATE TABLE chat_messages (
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     CONSTRAINT ck_chat_messages_sender_type CHECK (sender_type IN ('AGENT', 'CUSTOMER'))
 );
-CREATE INDEX idx_chat_messages_channel ON chat_messages (channel_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_channel ON chat_messages (channel_id, created_at);
 
 -- counsel_notes
-CREATE TABLE counsel_notes (
+CREATE TABLE IF NOT EXISTS counsel_notes (
     id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id UUID        NOT NULL REFERENCES channels(id),
     agent_id   UUID        NOT NULL REFERENCES agents(id),
@@ -99,10 +103,10 @@ CREATE TABLE counsel_notes (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted    BOOLEAN     NOT NULL DEFAULT FALSE
 );
-CREATE INDEX idx_counsel_notes_channel_active ON counsel_notes (channel_id) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_counsel_notes_channel_active ON counsel_notes (channel_id) WHERE deleted = FALSE;
 
 -- feedbacks
-CREATE TABLE feedbacks (
+CREATE TABLE IF NOT EXISTS feedbacks (
     id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id UUID        NOT NULL UNIQUE REFERENCES channels(id),
     rating     SMALLINT    NOT NULL,
@@ -112,7 +116,7 @@ CREATE TABLE feedbacks (
 );
 
 -- recordings
-CREATE TABLE recordings (
+CREATE TABLE IF NOT EXISTS recordings (
     id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id  UUID         NOT NULL REFERENCES channels(id),
     egress_id   VARCHAR(100) NOT NULL,
@@ -125,11 +129,11 @@ CREATE TABLE recordings (
     deleted     BOOLEAN      NOT NULL DEFAULT FALSE,
     CONSTRAINT ck_recordings_status CHECK (status IN ('RECORDING', 'STOPPED', 'FAILED'))
 );
-CREATE INDEX idx_recordings_channel ON recordings (channel_id) WHERE deleted = FALSE;
-CREATE UNIQUE INDEX idx_recordings_active ON recordings (channel_id) WHERE deleted = FALSE AND status = 'RECORDING';
+CREATE INDEX IF NOT EXISTS idx_recordings_channel ON recordings (channel_id) WHERE deleted = FALSE;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_recordings_active ON recordings (channel_id) WHERE deleted = FALSE AND status = 'RECORDING';
 
 -- notifications
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
     id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     recipient_id    UUID         NOT NULL,
     recipient_type  VARCHAR(20)  NOT NULL,
@@ -143,11 +147,11 @@ CREATE TABLE notifications (
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     deleted         BOOLEAN      NOT NULL DEFAULT FALSE
 );
-CREATE INDEX idx_notifications_recipient_unread ON notifications (recipient_id, created_at DESC) WHERE deleted = FALSE AND read = FALSE;
-CREATE INDEX idx_notifications_recipient_all ON notifications (recipient_id, created_at DESC) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient_unread ON notifications (recipient_id, created_at DESC) WHERE deleted = FALSE AND read = FALSE;
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient_all ON notifications (recipient_id, created_at DESC) WHERE deleted = FALSE;
 
 -- shared_files
-CREATE TABLE shared_files (
+CREATE TABLE IF NOT EXISTS shared_files (
     id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id        UUID         NOT NULL REFERENCES channels(id),
     uploader_id       VARCHAR(100) NOT NULL,
@@ -160,10 +164,10 @@ CREATE TABLE shared_files (
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     deleted           BOOLEAN      NOT NULL DEFAULT FALSE
 );
-CREATE INDEX idx_shared_files_channel ON shared_files (channel_id, created_at DESC) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_shared_files_channel ON shared_files (channel_id, created_at DESC) WHERE deleted = FALSE;
 
 -- screen_captures
-CREATE TABLE screen_captures (
+CREATE TABLE IF NOT EXISTS screen_captures (
     id                UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id        UUID         NOT NULL REFERENCES channels(id),
     captured_by       UUID         NOT NULL REFERENCES agents(id),
@@ -176,10 +180,10 @@ CREATE TABLE screen_captures (
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     deleted           BOOLEAN      NOT NULL DEFAULT FALSE
 );
-CREATE INDEX idx_screen_captures_channel ON screen_captures (channel_id, created_at DESC) WHERE deleted = FALSE;
+CREATE INDEX IF NOT EXISTS idx_screen_captures_channel ON screen_captures (channel_id, created_at DESC) WHERE deleted = FALSE;
 
 -- co_browsing_sessions
-CREATE TABLE co_browsing_sessions (
+CREATE TABLE IF NOT EXISTS co_browsing_sessions (
     id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     channel_id   UUID        NOT NULL REFERENCES channels(id),
     initiated_by UUID        NOT NULL REFERENCES agents(id),
@@ -191,5 +195,5 @@ CREATE TABLE co_browsing_sessions (
     deleted      BOOLEAN     NOT NULL DEFAULT FALSE,
     CONSTRAINT ck_co_browsing_status CHECK (status IN ('REQUESTED', 'ACTIVE', 'ENDED'))
 );
-CREATE INDEX idx_co_browsing_channel ON co_browsing_sessions (channel_id, created_at DESC) WHERE NOT deleted;
-CREATE UNIQUE INDEX idx_co_browsing_active ON co_browsing_sessions (channel_id) WHERE NOT deleted AND status IN ('REQUESTED', 'ACTIVE');
+CREATE INDEX IF NOT EXISTS idx_co_browsing_channel ON co_browsing_sessions (channel_id, created_at DESC) WHERE NOT deleted;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_co_browsing_active ON co_browsing_sessions (channel_id) WHERE NOT deleted AND status IN ('REQUESTED', 'ACTIVE');

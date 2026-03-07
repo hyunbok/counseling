@@ -1,6 +1,7 @@
 package com.counseling.api.application
 
 import com.counseling.api.config.LiveKitProperties
+import com.counseling.api.config.UserAgentParser
 import com.counseling.api.domain.Agent
 import com.counseling.api.domain.AgentRole
 import com.counseling.api.domain.AgentStatus
@@ -48,6 +49,7 @@ class QueueServiceTest :
         val notificationUseCase = mockk<NotificationUseCase>(relaxed = true)
         val historyReadRepository = mockk<HistoryReadRepository>(relaxed = true)
         val groupRepository = mockk<GroupRepository>(relaxed = true)
+        val userAgentParser = mockk<UserAgentParser>(relaxed = true)
         val liveKitProperties =
             LiveKitProperties(
                 url = "wss://livekit.test",
@@ -67,6 +69,7 @@ class QueueServiceTest :
                 notificationUseCase,
                 historyReadRepository,
                 groupRepository,
+                userAgentParser,
             )
 
         val tenantId = "tenant-test"

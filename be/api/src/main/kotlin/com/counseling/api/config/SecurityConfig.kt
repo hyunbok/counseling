@@ -48,6 +48,7 @@ class SecurityConfig {
                         "/actuator/**",
                         "/api/queue/enter",
                         "/api/queue/position/**",
+                        "/api/webhook/**",
                     ).permitAll()
                     .pathMatchers(HttpMethod.DELETE, "/api/queue/*")
                     .permitAll()

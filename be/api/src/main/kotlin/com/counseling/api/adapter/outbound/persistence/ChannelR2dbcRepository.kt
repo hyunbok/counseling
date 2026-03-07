@@ -105,6 +105,13 @@ class ChannelR2dbcRepository(
             .map { row -> mapToChannel(row) }
             .all()
 
+    override fun findByLivekitRoomNameAndNotDeleted(roomName: String): Mono<Channel> =
+        databaseClient
+            .sql("SELECT * FROM channels WHERE livekit_room_name = :roomName AND deleted = FALSE")
+            .bind("roomName", roomName)
+            .map { row -> mapToChannel(row) }
+            .one()
+
     private fun mapToChannel(row: Readable): Channel =
         Channel(
             id = row.get("id", UUID::class.java)!!,
