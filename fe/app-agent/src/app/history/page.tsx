@@ -16,7 +16,7 @@ export default function HistoryPage() {
   const { data, isLoading } = useHistory(filters);
 
   const { data: detail } = useHistoryDetail(selectedChannelId);
-  const { data: chatMessages } = useChatHistory(selectedChannelId);
+  const { data: chatMessages = [] } = useChatHistory(selectedChannelId);
 
   const items = data?.items ?? [];
   const page = data?.page ?? 0;
@@ -124,6 +124,12 @@ export default function HistoryPage() {
                         <span className="text-(--color-text-primary) dark:text-(--color-text-primary-dark) font-medium">{value}</span>
                       </div>
                     ))}
+                    {detail.counselNote && (
+                      <div className="px-4 py-2.5 text-sm">
+                        <span className="text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">상담 노트</span>
+                        <p className="mt-1 text-(--color-text-primary) dark:text-(--color-text-primary-dark) whitespace-pre-wrap leading-relaxed">{detail.counselNote.content}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -190,30 +196,18 @@ export default function HistoryPage() {
                   </div>
                 )}
 
-                {/* 상담 노트 */}
-                {detail.counselNote && (
-                  <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                      <h3 className="text-xs font-semibold uppercase tracking-wider text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">상담 노트</h3>
-                    </div>
-                    <div className="px-4 py-3">
-                      <p className="text-sm text-(--color-text-primary) dark:text-(--color-text-primary-dark) whitespace-pre-wrap leading-relaxed">{detail.counselNote.content}</p>
-                    </div>
-                  </div>
-                )}
-
                 {/* 채팅 이력 */}
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                   <div className="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
                       채팅 이력
-                      {chatMessages && chatMessages.length > 0 && (
+                      {Array.isArray(chatMessages) && chatMessages.length > 0 && (
                         <span className="ml-1.5 text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark) font-normal normal-case tracking-normal">({chatMessages.length})</span>
                       )}
                     </h3>
                   </div>
                   <div className="max-h-64 overflow-y-auto">
-                    {!chatMessages || chatMessages.length === 0 ? (
+                    {!Array.isArray(chatMessages) || chatMessages.length === 0 ? (
                       <div className="px-4 py-3 text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
                         채팅 내역이 없습니다.
                       </div>

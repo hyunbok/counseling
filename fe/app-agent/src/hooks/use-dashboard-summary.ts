@@ -12,6 +12,7 @@ interface DashboardRecentItem {
 
 interface DashboardSummary {
   todayCount: number;
+  totalDurationSeconds: number | null;
   avgDurationSeconds: number | null;
   recentItems: DashboardRecentItem[];
 }
@@ -23,6 +24,8 @@ export function useDashboardSummary() {
       const { data } = await api.get<DashboardSummary>('/api/history/dashboard-summary');
       return data;
     },
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 }

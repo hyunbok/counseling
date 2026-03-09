@@ -54,7 +54,7 @@ export function useFiles(channelId: string, agentId: string) {
     (async () => {
       try {
         const response = await fetch(`${baseUrl}/api/channels/${channelId}/files/stream`, {
-          headers: { Accept: 'text/event-stream' },
+          headers: { Accept: 'text/event-stream', 'X-Tenant-Id': 'default' },
           signal: controller.signal,
         });
 

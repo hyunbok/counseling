@@ -11,7 +11,7 @@ interface ChatPanelProps {
 
 export const ChatPanel = ({ channelId }: ChatPanelProps) => {
   const user = useAuthStore((state) => state.user);
-  const { messages, sendMessage, isSending, isLoading } = useChat(channelId, user?.id ?? '');
+  const { messages, sendMessage, isSending, isLoading } = useChat(channelId, user?.name ?? '상담원');
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

@@ -11,13 +11,6 @@ spring:
       - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
       - org.springframework.boot.data.redis.autoconfigure.DataRedisReactiveAutoConfiguration
       - org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration
-      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
-
-meta-datasource:
-  jdbc-url: jdbc:postgresql://localhost:5432/unused
-  username: unused
-  password: unused
-
 jwt:
   secret: test-secret-key-for-jwt-signing-must-be-at-least-256-bits-long-for-hmac-sha256
   access-expiration: 3600000

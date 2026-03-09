@@ -94,14 +94,21 @@ class HistoryQueryService(
             ).map { projections ->
                 val items = projections.map { it.toListItem() }
                 val withDuration = items.filter { it.durationSeconds != null }
+                val totalDuration =
+                    if (withDuration.isNotEmpty()) {
+                        withDuration.sumOf { it.durationSeconds!! }
+                    } else {
+                        null
+                    }
                 val avgDuration =
                     if (withDuration.isNotEmpty()) {
-                        withDuration.sumOf { it.durationSeconds!! } / withDuration.size
+                        totalDuration!! / withDuration.size
                     } else {
                         null
                     }
                 DashboardSummary(
                     todayCount = items.size,
+                    totalDurationSeconds = totalDuration,
                     avgDurationSeconds = avgDuration,
                     recentItems = items.take(5),
                 )

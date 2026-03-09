@@ -24,7 +24,7 @@ export function useChatHistory(channelId: string | null) {
         `/api/channels/${channelId}/chat`,
         { params: { limit: 100 } },
       );
-      return data.messages;
+      return data.messages ?? [];
     },
     enabled: !!channelId,
   });

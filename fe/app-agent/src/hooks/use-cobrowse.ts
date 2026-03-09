@@ -53,7 +53,7 @@ export function useCoBrowse(channelId: string) {
         const response = await fetch(
           `${baseUrl}/api/channels/${channelId}/co-browsing/stream`,
           {
-            headers: { Accept: 'text/event-stream' },
+            headers: { Accept: 'text/event-stream', 'X-Tenant-Id': 'default' },
             signal: controller.signal,
           },
         );

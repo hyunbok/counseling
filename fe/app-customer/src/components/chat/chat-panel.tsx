@@ -57,7 +57,7 @@ export function ChatPanel({ channelId, customerName }: ChatPanelProps) {
       {/* Toggle button */}
       <button
         onClick={handleToggle}
-        className="fixed bottom-24 right-4 z-50 rounded-full bg-indigo-600 p-3 text-white shadow-lg hover:bg-indigo-700 transition-colors"
+        className="fixed bottom-20 left-4 z-50 rounded-full bg-indigo-600 p-3 text-white shadow-lg hover:bg-indigo-700 transition-colors"
         aria-label={isOpen ? '채팅 닫기' : '채팅 열기'}
       >
         {isOpen ? (
@@ -76,7 +76,7 @@ export function ChatPanel({ channelId, customerName }: ChatPanelProps) {
 
       {/* Chat panel */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 z-40 w-80 h-96 sm:w-96 flex flex-col rounded-xl bg-gray-800 border border-gray-700 shadow-2xl overflow-hidden">
+        <div className="fixed bottom-32 left-4 z-40 w-80 h-96 sm:w-96 flex flex-col rounded-xl bg-gray-800 border border-gray-700 shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
             <h3 className="text-sm font-semibold text-white">채팅</h3>

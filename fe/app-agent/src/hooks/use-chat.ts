@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
@@ -22,7 +22,7 @@ export function useChat(channelId: string, agentId: string) {
   const seenIds = useRef(new Set<string>());
   const abortRef = useRef<AbortController | null>(null);
 
-  // Fetch message history
+  // Fetch message history on mount
   const history = useQuery<ChatHistoryResponse>({
     queryKey: ['chat-history', channelId],
     queryFn: async () => {
@@ -33,6 +33,7 @@ export function useChat(channelId: string, agentId: string) {
       return data;
     },
     enabled: !!channelId,
+    refetchInterval: 3000,
   });
 
   // Subscribe to SSE stream
@@ -44,6 +45,7 @@ export function useChat(channelId: string, agentId: string) {
     abortRef.current = controller;
 
     const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+    const tenantId = process.env.NEXT_PUBLIC_TENANT_ID ?? 'default';
 
     let isActive = true;
     const MAX_SEEN_IDS = 5000;
@@ -51,7 +53,7 @@ export function useChat(channelId: string, agentId: string) {
     (async () => {
       try {
         const response = await fetch(`${baseUrl}/api/channels/${channelId}/chat/stream`, {
-          headers: { Accept: 'text/event-stream' },
+          headers: { Accept: 'text/event-stream', 'X-Tenant-Id': tenantId },
           signal: controller.signal,
         });
 
@@ -74,7 +76,6 @@ export function useChat(channelId: string, agentId: string) {
               try {
                 const msg: ChatMessage = JSON.parse(line.slice(5).trim());
                 if (!seenIds.current.has(msg.id)) {
-                  // Cap seenIds to prevent unbounded growth
                   if (seenIds.current.size >= MAX_SEEN_IDS) {
                     const first = seenIds.current.values().next().value;
                     if (first) seenIds.current.delete(first);
@@ -109,6 +110,12 @@ export function useChat(channelId: string, agentId: string) {
       });
       return data;
     },
+    onSuccess: (msg) => {
+      if (!seenIds.current.has(msg.id)) {
+        seenIds.current.add(msg.id);
+        setLiveMessages((prev) => [...prev, msg]);
+      }
+    },
   });
 
   const sendMessage = useCallback(
@@ -120,7 +127,19 @@ export function useChat(channelId: string, agentId: string) {
     [sendMutation],
   );
 
-  const allMessages = [...(history.data?.messages ?? []), ...liveMessages];
+  // Merge history + live messages with deduplication, sorted by time
+  const allMessages = useMemo(() => {
+    const map = new Map<string, ChatMessage>();
+    for (const m of history.data?.messages ?? []) {
+      map.set(m.id, m);
+    }
+    for (const m of liveMessages) {
+      map.set(m.id, m);
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  }, [history.data?.messages, liveMessages]);
 
   return {
     messages: allMessages,

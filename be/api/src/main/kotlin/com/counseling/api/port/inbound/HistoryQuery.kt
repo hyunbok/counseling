@@ -81,6 +81,7 @@ data class HistoryDetail(
 
 data class DashboardSummary(
     val todayCount: Int,
+    val totalDurationSeconds: Long?,
     val avgDurationSeconds: Long?,
     val recentItems: List<HistoryListItem>,
 )

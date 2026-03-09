@@ -2,12 +2,10 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  VideoConference,
-  RoomAudioRenderer,
-} from '@livekit/components-react';
 import '@livekit/components-styles';
 import useCustomerStore from '@/stores/customer-store';
+import { VideoRoom } from '@/components/call/video-room';
+import { ToolBar } from '@/components/call/tool-bar';
 import { ChatPanel } from '@/components/chat/chat-panel';
 import { FilePanel } from '@/components/call/file-panel';
 import { CoBrowseRequestDialog } from '@/components/call/cobrowse-request-dialog';
@@ -35,10 +33,22 @@ export function CallInner({ channelId }: { channelId: string }) {
     }
   }, [connectionStatus, router]);
 
+  const handleLeave = () => {
+    isLeavingRef.current = true;
+    router.push('/feedback');
+  };
+
   return (
-    <div className="relative h-full" ref={mainContentRef}>
-      <VideoConference />
-      <RoomAudioRenderer />
+    <div className="relative flex h-full flex-col bg-gray-900" ref={mainContentRef}>
+      {/* Video area */}
+      <div className="flex flex-1 overflow-hidden">
+        <VideoRoom />
+      </div>
+
+      {/* Bottom toolbar */}
+      <ToolBar onLeave={handleLeave} />
+
+      {/* Floating panels */}
       <ChatPanel channelId={channelId} customerName={customerName} />
       <FilePanel channelId={channelId} customerName={customerName} />
 

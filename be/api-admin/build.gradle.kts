@@ -36,6 +36,11 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     runtimeOnly("org.postgresql:r2dbc-postgresql")
 
+    // Flyway (DB migration — uses JDBC)
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
+    runtimeOnly("org.postgresql:postgresql")
+
     // MongoDB Reactive
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb-reactive")
 

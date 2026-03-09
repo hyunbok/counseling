@@ -8,6 +8,8 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:local}
   jackson:
     default-property-inclusion: non_null
+  flyway:
+    enabled: false
 
 management:
   endpoints:

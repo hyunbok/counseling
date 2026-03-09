@@ -53,6 +53,7 @@ class HistoryController(
                 .map { summary ->
                     DashboardSummaryResponse(
                         todayCount = summary.todayCount,
+                        totalDurationSeconds = summary.totalDurationSeconds,
                         avgDurationSeconds = summary.avgDurationSeconds,
                         recentItems =
                             summary.recentItems.map {

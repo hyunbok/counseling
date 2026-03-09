@@ -8,10 +8,12 @@ import { ThemeToggle } from '@/components/layout/theme-toggle';
 import useAuthStore from '@/stores/auth-store';
 import { useAgentStatus, useUpdateAgentStatus } from '@/hooks/use-agent-status';
 
-type AgentStatus = 'ONLINE' | 'AWAY' | 'WRAP_UP';
+type AgentStatus = 'ONLINE' | 'OFFLINE' | 'BUSY' | 'AWAY' | 'WRAP_UP';
 
 const statusConfig: Record<AgentStatus, { label: string; dotClass: string }> = {
   ONLINE: { label: '온라인', dotClass: 'bg-green-500' },
+  OFFLINE: { label: '오프라인', dotClass: 'bg-gray-400' },
+  BUSY: { label: '상담 중', dotClass: 'bg-red-500' },
   AWAY: { label: '자리비움', dotClass: 'bg-amber-500' },
   WRAP_UP: { label: '마무리 중', dotClass: 'bg-purple-500' },
 };

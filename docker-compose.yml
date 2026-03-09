@@ -137,9 +137,9 @@ services:
       - "7880:7880"
       - "7881:7881"
       - "7882:7882/udp"
-    command: --config /etc/livekit.yaml --bind 0.0.0.0
+    command: --config /etc/livekit/livekit.yaml --bind 0.0.0.0
     volumes:
-      - ./infra/livekit/livekit.yaml:/etc/livekit.yaml:ro
+      - ./infra/livekit:/etc/livekit:ro
     environment:
       LIVEKIT_KEYS: "devkey: secret"
     healthcheck:

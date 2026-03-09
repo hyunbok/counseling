@@ -7,10 +7,6 @@ spring:
       initial-size: 5
       max-size: 20
 
-meta-datasource:
-  jdbc-url: jdbc:postgresql://localhost:5432/meta_db
-  username: admin
-  password: admin
   data:
     mongodb:
       uri: mongodb://localhost:27017/counseling_read

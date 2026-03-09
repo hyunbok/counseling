@@ -14,6 +14,7 @@ data class DashboardRecentItemResponse(
 
 data class DashboardSummaryResponse(
     val todayCount: Int,
+    val totalDurationSeconds: Long?,
     val avgDurationSeconds: Long?,
     val recentItems: List<DashboardRecentItemResponse>,
 )

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
@@ -22,18 +22,18 @@ export function useChat(channelId: string, senderName: string) {
   const seenIds = useRef(new Set<string>());
   const abortRef = useRef<AbortController | null>(null);
 
-  // Fetch message history
+  // Fetch message history on mount
   const history = useQuery<ChatHistoryResponse>({
     queryKey: ['chat-history', channelId],
     queryFn: async () => {
       const { data } = await api.get<ChatHistoryResponse>(`/api/channels/${channelId}/chat`, {
         params: { limit: 50 },
       });
-      // Track seen IDs from history
       data.messages.forEach((m) => seenIds.current.add(m.id));
       return data;
     },
     enabled: !!channelId,
+    refetchInterval: 3000,
   });
 
   // Subscribe to SSE stream for new messages
@@ -105,6 +105,12 @@ export function useChat(channelId: string, senderName: string) {
       });
       return data;
     },
+    onSuccess: (msg) => {
+      if (!seenIds.current.has(msg.id)) {
+        seenIds.current.add(msg.id);
+        setLiveMessages((prev) => [...prev, msg]);
+      }
+    },
   });
 
   const sendMessage = useCallback(
@@ -116,8 +122,19 @@ export function useChat(channelId: string, senderName: string) {
     [sendMutation],
   );
 
-  // Merge history + live messages
-  const allMessages = [...(history.data?.messages ?? []), ...liveMessages];
+  // Merge history + live messages with deduplication, sorted by time
+  const allMessages = useMemo(() => {
+    const map = new Map<string, ChatMessage>();
+    for (const m of history.data?.messages ?? []) {
+      map.set(m.id, m);
+    }
+    for (const m of liveMessages) {
+      map.set(m.id, m);
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  }, [history.data?.messages, liveMessages]);
 
   return {
     messages: allMessages,

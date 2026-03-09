@@ -1,8 +1,8 @@
-package com.counseling.api.config
+package com.counseling.admin.config
 
-import com.counseling.api.domain.Tenant
-import com.counseling.api.domain.TenantStatus
-import com.counseling.api.port.outbound.TenantRepository
+import com.counseling.admin.domain.Tenant
+import com.counseling.admin.domain.TenantStatus
+import com.counseling.admin.port.outbound.AdminTenantRepository
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
@@ -23,7 +23,7 @@ data class MetaDatasourceProperties(
 @Profile("!test")
 class FlywayMigrationRunner(
     private val metaProps: MetaDatasourceProperties,
-    private val tenantRepository: TenantRepository,
+    private val tenantRepository: AdminTenantRepository,
 ) : ApplicationRunner,
     Ordered {
     private val log = LoggerFactory.getLogger(FlywayMigrationRunner::class.java)
@@ -63,14 +63,16 @@ class FlywayMigrationRunner(
     private fun migrateTenant(tenant: Tenant) {
         val jdbcUrl = "jdbc:postgresql://${tenant.dbHost}:${tenant.dbPort}/${tenant.dbName}"
         try {
-            Flyway
-                .configure()
-                .dataSource(jdbcUrl, tenant.dbUsername, tenant.dbPassword)
-                .locations("classpath:db/tenant-migration")
-                .baselineOnMigrate(true)
-                .baselineVersion("0")
-                .load()
-                .migrate()
+            val flyway =
+                Flyway
+                    .configure()
+                    .dataSource(jdbcUrl, tenant.dbUsername, tenant.dbPassword)
+                    .locations("classpath:db/tenant-migration")
+                    .baselineOnMigrate(true)
+                    .baselineVersion("0")
+                    .load()
+            flyway.repair()
+            flyway.migrate()
             log.info("Tenant [{}] migration completed", tenant.slug)
         } catch (e: Exception) {
             log.error("Tenant [{}] migration failed: {}", tenant.slug, e.message, e)

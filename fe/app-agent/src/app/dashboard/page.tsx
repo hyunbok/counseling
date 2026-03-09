@@ -14,9 +14,17 @@ export default function DashboardPage() {
   const { data: summary } = useDashboardSummary();
 
   const todayCount = summary?.todayCount ?? 0;
+  const totalDuration = summary?.totalDurationSeconds ?? null;
   const avgDuration =
     summary?.avgDurationSeconds != null ? Math.round(summary.avgDurationSeconds / 60) : null;
   const recentSessions = summary?.recentItems ?? [];
+
+  const formatDuration = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return `${h}시간 ${m}분`;
+    return `${m}분`;
+  };
 
   const queueCount = queue?.length ?? 0;
 
@@ -29,7 +37,7 @@ export default function DashboardPage() {
         </h1>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) shadow-sm p-6 dark:border dark:border-gray-700">
             <p className="text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
               대기 고객 수
@@ -44,6 +52,14 @@ export default function DashboardPage() {
             </p>
             <p className="mt-1 text-3xl font-bold text-(--color-text-primary) dark:text-(--color-text-primary-dark)">
               {todayCount}
+            </p>
+          </div>
+          <div className="rounded-xl bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) shadow-sm p-6 dark:border dark:border-gray-700">
+            <p className="text-sm text-(--color-text-tertiary) dark:text-(--color-text-tertiary-dark)">
+              총 상담 시간
+            </p>
+            <p className="mt-1 text-3xl font-bold text-(--color-text-primary) dark:text-(--color-text-primary-dark)">
+              {totalDuration != null ? formatDuration(totalDuration) : '-'}
             </p>
           </div>
           <div className="rounded-xl bg-(--color-bg-base) dark:bg-(--color-bg-surface-dark) shadow-sm p-6 dark:border dark:border-gray-700">
