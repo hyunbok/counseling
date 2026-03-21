@@ -6,16 +6,15 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Sinks
-import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 @Component
 class InMemoryCaptureNotificationAdapter : CaptureNotificationPort {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val channelSinks = ConcurrentHashMap<UUID, Sinks.Many<ScreenCapture>>()
+    private val channelSinks = ConcurrentHashMap<String, Sinks.Many<ScreenCapture>>()
 
     override fun emitCapture(
-        channelId: UUID,
+        channelId: String,
         capture: ScreenCapture,
     ) {
         val result = channelSink(channelId).tryEmitNext(capture)
@@ -24,13 +23,13 @@ class InMemoryCaptureNotificationAdapter : CaptureNotificationPort {
         }
     }
 
-    override fun subscribeCaptures(channelId: UUID): Flux<ScreenCapture> = channelSink(channelId).asFlux()
+    override fun subscribeCaptures(channelId: String): Flux<ScreenCapture> = channelSink(channelId).asFlux()
 
-    override fun removeChannel(channelId: UUID) {
+    override fun removeChannel(channelId: String) {
         channelSinks.remove(channelId)?.tryEmitComplete()
     }
 
-    private fun channelSink(channelId: UUID): Sinks.Many<ScreenCapture> =
+    private fun channelSink(channelId: String): Sinks.Many<ScreenCapture> =
         channelSinks.computeIfAbsent(channelId) {
             Sinks.many().multicast().onBackpressureBuffer()
         }

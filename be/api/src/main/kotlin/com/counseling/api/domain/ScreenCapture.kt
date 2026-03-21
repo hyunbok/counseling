@@ -1,12 +1,11 @@
 package com.counseling.api.domain
 
 import java.time.Instant
-import java.util.UUID
 
 data class ScreenCapture(
-    val id: UUID,
-    val channelId: UUID,
-    val capturedBy: UUID,
+    val id: String? = null,
+    val channelId: String,
+    val capturedBy: String,
     val originalFilename: String,
     val storedFilename: String,
     val contentType: String,

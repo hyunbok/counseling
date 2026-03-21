@@ -1,20 +1,17 @@
 package com.counseling.api.port.outbound
 
-import com.counseling.api.domain.CustomerDeviceInfo
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 data class HistoryProjection(
-    val channelId: UUID,
+    val channelId: String,
     val tenantId: String,
-    val agentId: UUID?,
+    val agentId: String?,
     val agentName: String?,
-    val groupId: UUID?,
+    val groupId: String?,
     val groupName: String?,
     val customerName: String?,
     val customerContact: String?,
-    val customerDevice: CustomerDeviceInfo?,
     val status: String,
     val startedAt: Instant?,
     val endedAt: Instant?,
@@ -25,7 +22,7 @@ data class HistoryProjection(
 )
 
 data class RecordingProjection(
-    val recordingId: UUID,
+    val recordingId: String,
     val status: String,
     val filePath: String?,
     val startedAt: Instant,
@@ -39,7 +36,7 @@ data class FeedbackProjection(
 )
 
 data class CounselNoteProjection(
-    val noteId: UUID,
+    val noteId: String,
     val content: String,
     val createdAt: Instant,
     val updatedAt: Instant,
@@ -49,25 +46,25 @@ interface HistoryReadRepository {
     fun upsert(projection: HistoryProjection): Mono<Void>
 
     fun updateRecording(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
         recording: RecordingProjection,
     ): Mono<Void>
 
     fun updateFeedback(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
         feedback: FeedbackProjection,
     ): Mono<Void>
 
     fun updateCounselNote(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
         counselNote: CounselNoteProjection,
     ): Mono<Void>
 
     fun updateStatus(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
         status: String,
         endedAt: Instant?,
@@ -76,28 +73,16 @@ interface HistoryReadRepository {
 
     fun findByTenantId(
         tenantId: String,
-        agentId: UUID?,
-        groupId: UUID?,
-        status: String?,
-        customerName: String?,
+        agentId: String?,
+        groupId: String?,
         dateFrom: Instant?,
         dateTo: Instant?,
-        skip: Int,
+        before: Instant?,
         limit: Int,
     ): Mono<List<HistoryProjection>>
 
-    fun countByTenantId(
-        tenantId: String,
-        agentId: UUID?,
-        groupId: UUID?,
-        status: String?,
-        customerName: String?,
-        dateFrom: Instant?,
-        dateTo: Instant?,
-    ): Mono<Long>
-
     fun findByChannelId(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
     ): Mono<HistoryProjection>
 }

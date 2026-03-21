@@ -11,7 +11,6 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -24,7 +23,7 @@ class ChatMessageMongoRepository(
             .map { it.toDomain() }
 
     override fun findByChannelId(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Flux<ChatMessage> {
@@ -32,13 +31,13 @@ class ChatMessageMongoRepository(
             if (before != null) {
                 Criteria
                     .where("channelId")
-                    .`is`(channelId.toString())
+                    .`is`(channelId)
                     .and("createdAt")
                     .lt(before)
             } else {
                 Criteria
                     .where("channelId")
-                    .`is`(channelId.toString())
+                    .`is`(channelId)
             }
         val query =
             Query

@@ -30,7 +30,7 @@ class AuthServiceTest :
 
         afterEach { clearAllMocks() }
 
-        val agentId = UUID.randomUUID()
+        val agentId = UUID.randomUUID().toString()
 
         fun makeAgent(
             passwordHash: String = BCryptPasswordEncoder().encode("password")!!,

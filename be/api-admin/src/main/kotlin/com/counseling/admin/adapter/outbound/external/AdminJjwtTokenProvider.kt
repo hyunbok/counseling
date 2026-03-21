@@ -24,7 +24,7 @@ class AdminJjwtTokenProvider(
     }
 
     override fun generateTokenPair(
-        adminId: UUID,
+        adminId: String,
         tenantId: String?,
         role: AdminRole,
     ): TokenPair {
@@ -35,7 +35,7 @@ class AdminJjwtTokenProvider(
         val accessToken =
             buildToken(
                 jti = accessJti,
-                subject = adminId.toString(),
+                subject = adminId,
                 tenantId = tenantId,
                 role = role,
                 tokenType = TokenType.ACCESS,
@@ -46,7 +46,7 @@ class AdminJjwtTokenProvider(
         val refreshToken =
             buildToken(
                 jti = refreshJti,
-                subject = adminId.toString(),
+                subject = adminId,
                 tenantId = tenantId,
                 role = role,
                 tokenType = TokenType.REFRESH,
@@ -146,7 +146,7 @@ class AdminJjwtTokenProvider(
         val tenantId = claims.get("tid", String::class.java)
 
         return AdminJwtClaims(
-            subject = UUID.fromString(claims.subject),
+            subject = claims.subject,
             role = role,
             tenantId = tenantId,
             tokenType = tokenType,

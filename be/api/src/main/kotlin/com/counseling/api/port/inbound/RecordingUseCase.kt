@@ -4,19 +4,18 @@ import com.counseling.api.domain.RecordingStatus
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 data class StartRecordingResult(
-    val recordingId: UUID,
-    val channelId: UUID,
+    val recordingId: String,
+    val channelId: String,
     val egressId: String,
     val status: RecordingStatus,
     val startedAt: Instant,
 )
 
 data class StopRecordingResult(
-    val recordingId: UUID,
-    val channelId: UUID,
+    val recordingId: String,
+    val channelId: String,
     val egressId: String,
     val status: RecordingStatus,
     val startedAt: Instant,
@@ -25,8 +24,8 @@ data class StopRecordingResult(
 )
 
 data class RecordingInfo(
-    val recordingId: UUID,
-    val channelId: UUID,
+    val recordingId: String,
+    val channelId: String,
     val egressId: String,
     val status: RecordingStatus,
     val startedAt: Instant,
@@ -36,17 +35,17 @@ data class RecordingInfo(
 
 interface RecordingUseCase {
     fun startRecording(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Mono<StartRecordingResult>
 
     fun stopRecording(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Mono<StopRecordingResult>
 
     fun getRecordings(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Flux<RecordingInfo>
 }

@@ -22,7 +22,7 @@ class JjwtTokenProviderTest :
             )
         val provider = JjwtTokenProvider(jwtProperties)
 
-        val agentId = UUID.randomUUID()
+        val agentId = UUID.randomUUID().toString()
         val tenantId = "test-tenant"
         val role = AgentRole.COUNSELOR
 

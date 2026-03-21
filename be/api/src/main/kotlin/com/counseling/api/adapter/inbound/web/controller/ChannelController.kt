@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/channels")
@@ -30,7 +29,7 @@ class ChannelController(
 ) {
     @GetMapping("/{channelId}/token")
     fun getAgentToken(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<ChannelTokenResponse> =
         authenticatedAgent().flatMap { principal ->
             channelUseCase
@@ -47,7 +46,7 @@ class ChannelController(
 
     @GetMapping("/{channelId}/customer-token")
     fun getCustomerToken(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestParam name: String,
     ): Mono<ChannelTokenResponse> =
         channelUseCase
@@ -64,7 +63,7 @@ class ChannelController(
     @PostMapping("/{channelId}/close")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun closeChannel(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<Void> =
         authenticatedAgent().flatMap { principal ->
             channelUseCase.closeChannel(channelId, principal.agentId)
@@ -72,7 +71,7 @@ class ChannelController(
 
     @GetMapping("/{channelId}")
     fun getChannel(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<ChannelDetailResponse> =
         channelUseCase
             .getChannel(channelId)

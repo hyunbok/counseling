@@ -1,7 +1,6 @@
 package com.counseling.admin.adapter.inbound.web.dto
 
 import java.time.Instant
-import java.util.UUID
 
 data class UpdateCompanyRequest(
     val name: String,
@@ -10,7 +9,7 @@ data class UpdateCompanyRequest(
 )
 
 data class CompanyResponse(
-    val id: UUID,
+    val id: String?,
     val name: String,
     val contact: String?,
     val address: String?,

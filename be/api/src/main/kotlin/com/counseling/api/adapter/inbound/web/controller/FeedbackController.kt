@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.UUID
 
 @RestController
 @Profile("!test")
@@ -34,7 +33,7 @@ class FeedbackController(
     @PostMapping("/api/channels/{channelId}/feedback")
     @ResponseStatus(HttpStatus.CREATED)
     fun submitFeedback(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestBody request: SubmitFeedbackRequest,
     ): Mono<FeedbackResponse> =
         feedbackUseCase
@@ -48,7 +47,7 @@ class FeedbackController(
 
     @GetMapping("/api/channels/{channelId}/feedback")
     fun getFeedback(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<FeedbackResponse> =
         authenticatedAgent().flatMap {
             feedbackQuery.getByChannelId(channelId).map { it.toResponse() }

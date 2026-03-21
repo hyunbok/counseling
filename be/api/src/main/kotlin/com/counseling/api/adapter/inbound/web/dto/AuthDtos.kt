@@ -1,14 +1,12 @@
 package com.counseling.api.adapter.inbound.web.dto
 
-import java.util.UUID
-
 data class LoginRequest(
     val username: String,
     val password: String,
 )
 
 data class AgentInfo(
-    val id: UUID,
+    val id: String,
     val username: String,
     val name: String,
     val role: String,
@@ -36,8 +34,4 @@ data class TokenResponse(
 data class ChangePasswordRequest(
     val currentPassword: String,
     val newPassword: String,
-)
-
-data class ChangeNameRequest(
-    val name: String,
 )

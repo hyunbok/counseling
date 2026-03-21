@@ -23,7 +23,6 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -37,8 +36,8 @@ class RecordingService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun startRecording(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Mono<StartRecordingResult> =
         TenantContext.getTenantId().flatMap { tenantId ->
             channelRepository
@@ -61,7 +60,10 @@ class RecordingService(
                             if (hasActive) {
                                 return@flatMap Mono.error(ConflictException("Already recording"))
                             }
-                            val recordingId = UUID.randomUUID()
+                            val recordingId =
+                                java.util.UUID
+                                    .randomUUID()
+                                    .toString()
                             val filePath =
                                 "${recordingProperties.basePath}/$tenantId/$recordingId.${recordingProperties.fileFormat}"
                             liveKitEgressPort
@@ -82,7 +84,7 @@ class RecordingService(
                                         )
                                     recordingRepository.save(recording).map { saved ->
                                         StartRecordingResult(
-                                            recordingId = saved.id,
+                                            recordingId = saved.id!!,
                                             channelId = saved.channelId,
                                             egressId = saved.egressId,
                                             status = saved.status,
@@ -95,8 +97,8 @@ class RecordingService(
         }
 
     override fun stopRecording(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Mono<StopRecordingResult> =
         channelRepository
             .findByIdAndNotDeleted(channelId)
@@ -138,7 +140,7 @@ class RecordingService(
                                                 tenantId = tenantId,
                                                 recording =
                                                     RecordingProjection(
-                                                        recordingId = saved.id,
+                                                        recordingId = saved.id!!,
                                                         status = saved.status.name,
                                                         filePath = saved.filePath,
                                                         startedAt = saved.startedAt,
@@ -157,7 +159,7 @@ class RecordingService(
                                     }.thenReturn(saved)
                             }.map { saved ->
                                 StopRecordingResult(
-                                    recordingId = saved.id,
+                                    recordingId = saved.id!!,
                                     channelId = saved.channelId,
                                     egressId = saved.egressId,
                                     status = saved.status,
@@ -170,8 +172,8 @@ class RecordingService(
             }
 
     override fun getRecordings(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Flux<RecordingInfo> =
         channelRepository
             .findByIdAndNotDeleted(channelId)
@@ -186,7 +188,7 @@ class RecordingService(
                     .findAllByChannelIdAndNotDeleted(channelId)
                     .map { recording ->
                         RecordingInfo(
-                            recordingId = recording.id,
+                            recordingId = recording.id!!,
                             channelId = recording.channelId,
                             egressId = recording.egressId,
                             status = recording.status,

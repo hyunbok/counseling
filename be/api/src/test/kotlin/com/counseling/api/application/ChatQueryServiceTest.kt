@@ -23,11 +23,11 @@ class ChatQueryServiceTest :
         afterEach { clearAllMocks() }
 
         fun makeMessage(
-            channelId: UUID,
+            channelId: String,
             createdAt: Instant = Instant.now(),
         ): ChatMessage =
             ChatMessage(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
                 senderType = SenderType.AGENT,
                 senderId = "agent-1",
@@ -36,7 +36,7 @@ class ChatQueryServiceTest :
             )
 
         "getMessageHistory should return messages with hasMore=false when fewer than limit" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val baseTime = Instant.now()
             val messages =
                 (1..3).map { i ->
@@ -57,7 +57,7 @@ class ChatQueryServiceTest :
         }
 
         "getMessageHistory should return hasMore=true when more messages exist" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val limit = 3
             val baseTime = Instant.now()
             // Return limit+1 messages to signal there are more
@@ -79,7 +79,7 @@ class ChatQueryServiceTest :
         }
 
         "streamMessages should delegate to notification port" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val message = makeMessage(channelId)
 
             every { chatNotificationPort.subscribeMessages(channelId) } returns Flux.just(message)

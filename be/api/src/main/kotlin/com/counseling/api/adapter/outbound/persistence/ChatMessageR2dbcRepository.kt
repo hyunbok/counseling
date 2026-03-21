@@ -10,21 +10,21 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
 class ChatMessageR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : ChatMessageRepository {
-    override fun save(message: ChatMessage): Mono<ChatMessage> =
-        databaseClient
+    override fun save(message: ChatMessage): Mono<ChatMessage> {
+        val id = message.id ?: throw IllegalStateException("ChatMessage id must not be null before save")
+        return databaseClient
             .sql(
                 """
                 INSERT INTO chat_messages (id, channel_id, sender_type, sender_id, content, created_at)
                 VALUES (:id, :channelId, :senderType, :senderId, :content, :createdAt)
                 """.trimIndent(),
-            ).bind("id", message.id)
+            ).bind("id", id)
             .bind("channelId", message.channelId)
             .bind("senderType", message.senderType.name)
             .bind("senderId", message.senderId)
@@ -32,8 +32,9 @@ class ChatMessageR2dbcRepository(
             .bind("createdAt", message.createdAt)
             .then()
             .thenReturn(message)
+    }
 
-    override fun findAllByChannelId(channelId: UUID): Flux<ChatMessage> =
+    override fun findAllByChannelId(channelId: String): Flux<ChatMessage> =
         databaseClient
             .sql("SELECT * FROM chat_messages WHERE channel_id = :channelId ORDER BY created_at")
             .bind("channelId", channelId)
@@ -41,7 +42,7 @@ class ChatMessageR2dbcRepository(
             .all()
 
     override fun findByChannelIdBefore(
-        channelId: UUID,
+        channelId: String,
         before: Instant,
         limit: Int,
     ): Flux<ChatMessage> =
@@ -62,8 +63,8 @@ class ChatMessageR2dbcRepository(
 
     private fun mapToChatMessage(row: Readable): ChatMessage =
         ChatMessage(
-            id = row.get("id", UUID::class.java)!!,
-            channelId = row.get("channel_id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
+            channelId = row.get("channel_id", String::class.java)!!,
             senderType = SenderType.valueOf(row.get("sender_type", String::class.java)!!),
             senderId = row.get("sender_id", String::class.java)!!,
             content = row.get("content", String::class.java)!!,

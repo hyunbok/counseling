@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -18,6 +17,7 @@ class EndpointR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : EndpointRepository {
     override fun save(endpoint: Endpoint): Mono<Endpoint> {
+        val id = endpoint.id ?: throw IllegalStateException("Endpoint id must not be null before save")
         val spec =
             databaseClient
                 .sql(
@@ -27,7 +27,7 @@ class EndpointR2dbcRepository(
                     ON CONFLICT (id) DO UPDATE SET
                         left_at = :leftAt
                     """.trimIndent(),
-                ).bind("id", endpoint.id)
+                ).bind("id", id)
                 .bind("channelId", endpoint.channelId)
                 .bind("type", endpoint.type.name)
                 .bind("joinedAt", endpoint.joinedAt)
@@ -52,7 +52,7 @@ class EndpointR2dbcRepository(
         return specWithLeftAt.then().thenReturn(endpoint)
     }
 
-    override fun findAllByChannelId(channelId: UUID): Flux<Endpoint> =
+    override fun findAllByChannelId(channelId: String): Flux<Endpoint> =
         databaseClient
             .sql("SELECT * FROM endpoints WHERE channel_id = :channelId ORDER BY joined_at")
             .bind("channelId", channelId)
@@ -61,8 +61,8 @@ class EndpointR2dbcRepository(
 
     private fun mapToEndpoint(row: Readable): Endpoint =
         Endpoint(
-            id = row.get("id", UUID::class.java)!!,
-            channelId = row.get("channel_id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
+            channelId = row.get("channel_id", String::class.java)!!,
             type = EndpointType.valueOf(row.get("type", String::class.java)!!),
             customerName = row.get("customer_name", String::class.java),
             customerContact = row.get("customer_contact", String::class.java),

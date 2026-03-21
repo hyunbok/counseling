@@ -8,7 +8,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -16,6 +15,7 @@ class ScreenCaptureR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : ScreenCaptureRepository {
     override fun save(capture: ScreenCapture): Mono<ScreenCapture> {
+        val id = capture.id ?: throw IllegalStateException("ScreenCapture id must not be null before save")
         val spec =
             databaseClient
                 .sql(
@@ -27,7 +27,7 @@ class ScreenCaptureR2dbcRepository(
                         (:id, :channelId, :capturedBy, :originalFilename,
                          :storedFilename, :contentType, :fileSize, :storagePath, :note, :createdAt, :deleted)
                     """.trimIndent(),
-                ).bind("id", capture.id)
+                ).bind("id", id)
                 .bind("channelId", capture.channelId)
                 .bind("capturedBy", capture.capturedBy)
                 .bind("originalFilename", capture.originalFilename)
@@ -46,7 +46,7 @@ class ScreenCaptureR2dbcRepository(
         return specWithNote.then().thenReturn(capture)
     }
 
-    override fun findByIdAndNotDeleted(id: UUID): Mono<ScreenCapture> =
+    override fun findByIdAndNotDeleted(id: String): Mono<ScreenCapture> =
         databaseClient
             .sql(
                 """
@@ -59,7 +59,7 @@ class ScreenCaptureR2dbcRepository(
             .map { row -> mapToScreenCapture(row) }
             .one()
 
-    override fun softDelete(id: UUID): Mono<Void> =
+    override fun softDelete(id: String): Mono<Void> =
         databaseClient
             .sql("UPDATE screen_captures SET deleted = TRUE WHERE id = :id")
             .bind("id", id)
@@ -67,9 +67,9 @@ class ScreenCaptureR2dbcRepository(
 
     private fun mapToScreenCapture(row: Readable): ScreenCapture =
         ScreenCapture(
-            id = row.get("id", UUID::class.java)!!,
-            channelId = row.get("channel_id", UUID::class.java)!!,
-            capturedBy = row.get("captured_by", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
+            channelId = row.get("channel_id", String::class.java)!!,
+            capturedBy = row.get("captured_by", String::class.java)!!,
             originalFilename = row.get("original_filename", String::class.java)!!,
             storedFilename = row.get("stored_filename", String::class.java)!!,
             contentType = row.get("content_type", String::class.java)!!,

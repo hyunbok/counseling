@@ -49,9 +49,9 @@ class FeedbackServiceTest :
 
         afterEach { clearAllMocks() }
 
-        fun makeChannel(agentId: UUID? = UUID.randomUUID()): Channel =
+        fun makeChannel(agentId: String? = UUID.randomUUID().toString()): Channel =
             Channel(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 agentId = agentId,
                 status = ChannelStatus.CLOSED,
                 startedAt = Instant.now().minusSeconds(3600),
@@ -61,7 +61,7 @@ class FeedbackServiceTest :
                 updatedAt = Instant.now().minusSeconds(60),
             )
 
-        fun makeCommand(channelId: UUID = UUID.randomUUID()): SubmitFeedbackCommand =
+        fun makeCommand(channelId: String = UUID.randomUUID().toString()): SubmitFeedbackCommand =
             SubmitFeedbackCommand(
                 channelId = channelId,
                 rating = 4,
@@ -70,8 +70,8 @@ class FeedbackServiceTest :
 
         fun makeNotification(): Notification =
             Notification(
-                id = UUID.randomUUID(),
-                recipientId = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
+                recipientId = UUID.randomUUID().toString(),
                 recipientType = RecipientType.AGENT,
                 type = NotificationType.NEW_FEEDBACK,
                 title = "New Feedback Received",
@@ -85,9 +85,9 @@ class FeedbackServiceTest :
 
         "submit() should save feedback, project to read store, and send notification" {
             val channel = makeChannel()
-            val command = makeCommand(channelId = channel.id)
+            val command = makeCommand(channelId = channel.id!!)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
             every { feedbackRepository.findByChannelId(command.channelId) } returns Mono.empty()
             every { feedbackRepository.save(any()) } answers {
                 Mono.just(firstArg())
@@ -122,9 +122,9 @@ class FeedbackServiceTest :
 
         "submit() should succeed when channel has no agent (no notification sent)" {
             val channel = makeChannel(agentId = null)
-            val command = makeCommand(channelId = channel.id)
+            val command = makeCommand(channelId = channel.id!!)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
             every { feedbackRepository.findByChannelId(command.channelId) } returns Mono.empty()
             every { feedbackRepository.save(any()) } answers {
                 Mono.just(firstArg())
@@ -179,17 +179,17 @@ class FeedbackServiceTest :
 
         "submit() should still succeed when MongoDB projection fails" {
             val channel = makeChannel(agentId = null)
-            val command = makeCommand(channelId = channel.id)
+            val command = makeCommand(channelId = channel.id!!)
             val savedFeedback =
                 Feedback(
-                    id = UUID.randomUUID(),
+                    id = UUID.randomUUID().toString(),
                     channelId = command.channelId,
                     rating = command.rating,
                     comment = command.comment,
                     createdAt = Instant.now(),
                 )
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
             every { feedbackRepository.findByChannelId(command.channelId) } returns Mono.empty()
             every { feedbackRepository.save(any()) } returns Mono.just(savedFeedback)
             every {
@@ -218,17 +218,17 @@ class FeedbackServiceTest :
 
         "submit() should return error when feedback already exists for channel" {
             val channel = makeChannel()
-            val command = makeCommand(channelId = channel.id)
+            val command = makeCommand(channelId = channel.id!!)
             val existingFeedback =
                 Feedback(
-                    id = UUID.randomUUID(),
+                    id = UUID.randomUUID().toString(),
                     channelId = command.channelId,
                     rating = 5,
                     comment = "Previous feedback",
                     createdAt = Instant.now(),
                 )
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
             every { feedbackRepository.findByChannelId(command.channelId) } returns Mono.just(existingFeedback)
 
             StepVerifier
@@ -251,7 +251,7 @@ class FeedbackServiceTest :
         "submit() should return error when rating is out of range" {
             val command =
                 SubmitFeedbackCommand(
-                    channelId = UUID.randomUUID(),
+                    channelId = UUID.randomUUID().toString(),
                     rating = 0,
                     comment = null,
                 )
@@ -274,7 +274,7 @@ class FeedbackServiceTest :
         "submit() should return error when comment exceeds max length" {
             val command =
                 SubmitFeedbackCommand(
-                    channelId = UUID.randomUUID(),
+                    channelId = UUID.randomUUID().toString(),
                     rating = 4,
                     comment = "a".repeat(1001),
                 )

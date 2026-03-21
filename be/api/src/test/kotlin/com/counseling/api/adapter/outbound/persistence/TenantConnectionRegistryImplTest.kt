@@ -18,7 +18,7 @@ class TenantConnectionRegistryImplTest :
 
         fun createTenant(slug: String): Tenant =
             Tenant(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 name = "Test Tenant",
                 slug = slug,
                 status = TenantStatus.ACTIVE,

@@ -12,7 +12,6 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -25,7 +24,7 @@ class ScreenCaptureMongoRepository(
             .map { it.toDomain() }
 
     override fun findByChannelId(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Flux<ScreenCapture> {
@@ -33,7 +32,7 @@ class ScreenCaptureMongoRepository(
             if (before != null) {
                 Criteria
                     .where("channelId")
-                    .`is`(channelId.toString())
+                    .`is`(channelId)
                     .and("deleted")
                     .`is`(false)
                     .and("createdAt")
@@ -41,7 +40,7 @@ class ScreenCaptureMongoRepository(
             } else {
                 Criteria
                     .where("channelId")
-                    .`is`(channelId.toString())
+                    .`is`(channelId)
                     .and("deleted")
                     .`is`(false)
             }
@@ -55,8 +54,8 @@ class ScreenCaptureMongoRepository(
             .map { it.toDomain() }
     }
 
-    override fun markDeleted(id: UUID): Mono<Void> {
-        val query = Query.query(Criteria.where("_id").`is`(id.toString()))
+    override fun markDeleted(id: String): Mono<Void> {
+        val query = Query.query(Criteria.where("_id").`is`(id))
         val update = Update.update("deleted", true)
         return mongoTemplate
             .updateFirst(query, update, ScreenCaptureDocument::class.java, COLLECTION_NAME)

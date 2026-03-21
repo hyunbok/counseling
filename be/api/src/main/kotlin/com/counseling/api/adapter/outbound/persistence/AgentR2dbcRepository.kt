@@ -11,7 +11,6 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -25,7 +24,7 @@ class AgentR2dbcRepository(
             .map { row -> mapToAgent(row) }
             .one()
 
-    override fun findByIdAndNotDeleted(id: UUID): Mono<Agent> =
+    override fun findByIdAndNotDeleted(id: String): Mono<Agent> =
         databaseClient
             .sql("SELECT * FROM agents WHERE id = :id AND deleted = FALSE")
             .bind("id", id)
@@ -33,6 +32,7 @@ class AgentR2dbcRepository(
             .one()
 
     override fun save(agent: Agent): Mono<Agent> {
+        val id = agent.id ?: throw IllegalStateException("Agent id must not be null before save")
         val spec =
             databaseClient
                 .sql(
@@ -49,7 +49,7 @@ class AgentR2dbcRepository(
                         agent_status = :agentStatus,
                         email = :email
                     """.trimIndent(),
-                ).bind("id", agent.id)
+                ).bind("id", id)
                 .bind("username", agent.username)
                 .bind("passwordHash", agent.passwordHash)
                 .bind("name", agent.name)
@@ -62,7 +62,7 @@ class AgentR2dbcRepository(
             if (agent.groupId != null) {
                 spec.bind("groupId", agent.groupId)
             } else {
-                spec.bindNull("groupId", UUID::class.java)
+                spec.bindNull("groupId", String::class.java)
             }
         val specWithEmail =
             if (agent.email != null) {
@@ -73,7 +73,7 @@ class AgentR2dbcRepository(
         return specWithEmail.then().thenReturn(agent)
     }
 
-    override fun findAllByGroupIdAndNotDeleted(groupId: UUID): Flux<Agent> =
+    override fun findAllByGroupIdAndNotDeleted(groupId: String): Flux<Agent> =
         databaseClient
             .sql("SELECT * FROM agents WHERE group_id = :groupId AND deleted = FALSE")
             .bind("groupId", groupId)
@@ -88,7 +88,7 @@ class AgentR2dbcRepository(
 
     private fun mapToAgent(row: Readable): Agent =
         Agent(
-            id = row.get("id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
             username = row.get("username", String::class.java)!!,
             passwordHash = row.get("password_hash", String::class.java)!!,
             name = row.get("name", String::class.java)!!,
@@ -96,7 +96,7 @@ class AgentR2dbcRepository(
             createdAt = row.get("created_at", Instant::class.java)!!,
             updatedAt = row.get("updated_at", Instant::class.java)!!,
             deleted = row.get("deleted", Boolean::class.java)!!,
-            groupId = row.get("group_id", UUID::class.java),
+            groupId = row.get("group_id", String::class.java),
             agentStatus =
                 AgentStatus.valueOf(
                     row.get("agent_status", String::class.java) ?: AgentStatus.OFFLINE.name,

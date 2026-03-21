@@ -2,7 +2,6 @@ package com.counseling.api.adapter.inbound.web.dto
 
 import com.counseling.api.domain.SenderType
 import java.time.Instant
-import java.util.UUID
 
 data class SendChatMessageRequest(
     val senderType: SenderType,
@@ -11,8 +10,8 @@ data class SendChatMessageRequest(
 )
 
 data class ChatMessageResponse(
-    val id: UUID,
-    val channelId: UUID,
+    val id: String?,
+    val channelId: String,
     val senderType: String,
     val senderId: String,
     val content: String,

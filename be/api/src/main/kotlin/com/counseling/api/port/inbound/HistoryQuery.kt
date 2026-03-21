@@ -1,26 +1,22 @@
 package com.counseling.api.port.inbound
 
-import com.counseling.api.domain.CustomerDeviceInfo
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 data class HistoryFilter(
-    val agentId: UUID? = null,
-    val groupId: UUID? = null,
-    val status: String? = null,
-    val customerName: String? = null,
+    val agentId: String? = null,
+    val groupId: String? = null,
     val dateFrom: Instant? = null,
     val dateTo: Instant? = null,
-    val page: Int = 0,
-    val size: Int = 20,
+    val before: Instant? = null,
+    val limit: Int = 20,
 )
 
 data class HistoryListItem(
-    val channelId: UUID,
-    val agentId: UUID?,
+    val channelId: String,
+    val agentId: String?,
     val agentName: String?,
-    val groupId: UUID?,
+    val groupId: String?,
     val groupName: String?,
     val customerName: String?,
     val status: String,
@@ -34,14 +30,11 @@ data class HistoryListItem(
 
 data class HistoryListResult(
     val items: List<HistoryListItem>,
-    val totalCount: Long,
-    val page: Int,
-    val size: Int,
-    val totalPages: Int,
+    val hasMore: Boolean,
 )
 
 data class HistoryDetailRecording(
-    val recordingId: UUID,
+    val recordingId: String,
     val status: String,
     val filePath: String?,
     val startedAt: Instant,
@@ -55,21 +48,20 @@ data class HistoryDetailFeedback(
 )
 
 data class HistoryDetailCounselNote(
-    val noteId: UUID,
+    val noteId: String,
     val content: String,
     val createdAt: Instant,
     val updatedAt: Instant,
 )
 
 data class HistoryDetail(
-    val channelId: UUID,
-    val agentId: UUID?,
+    val channelId: String,
+    val agentId: String?,
     val agentName: String?,
-    val groupId: UUID?,
+    val groupId: String?,
     val groupName: String?,
     val customerName: String?,
     val customerContact: String?,
-    val customerDevice: CustomerDeviceInfo?,
     val status: String,
     val startedAt: Instant?,
     val endedAt: Instant?,
@@ -77,13 +69,6 @@ data class HistoryDetail(
     val recording: HistoryDetailRecording?,
     val feedback: HistoryDetailFeedback?,
     val counselNote: HistoryDetailCounselNote?,
-)
-
-data class DashboardSummary(
-    val todayCount: Int,
-    val totalDurationSeconds: Long?,
-    val avgDurationSeconds: Long?,
-    val recentItems: List<HistoryListItem>,
 )
 
 interface HistoryQuery {
@@ -94,12 +79,6 @@ interface HistoryQuery {
 
     fun getDetail(
         tenantId: String,
-        channelId: UUID,
+        channelId: String,
     ): Mono<HistoryDetail>
-
-    fun getDashboardSummary(
-        tenantId: String,
-        agentId: UUID,
-        todayStart: Instant,
-    ): Mono<DashboardSummary>
 }

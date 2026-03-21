@@ -3,11 +3,10 @@ package com.counseling.api.port.inbound
 import com.counseling.api.domain.ScreenCapture
 import org.springframework.core.io.Resource
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 data class CaptureScreenCommand(
-    val channelId: UUID,
-    val capturedBy: UUID,
+    val channelId: String,
+    val capturedBy: String,
     val originalFilename: String,
     val contentType: String,
     val fileSize: Long,
@@ -26,12 +25,12 @@ interface ScreenCaptureUseCase {
     fun capture(command: CaptureScreenCommand): Mono<ScreenCapture>
 
     fun download(
-        channelId: UUID,
-        captureId: UUID,
+        channelId: String,
+        captureId: String,
     ): Mono<ScreenCaptureResource>
 
     fun delete(
-        channelId: UUID,
-        captureId: UUID,
+        channelId: String,
+        captureId: String,
     ): Mono<Void>
 }

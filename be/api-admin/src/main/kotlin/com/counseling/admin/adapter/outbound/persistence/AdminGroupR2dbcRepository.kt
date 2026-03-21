@@ -17,8 +17,9 @@ import java.util.UUID
 class AdminGroupR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : AdminGroupRepository {
-    override fun save(group: Group): Mono<Group> =
-        databaseClient
+    override fun save(group: Group): Mono<Group> {
+        val id = group.id ?: UUID.randomUUID().toString()
+        return databaseClient
             .sql(
                 """
                 INSERT INTO groups (id, name, status, created_at, updated_at, deleted)
@@ -29,16 +30,17 @@ class AdminGroupR2dbcRepository(
                     updated_at = :updatedAt,
                     deleted = :deleted
                 """.trimIndent(),
-            ).bind("id", group.id)
+            ).bind("id", id)
             .bind("name", group.name)
             .bind("status", group.status.name)
             .bind("createdAt", group.createdAt)
             .bind("updatedAt", group.updatedAt)
             .bind("deleted", group.deleted)
             .then()
-            .thenReturn(group)
+            .thenReturn(group.copy(id = id))
+    }
 
-    override fun findByIdAndNotDeleted(id: UUID): Mono<Group> =
+    override fun findByIdAndNotDeleted(id: String): Mono<Group> =
         databaseClient
             .sql("SELECT * FROM groups WHERE id = :id AND deleted = FALSE")
             .bind("id", id)
@@ -76,65 +78,9 @@ class AdminGroupR2dbcRepository(
             .map { row -> mapToGroup(row) }
             .one()
 
-    override fun searchByNotDeleted(
-        search: String?,
-        status: String?,
-        page: Int,
-        size: Int,
-    ): Flux<Group> {
-        val conditions = mutableListOf("deleted = FALSE")
-        if (!search.isNullOrBlank()) {
-            conditions.add("LOWER(name) LIKE :search")
-        }
-        if (!status.isNullOrBlank()) {
-            conditions.add("status = :status")
-        }
-        val where = conditions.joinToString(" AND ")
-        var spec =
-            databaseClient.sql(
-                "SELECT * FROM groups WHERE $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset",
-            )
-        if (!search.isNullOrBlank()) {
-            spec = spec.bind("search", "%${search.lowercase()}%")
-        }
-        if (!status.isNullOrBlank()) {
-            spec = spec.bind("status", status)
-        }
-        return spec
-            .bind("limit", size)
-            .bind("offset", page * size)
-            .map { row -> mapToGroup(row) }
-            .all()
-    }
-
-    override fun countSearchByNotDeleted(
-        search: String?,
-        status: String?,
-    ): Mono<Long> {
-        val conditions = mutableListOf("deleted = FALSE")
-        if (!search.isNullOrBlank()) {
-            conditions.add("LOWER(name) LIKE :search")
-        }
-        if (!status.isNullOrBlank()) {
-            conditions.add("status = :status")
-        }
-        val where = conditions.joinToString(" AND ")
-        var spec = databaseClient.sql("SELECT COUNT(*) as cnt FROM groups WHERE $where")
-        if (!search.isNullOrBlank()) {
-            spec = spec.bind("search", "%${search.lowercase()}%")
-        }
-        if (!status.isNullOrBlank()) {
-            spec = spec.bind("status", status)
-        }
-        return spec
-            .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
-            .one()
-            .defaultIfEmpty(0L)
-    }
-
     private fun mapToGroup(row: Readable): Group =
         Group(
-            id = row.get("id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
             name = row.get("name", String::class.java)!!,
             status = GroupStatus.valueOf(row.get("status", String::class.java)!!),
             createdAt = row.get("created_at", Instant::class.java)!!,

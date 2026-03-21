@@ -11,7 +11,6 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -66,21 +65,21 @@ class RedisQueueRepository(
             .flatMap { added ->
                 redisTemplate
                     .opsForHash<String, String>()
-                    .put(hKey, entry.id.toString(), json)
+                    .put(hKey, entry.id, json)
                     .thenReturn(added)
             }
     }
 
     override fun remove(
         tenantId: String,
-        entryId: UUID,
+        entryId: String,
     ): Mono<QueueEntry> {
         val hKey = hashKey(tenantId)
         val zsetKey = sortedSetKey(tenantId)
 
         return redisTemplate
             .opsForHash<String, String>()
-            .get(hKey, entryId.toString())
+            .get(hKey, entryId)
             .flatMap { json ->
                 redisTemplate
                     .opsForZSet()
@@ -88,7 +87,7 @@ class RedisQueueRepository(
                     .then(
                         redisTemplate
                             .opsForHash<String, String>()
-                            .remove(hKey, entryId.toString()),
+                            .remove(hKey, entryId),
                     ).thenReturn(deserialize(json))
             }
     }
@@ -106,26 +105,26 @@ class RedisQueueRepository(
 
     override fun findById(
         tenantId: String,
-        entryId: UUID,
+        entryId: String,
     ): Mono<QueueEntry> {
         val hKey = hashKey(tenantId)
         return redisTemplate
             .opsForHash<String, String>()
-            .get(hKey, entryId.toString())
+            .get(hKey, entryId)
             .switchIfEmpty(Mono.error(NotFoundException("Queue entry not found: $entryId")))
             .map { deserialize(it) }
     }
 
     override fun getPosition(
         tenantId: String,
-        entryId: UUID,
+        entryId: String,
     ): Mono<Long> {
         val hKey = hashKey(tenantId)
         val zsetKey = sortedSetKey(tenantId)
 
         return redisTemplate
             .opsForHash<String, String>()
-            .get(hKey, entryId.toString())
+            .get(hKey, entryId)
             .switchIfEmpty(Mono.error(NotFoundException("Queue entry not found: $entryId")))
             .flatMap { json ->
                 redisTemplate
@@ -142,7 +141,7 @@ class RedisQueueRepository(
 
     override fun removeAtomically(
         tenantId: String,
-        entryId: UUID,
+        entryId: String,
     ): Mono<QueueEntry> {
         val hKey = hashKey(tenantId)
         val zsetKey = sortedSetKey(tenantId)
@@ -151,7 +150,7 @@ class RedisQueueRepository(
             .execute(
                 REMOVE_ATOMICALLY_SCRIPT,
                 listOf(hKey, zsetKey),
-                listOf(entryId.toString()),
+                listOf(entryId),
             ).next()
             .switchIfEmpty(Mono.error(NotFoundException("Queue entry not found: $entryId")))
             .map { deserialize(it) }

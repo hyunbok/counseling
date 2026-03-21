@@ -11,11 +11,11 @@ class QueueEntryTest :
         val fixedTime = Instant.parse("2026-01-01T00:00:00Z")
 
         fun createEntry(
-            groupId: UUID? = null,
+            groupId: String? = null,
             enteredAt: Instant = fixedTime,
         ): QueueEntry =
             QueueEntry(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 customerName = "John Doe",
                 customerContact = "010-1234-5678",
                 groupId = groupId,
@@ -23,8 +23,8 @@ class QueueEntryTest :
             )
 
         "QueueEntry is created with provided values" {
-            val id = UUID.randomUUID()
-            val groupId = UUID.randomUUID()
+            val id = UUID.randomUUID().toString()
+            val groupId = UUID.randomUUID().toString()
             val entry =
                 QueueEntry(
                     id = id,
@@ -46,7 +46,7 @@ class QueueEntryTest :
         }
 
         "QueueEntry with groupId stores it correctly" {
-            val groupId = UUID.randomUUID()
+            val groupId = UUID.randomUUID().toString()
             val entry = createEntry(groupId = groupId)
             entry.groupId shouldBe groupId
         }

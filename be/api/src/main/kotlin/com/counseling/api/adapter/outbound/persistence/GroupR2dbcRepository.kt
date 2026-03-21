@@ -10,15 +10,15 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
 class GroupR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : GroupRepository {
-    override fun save(group: Group): Mono<Group> =
-        databaseClient
+    override fun save(group: Group): Mono<Group> {
+        val id = group.id ?: throw IllegalStateException("Group id must not be null before save")
+        return databaseClient
             .sql(
                 """
                 INSERT INTO groups (id, name, status, created_at, updated_at, deleted)
@@ -29,7 +29,7 @@ class GroupR2dbcRepository(
                     updated_at = :updatedAt,
                     deleted = :deleted
                 """.trimIndent(),
-            ).bind("id", group.id)
+            ).bind("id", id)
             .bind("name", group.name)
             .bind("status", group.status.name)
             .bind("createdAt", group.createdAt)
@@ -37,8 +37,9 @@ class GroupR2dbcRepository(
             .bind("deleted", group.deleted)
             .then()
             .thenReturn(group)
+    }
 
-    override fun findByIdAndNotDeleted(id: UUID): Mono<Group> =
+    override fun findByIdAndNotDeleted(id: String): Mono<Group> =
         databaseClient
             .sql("SELECT * FROM groups WHERE id = :id AND deleted = FALSE")
             .bind("id", id)
@@ -53,7 +54,7 @@ class GroupR2dbcRepository(
 
     private fun mapToGroup(row: Readable): Group =
         Group(
-            id = row.get("id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
             name = row.get("name", String::class.java)!!,
             status = GroupStatus.valueOf(row.get("status", String::class.java)!!),
             createdAt = row.get("created_at", Instant::class.java)!!,

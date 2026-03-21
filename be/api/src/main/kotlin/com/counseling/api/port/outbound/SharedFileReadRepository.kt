@@ -4,16 +4,15 @@ import com.counseling.api.domain.SharedFile
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 interface SharedFileReadRepository {
     fun save(file: SharedFile): Mono<SharedFile>
 
     fun findByChannelId(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Flux<SharedFile>
 
-    fun markDeleted(id: UUID): Mono<Void>
+    fun markDeleted(id: String): Mono<Void>
 }

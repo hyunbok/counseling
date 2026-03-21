@@ -27,13 +27,13 @@ class ScreenCaptureQueryServiceTest :
         afterEach { clearAllMocks() }
 
         fun makeCapture(
-            channelId: UUID,
+            channelId: String,
             createdAt: Instant = Instant.now(),
         ): ScreenCapture =
             ScreenCapture(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
-                capturedBy = UUID.randomUUID(),
+                capturedBy = UUID.randomUUID().toString(),
                 originalFilename = "screenshot.png",
                 storedFilename = "stored.png",
                 contentType = "image/png",
@@ -44,7 +44,7 @@ class ScreenCaptureQueryServiceTest :
             )
 
         "listCaptures should return captures from read repository with hasMore false when within limit" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val captures = (1..3).map { makeCapture(channelId) }
 
             every { screenCaptureReadRepository.findByChannelId(channelId, null, 4) } returns
@@ -59,7 +59,7 @@ class ScreenCaptureQueryServiceTest :
         }
 
         "listCaptures should return hasMore true and trim last item when result exceeds limit" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val captures = (1..4).map { makeCapture(channelId) }
 
             every { screenCaptureReadRepository.findByChannelId(channelId, null, 4) } returns
@@ -74,7 +74,7 @@ class ScreenCaptureQueryServiceTest :
         }
 
         "listCaptures should pass before parameter to read repository for cursor pagination" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val before = Instant.now().minusSeconds(60)
             val captures = (1..2).map { makeCapture(channelId) }
 
@@ -92,7 +92,7 @@ class ScreenCaptureQueryServiceTest :
         }
 
         "listCaptures should set oldestTimestamp from the first capture in reversed list" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val older = Instant.now().minusSeconds(120)
             val newer = Instant.now().minusSeconds(60)
             val captures =
@@ -112,7 +112,7 @@ class ScreenCaptureQueryServiceTest :
         }
 
         "listCaptures should return empty result when no captures found" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
 
             every { screenCaptureReadRepository.findByChannelId(channelId, null, 11) } returns Flux.empty()
 
@@ -126,7 +126,7 @@ class ScreenCaptureQueryServiceTest :
         }
 
         "streamCaptureEvents should delegate to captureNotificationPort" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val capture = makeCapture(channelId)
 
             every { captureNotificationPort.subscribeCaptures(channelId) } returns Flux.just(capture)

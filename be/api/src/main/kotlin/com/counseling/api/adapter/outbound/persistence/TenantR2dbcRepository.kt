@@ -11,7 +11,6 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -19,8 +18,9 @@ class TenantR2dbcRepository(
     @Qualifier("metaDatabaseClient")
     private val databaseClient: DatabaseClient,
 ) : TenantRepository {
-    override fun save(tenant: Tenant): Mono<Tenant> =
-        databaseClient
+    override fun save(tenant: Tenant): Mono<Tenant> {
+        val id = tenant.id ?: throw IllegalStateException("Tenant id must not be null before save")
+        return databaseClient
             .sql(
                 """
                 INSERT INTO tenants (id, name, slug, status, db_host, db_port,
@@ -33,7 +33,7 @@ class TenantR2dbcRepository(
                     db_username = :dbUsername, db_password = :dbPassword,
                     updated_at = :updatedAt, deleted = :deleted
                 """.trimIndent(),
-            ).bind("id", tenant.id)
+            ).bind("id", id)
             .bind("name", tenant.name)
             .bind("slug", tenant.slug)
             .bind("status", tenant.status.name)
@@ -47,8 +47,9 @@ class TenantR2dbcRepository(
             .bind("deleted", tenant.deleted)
             .then()
             .thenReturn(tenant)
+    }
 
-    override fun findById(id: UUID): Mono<Tenant> =
+    override fun findById(id: String): Mono<Tenant> =
         databaseClient
             .sql("SELECT * FROM tenants WHERE id = :id AND deleted = FALSE")
             .bind("id", id)
@@ -78,7 +79,7 @@ class TenantR2dbcRepository(
 
     private fun mapToTenant(row: Readable): Tenant =
         Tenant(
-            id = row.get("id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
             name = row.get("name", String::class.java)!!,
             slug = row.get("slug", String::class.java)!!,
             status = TenantStatus.valueOf(row.get("status", String::class.java)!!),

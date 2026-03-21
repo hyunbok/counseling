@@ -1,12 +1,11 @@
 package com.counseling.api.domain
 
 import java.time.Instant
-import java.util.UUID
 
 data class CoBrowsingSession(
-    val id: UUID,
-    val channelId: UUID,
-    val initiatedBy: UUID,
+    val id: String? = null,
+    val channelId: String,
+    val initiatedBy: String,
     val status: CoBrowsingStatus,
     val startedAt: Instant?,
     val endedAt: Instant?,

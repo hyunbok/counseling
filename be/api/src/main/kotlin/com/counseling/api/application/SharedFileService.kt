@@ -16,7 +16,6 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -43,12 +42,21 @@ class SharedFileService(
         val rawExtension = command.originalFilename.substringAfterLast('.', "")
         val safeExtension = rawExtension.replace(Regex("[^a-zA-Z0-9]"), "").take(10)
         val storedFilename =
-            if (safeExtension.isNotBlank()) "${UUID.randomUUID()}.$safeExtension" else UUID.randomUUID().toString()
+            if (safeExtension.isNotBlank()) {
+                "${java.util.UUID.randomUUID()}.$safeExtension"
+            } else {
+                java.util.UUID
+                    .randomUUID()
+                    .toString()
+            }
         val storagePath = "${fileStorageProperties.basePath}/${command.channelId}/$storedFilename"
 
         val file =
             SharedFile(
-                id = UUID.randomUUID(),
+                id =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString(),
                 channelId = command.channelId,
                 uploaderId = command.uploaderId,
                 uploaderType = command.uploaderType,
@@ -92,8 +100,8 @@ class SharedFileService(
     }
 
     override fun download(
-        channelId: UUID,
-        fileId: UUID,
+        channelId: String,
+        fileId: String,
     ): Mono<SharedFileResource> =
         sharedFileRepository
             .findByIdAndNotDeleted(fileId)
@@ -113,8 +121,8 @@ class SharedFileService(
             }
 
     override fun delete(
-        channelId: UUID,
-        fileId: UUID,
+        channelId: String,
+        fileId: String,
     ): Mono<Void> =
         sharedFileRepository
             .findByIdAndNotDeleted(fileId)

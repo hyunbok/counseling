@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -23,11 +22,11 @@ class CoBrowsingQueryService(
     // Intentionally queries write store (PostgreSQL) for active session:
     // the unique partial index guarantees at most one active session per channel,
     // and active session reads must reflect the latest state without projection delay.
-    override fun getActiveSession(channelId: UUID): Mono<CoBrowsingSession> =
+    override fun getActiveSession(channelId: String): Mono<CoBrowsingSession> =
         coBrowsingSessionRepository.findActiveByChannelId(channelId)
 
     override fun listSessions(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Mono<CoBrowsingSessionPage> =
@@ -45,6 +44,6 @@ class CoBrowsingQueryService(
                 )
             }
 
-    override fun streamUpdates(channelId: UUID): Flux<CoBrowsingSession> =
+    override fun streamUpdates(channelId: String): Flux<CoBrowsingSession> =
         coBrowsingNotificationPort.subscribeSessionUpdates(channelId)
 }

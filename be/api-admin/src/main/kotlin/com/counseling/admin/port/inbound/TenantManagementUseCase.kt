@@ -3,7 +3,6 @@ package com.counseling.admin.port.inbound
 import com.counseling.admin.domain.Tenant
 import com.counseling.admin.domain.TenantStatus
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 data class CreateTenantCommand(
     val name: String,
@@ -26,23 +25,22 @@ data class UpdateTenantCommand(
 
 interface TenantManagementUseCase {
     fun listTenants(
-        search: String?,
         status: String?,
         page: Int,
         size: Int,
     ): Mono<PagedResult<Tenant>>
 
-    fun getTenant(id: UUID): Mono<Tenant>
+    fun getTenant(id: String): Mono<Tenant>
 
     fun createTenant(command: CreateTenantCommand): Mono<Tenant>
 
     fun updateTenant(
-        id: UUID,
+        id: String,
         command: UpdateTenantCommand,
     ): Mono<Tenant>
 
     fun updateTenantStatus(
-        id: UUID,
+        id: String,
         status: TenantStatus,
     ): Mono<Tenant>
 }

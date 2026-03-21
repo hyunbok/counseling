@@ -16,7 +16,6 @@ import reactor.core.publisher.Mono
 import reactor.kotlin.core.util.function.component1
 import reactor.kotlin.core.util.function.component2
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -31,26 +30,24 @@ class GroupManagementService(
             .findAllByNotDeleted()
             .flatMap { group ->
                 agentRepository
-                    .countByGroupIdAndNotDeleted(group.id)
+                    .countByGroupIdAndNotDeleted(group.id!!)
                     .map { count -> GroupWithAgentCount(group = group, agentCount = count.toInt()) }
             }
 
     override fun listGroupsPaged(
-        search: String?,
-        status: String?,
         page: Int,
         size: Int,
     ): Mono<PagedResult<GroupWithAgentCount>> =
         Mono
             .zip(
-                groupRepository.searchByNotDeleted(search, status, page, size).collectList(),
-                groupRepository.countSearchByNotDeleted(search, status),
+                groupRepository.findAllByNotDeleted(page, size).collectList(),
+                groupRepository.countAllByNotDeleted(),
             ).flatMap { (groups, total) ->
                 Flux
                     .fromIterable(groups)
                     .flatMap { group ->
                         agentRepository
-                            .countByGroupIdAndNotDeleted(group.id)
+                            .countByGroupIdAndNotDeleted(group.id!!)
                             .map { count -> GroupWithAgentCount(group = group, agentCount = count.toInt()) }
                     }.collectList()
                     .map { enriched -> PagedResult(enriched, total, page, size) }
@@ -65,7 +62,7 @@ class GroupManagementService(
                     val now = Instant.now()
                     val group =
                         Group(
-                            id = UUID.randomUUID(),
+                            id = null,
                             name = name,
                             status = GroupStatus.ACTIVE,
                             createdAt = now,
@@ -76,7 +73,7 @@ class GroupManagementService(
             )
 
     override fun updateGroup(
-        id: UUID,
+        id: String,
         name: String?,
         status: String?,
     ): Mono<Group> =
@@ -96,7 +93,7 @@ class GroupManagementService(
                 groupRepository.save(updated)
             }
 
-    override fun deleteGroup(id: UUID): Mono<Void> =
+    override fun deleteGroup(id: String): Mono<Void> =
         groupRepository
             .findByIdAndNotDeleted(id)
             .switchIfEmpty(Mono.error(NotFoundException("Group not found: $id")))

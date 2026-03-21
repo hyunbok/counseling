@@ -18,13 +18,12 @@ class MonitoringQueryService(
 ) : MonitoringQuery {
     override fun getActiveChannels(): Flux<Channel> = channelRepository.findAllActiveChannels()
 
-    override fun getAgentStatuses(status: String?): Mono<List<AgentStatusInfo>> =
+    override fun getAgentStatuses(): Mono<List<AgentStatusInfo>> =
         agentRepository
             .findAllByNotDeleted()
-            .filter { agent -> status.isNullOrBlank() || agent.agentStatus.name == status }
             .map { agent ->
                 AgentStatusInfo(
-                    agentId = agent.id.toString(),
+                    agentId = agent.id ?: "",
                     agentName = agent.name,
                     status = agent.agentStatus.name,
                     active = agent.active,

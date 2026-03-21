@@ -16,7 +16,6 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -46,12 +45,15 @@ class ScreenCaptureService(
             return Mono.error(BadRequestException("Content is not a valid PNG file"))
         }
 
-        val storedFilename = "${UUID.randomUUID()}.png"
+        val storedFilename = "${java.util.UUID.randomUUID()}.png"
         val storagePath = "${captureStorageProperties.basePath}/${command.channelId}/$storedFilename"
 
         val capture =
             ScreenCapture(
-                id = UUID.randomUUID(),
+                id =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString(),
                 channelId = command.channelId,
                 capturedBy = command.capturedBy,
                 originalFilename = command.originalFilename,
@@ -95,8 +97,8 @@ class ScreenCaptureService(
     }
 
     override fun download(
-        channelId: UUID,
-        captureId: UUID,
+        channelId: String,
+        captureId: String,
     ): Mono<ScreenCaptureResource> =
         screenCaptureRepository
             .findByIdAndNotDeleted(captureId)
@@ -116,8 +118,8 @@ class ScreenCaptureService(
             }
 
     override fun delete(
-        channelId: UUID,
-        captureId: UUID,
+        channelId: String,
+        captureId: String,
     ): Mono<Void> =
         screenCaptureRepository
             .findByIdAndNotDeleted(captureId)

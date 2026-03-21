@@ -2,7 +2,6 @@ package com.counseling.admin.port.inbound
 
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 data class StatsSummary(
     val totalChannels: Long,
@@ -12,7 +11,7 @@ data class StatsSummary(
 )
 
 data class AgentStats(
-    val agentId: UUID,
+    val agentId: String,
     val agentName: String,
     val totalChannels: Long,
     val completedChannels: Long,

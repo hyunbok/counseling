@@ -12,10 +12,10 @@ class AgentTest :
         fun createAgent(
             agentStatus: AgentStatus = AgentStatus.OFFLINE,
             deleted: Boolean = false,
-            groupId: UUID? = null,
+            groupId: String? = null,
         ): Agent =
             Agent(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 username = "agent1",
                 passwordHash = "hash",
                 name = "Test Agent",
@@ -41,14 +41,14 @@ class AgentTest :
         }
 
         "assignToGroup() sets groupId" {
-            val groupId = UUID.randomUUID()
+            val groupId = UUID.randomUUID().toString()
             val agent = createAgent()
             val updated = agent.assignToGroup(groupId)
             updated.groupId shouldBe groupId
         }
 
         "assignToGroup(null) clears groupId" {
-            val agent = createAgent(groupId = UUID.randomUUID())
+            val agent = createAgent(groupId = UUID.randomUUID().toString())
             val updated = agent.assignToGroup(null)
             updated.groupId shouldBe null
         }

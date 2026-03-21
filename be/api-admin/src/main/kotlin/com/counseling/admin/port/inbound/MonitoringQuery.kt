@@ -14,5 +14,5 @@ data class AgentStatusInfo(
 interface MonitoringQuery {
     fun getActiveChannels(): Flux<Channel>
 
-    fun getAgentStatuses(status: String? = null): Mono<List<AgentStatusInfo>>
+    fun getAgentStatuses(): Mono<List<AgentStatusInfo>>
 }

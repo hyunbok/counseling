@@ -1,12 +1,11 @@
 package com.counseling.api.domain
 
 import java.time.Instant
-import java.util.UUID
 
 data class CounselNote(
-    val id: UUID,
-    val channelId: UUID,
-    val agentId: UUID,
+    val id: String? = null,
+    val channelId: String,
+    val agentId: String,
     val content: String,
     val createdAt: Instant,
     val updatedAt: Instant,

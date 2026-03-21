@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/channels/{channelId}/chat")
@@ -33,7 +32,7 @@ class ChatController(
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun sendMessage(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestBody request: SendChatMessageRequest,
     ): Mono<ChatMessageResponse> =
         chatUseCase
@@ -48,7 +47,7 @@ class ChatController(
 
     @GetMapping
     fun getMessageHistory(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestParam(required = false) before: Instant?,
         @RequestParam(defaultValue = "50") limit: Int,
     ): Mono<ChatMessageListResponse> =
@@ -64,7 +63,7 @@ class ChatController(
 
     @GetMapping("/stream", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun streamMessages(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Flux<ChatMessageResponse> = chatQuery.streamMessages(channelId).map { it.toResponse() }
 
     private fun ChatMessage.toResponse(): ChatMessageResponse =

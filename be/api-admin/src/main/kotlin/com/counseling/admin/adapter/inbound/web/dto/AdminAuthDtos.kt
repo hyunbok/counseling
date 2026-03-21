@@ -1,7 +1,5 @@
 package com.counseling.admin.adapter.inbound.web.dto
 
-import java.util.UUID
-
 data class AdminLoginRequest(
     val username: String,
     val password: String,
@@ -9,7 +7,7 @@ data class AdminLoginRequest(
 )
 
 data class AdminInfo(
-    val id: UUID,
+    val id: String?,
     val username: String,
     val name: String?,
     val role: String,

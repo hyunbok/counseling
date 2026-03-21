@@ -22,9 +22,9 @@ class RecordingControllerTest :
         val recordingUseCase = mockk<RecordingUseCase>()
         val controller = RecordingController(recordingUseCase)
 
-        val channelId = UUID.randomUUID()
-        val agentId = UUID.randomUUID()
-        val recordingId = UUID.randomUUID()
+        val channelId = UUID.randomUUID().toString()
+        val agentId = UUID.randomUUID().toString()
+        val recordingId = UUID.randomUUID().toString()
         val egressId = "egress-abc"
         val now = Instant.now()
 

@@ -9,7 +9,6 @@ import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.index.CompoundIndexes
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
-import java.util.UUID
 
 @Document(collection = "notifications")
 @CompoundIndexes(
@@ -35,13 +34,13 @@ data class NotificationDocument(
 ) {
     fun toDomain(): Notification =
         Notification(
-            id = UUID.fromString(id),
-            recipientId = UUID.fromString(recipientId),
+            id = id,
+            recipientId = recipientId,
             recipientType = RecipientType.valueOf(recipientType),
             type = NotificationType.valueOf(type),
             title = title,
             body = body,
-            referenceId = referenceId?.let { UUID.fromString(it) },
+            referenceId = referenceId,
             referenceType = referenceType,
             deliveryMethod = DeliveryMethod.valueOf(deliveryMethod),
             read = read,
@@ -54,14 +53,14 @@ data class NotificationDocument(
             tenantId: String,
         ): NotificationDocument =
             NotificationDocument(
-                id = notification.id.toString(),
+                id = notification.id ?: throw IllegalStateException("Notification id must not be null"),
                 tenantId = tenantId,
-                recipientId = notification.recipientId.toString(),
+                recipientId = notification.recipientId,
                 recipientType = notification.recipientType.name,
                 type = notification.type.name,
                 title = notification.title,
                 body = notification.body,
-                referenceId = notification.referenceId?.toString(),
+                referenceId = notification.referenceId,
                 referenceType = notification.referenceType,
                 deliveryMethod = notification.deliveryMethod.name,
                 read = notification.read,

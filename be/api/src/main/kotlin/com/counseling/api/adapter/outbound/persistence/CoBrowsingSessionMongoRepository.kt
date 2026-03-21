@@ -13,7 +13,6 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -26,7 +25,7 @@ class CoBrowsingSessionMongoRepository(
             .map { it.toDomain() }
 
     override fun findByChannelId(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Flux<CoBrowsingSession> {
@@ -34,7 +33,7 @@ class CoBrowsingSessionMongoRepository(
             if (before != null) {
                 Criteria
                     .where("channelId")
-                    .`is`(channelId.toString())
+                    .`is`(channelId)
                     .and("deleted")
                     .`is`(false)
                     .and("createdAt")
@@ -42,7 +41,7 @@ class CoBrowsingSessionMongoRepository(
             } else {
                 Criteria
                     .where("channelId")
-                    .`is`(channelId.toString())
+                    .`is`(channelId)
                     .and("deleted")
                     .`is`(false)
             }
@@ -57,13 +56,13 @@ class CoBrowsingSessionMongoRepository(
     }
 
     override fun updateStatus(
-        id: UUID,
+        id: String,
         status: CoBrowsingStatus,
         startedAt: Instant?,
         endedAt: Instant?,
         updatedAt: Instant,
     ): Mono<Void> {
-        val query = Query.query(Criteria.where("_id").`is`(id.toString()))
+        val query = Query.query(Criteria.where("_id").`is`(id))
         val update =
             Update
                 .update("status", status.name)

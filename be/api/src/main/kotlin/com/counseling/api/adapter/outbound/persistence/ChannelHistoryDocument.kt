@@ -1,6 +1,5 @@
 package com.counseling.api.adapter.outbound.persistence
 
-import com.counseling.api.domain.CustomerDeviceInfo
 import com.counseling.api.port.outbound.CounselNoteProjection
 import com.counseling.api.port.outbound.FeedbackProjection
 import com.counseling.api.port.outbound.HistoryProjection
@@ -10,7 +9,6 @@ import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.index.CompoundIndexes
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
-import java.util.UUID
 
 @Document(collection = "channel_histories")
 @CompoundIndexes(
@@ -43,7 +41,6 @@ data class ChannelHistoryDocument(
     val groupName: String?,
     val customerName: String?,
     val customerContact: String?,
-    val customerDevice: EmbeddedCustomerDevice?,
     val status: String,
     val startedAt: Instant?,
     val endedAt: Instant?,
@@ -54,15 +51,14 @@ data class ChannelHistoryDocument(
 ) {
     fun toProjection(): HistoryProjection =
         HistoryProjection(
-            channelId = UUID.fromString(channelId),
+            channelId = channelId,
             tenantId = tenantId,
-            agentId = agentId?.let { UUID.fromString(it) },
+            agentId = agentId,
             agentName = agentName,
-            groupId = groupId?.let { UUID.fromString(it) },
+            groupId = groupId,
             groupName = groupName,
             customerName = customerName,
             customerContact = customerContact,
-            customerDevice = customerDevice?.toInfo(),
             status = status,
             startedAt = startedAt,
             endedAt = endedAt,
@@ -75,16 +71,15 @@ data class ChannelHistoryDocument(
     companion object {
         fun fromProjection(projection: HistoryProjection): ChannelHistoryDocument =
             ChannelHistoryDocument(
-                id = projection.channelId.toString(),
-                channelId = projection.channelId.toString(),
+                id = projection.channelId,
+                channelId = projection.channelId,
                 tenantId = projection.tenantId,
-                agentId = projection.agentId?.toString(),
+                agentId = projection.agentId,
                 agentName = projection.agentName,
-                groupId = projection.groupId?.toString(),
+                groupId = projection.groupId,
                 groupName = projection.groupName,
                 customerName = projection.customerName,
                 customerContact = projection.customerContact,
-                customerDevice = projection.customerDevice?.let { EmbeddedCustomerDevice.fromInfo(it) },
                 status = projection.status,
                 startedAt = projection.startedAt,
                 endedAt = projection.endedAt,
@@ -105,7 +100,7 @@ data class EmbeddedRecording(
 ) {
     fun toProjection(): RecordingProjection =
         RecordingProjection(
-            recordingId = UUID.fromString(recordingId),
+            recordingId = recordingId,
             status = status,
             filePath = filePath,
             startedAt = startedAt,
@@ -115,7 +110,7 @@ data class EmbeddedRecording(
     companion object {
         fun fromProjection(projection: RecordingProjection): EmbeddedRecording =
             EmbeddedRecording(
-                recordingId = projection.recordingId.toString(),
+                recordingId = projection.recordingId,
                 status = projection.status,
                 filePath = projection.filePath,
                 startedAt = projection.startedAt,
@@ -154,7 +149,7 @@ data class EmbeddedCounselNote(
 ) {
     fun toProjection(): CounselNoteProjection =
         CounselNoteProjection(
-            noteId = UUID.fromString(noteId),
+            noteId = noteId,
             content = content,
             createdAt = createdAt,
             updatedAt = updatedAt,
@@ -163,44 +158,10 @@ data class EmbeddedCounselNote(
     companion object {
         fun fromProjection(projection: CounselNoteProjection): EmbeddedCounselNote =
             EmbeddedCounselNote(
-                noteId = projection.noteId.toString(),
+                noteId = projection.noteId,
                 content = projection.content,
                 createdAt = projection.createdAt,
                 updatedAt = projection.updatedAt,
-            )
-    }
-}
-
-data class EmbeddedCustomerDevice(
-    val deviceType: String?,
-    val deviceBrand: String?,
-    val osName: String?,
-    val osVersion: String?,
-    val browserName: String?,
-    val browserVersion: String?,
-    val rawUserAgent: String?,
-) {
-    fun toInfo(): CustomerDeviceInfo =
-        CustomerDeviceInfo(
-            deviceType = deviceType,
-            deviceBrand = deviceBrand,
-            osName = osName,
-            osVersion = osVersion,
-            browserName = browserName,
-            browserVersion = browserVersion,
-            rawUserAgent = rawUserAgent,
-        )
-
-    companion object {
-        fun fromInfo(info: CustomerDeviceInfo): EmbeddedCustomerDevice =
-            EmbeddedCustomerDevice(
-                deviceType = info.deviceType,
-                deviceBrand = info.deviceBrand,
-                osName = info.osName,
-                osVersion = info.osVersion,
-                browserName = info.browserName,
-                browserVersion = info.browserVersion,
-                rawUserAgent = info.rawUserAgent,
             )
     }
 }

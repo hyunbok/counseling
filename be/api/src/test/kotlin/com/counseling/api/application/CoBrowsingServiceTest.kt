@@ -44,8 +44,8 @@ class CoBrowsingServiceTest :
         fun makeChannel(status: ChannelStatus = ChannelStatus.IN_PROGRESS): Channel {
             val now = Instant.now()
             return Channel(
-                id = UUID.randomUUID(),
-                agentId = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
+                agentId = UUID.randomUUID().toString(),
                 status = status,
                 startedAt = now,
                 endedAt = null,
@@ -57,14 +57,14 @@ class CoBrowsingServiceTest :
         }
 
         fun makeSession(
-            channelId: UUID,
+            channelId: String,
             status: CoBrowsingStatus = CoBrowsingStatus.REQUESTED,
         ): CoBrowsingSession {
             val now = Instant.now()
             return CoBrowsingSession(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
-                initiatedBy = UUID.randomUUID(),
+                initiatedBy = UUID.randomUUID().toString(),
                 status = status,
                 startedAt = if (status == CoBrowsingStatus.ACTIVE || status == CoBrowsingStatus.ENDED) now else null,
                 endedAt = if (status == CoBrowsingStatus.ENDED) now else null,
@@ -75,11 +75,11 @@ class CoBrowsingServiceTest :
 
         "requestSession should create REQUESTED session and emit SSE when channel is IN_PROGRESS" {
             val channel = makeChannel(ChannelStatus.IN_PROGRESS)
-            val agentId = UUID.randomUUID()
-            val command = RequestCoBrowsingCommand(channelId = channel.id, agentId = agentId)
+            val agentId = UUID.randomUUID().toString()
+            val command = RequestCoBrowsingCommand(channelId = channel.id!!, agentId = agentId)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { coBrowsingSessionRepository.findActiveByChannelId(channel.id) } returns Mono.empty()
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { coBrowsingSessionRepository.findActiveByChannelId(channel.id!!) } returns Mono.empty()
             every { coBrowsingSessionRepository.save(any()) } answers { Mono.just(firstArg()) }
             every { coBrowsingSessionReadRepository.save(any()) } answers { Mono.just(firstArg()) }
 
@@ -95,12 +95,12 @@ class CoBrowsingServiceTest :
 
             verify { coBrowsingSessionRepository.save(any()) }
             verify { coBrowsingSessionReadRepository.save(any()) }
-            verify { coBrowsingNotificationPort.emitSessionUpdate(channel.id, any()) }
+            verify { coBrowsingNotificationPort.emitSessionUpdate(channel.id!!, any()) }
         }
 
         "requestSession should throw NotFoundException when channel not found" {
-            val channelId = UUID.randomUUID()
-            val command = RequestCoBrowsingCommand(channelId = channelId, agentId = UUID.randomUUID())
+            val channelId = UUID.randomUUID().toString()
+            val command = RequestCoBrowsingCommand(channelId = channelId, agentId = UUID.randomUUID().toString())
 
             every { channelRepository.findByIdAndNotDeleted(channelId) } returns Mono.empty()
 
@@ -112,9 +112,9 @@ class CoBrowsingServiceTest :
 
         "requestSession should throw ConflictException when channel is not IN_PROGRESS" {
             val channel = makeChannel(ChannelStatus.CLOSED)
-            val command = RequestCoBrowsingCommand(channelId = channel.id, agentId = UUID.randomUUID())
+            val command = RequestCoBrowsingCommand(channelId = channel.id!!, agentId = UUID.randomUUID().toString())
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
                 .create(coBrowsingService.requestSession(command))
@@ -124,11 +124,11 @@ class CoBrowsingServiceTest :
 
         "requestSession should throw ConflictException when session already active" {
             val channel = makeChannel(ChannelStatus.IN_PROGRESS)
-            val activeSession = makeSession(channel.id, CoBrowsingStatus.ACTIVE)
-            val command = RequestCoBrowsingCommand(channelId = channel.id, agentId = UUID.randomUUID())
+            val activeSession = makeSession(channel.id!!, CoBrowsingStatus.ACTIVE)
+            val command = RequestCoBrowsingCommand(channelId = channel.id!!, agentId = UUID.randomUUID().toString())
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { coBrowsingSessionRepository.findActiveByChannelId(channel.id) } returns Mono.just(activeSession)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { coBrowsingSessionRepository.findActiveByChannelId(channel.id!!) } returns Mono.just(activeSession)
 
             StepVerifier
                 .create(coBrowsingService.requestSession(command))
@@ -137,11 +137,11 @@ class CoBrowsingServiceTest :
         }
 
         "startSession should transition session to ACTIVE" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val session = makeSession(channelId, CoBrowsingStatus.REQUESTED)
-            val command = StartCoBrowsingCommand(channelId = channelId, sessionId = session.id)
+            val command = StartCoBrowsingCommand(channelId = channelId, sessionId = session.id!!)
 
-            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id) } returns Mono.just(session)
+            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id!!) } returns Mono.just(session)
             every { coBrowsingSessionRepository.save(any()) } answers { Mono.just(firstArg()) }
             every {
                 coBrowsingSessionReadRepository.updateStatus(
@@ -165,11 +165,11 @@ class CoBrowsingServiceTest :
         }
 
         "startSession should throw ConflictException when session is not REQUESTED" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val session = makeSession(channelId, CoBrowsingStatus.ACTIVE)
-            val command = StartCoBrowsingCommand(channelId = channelId, sessionId = session.id)
+            val command = StartCoBrowsingCommand(channelId = channelId, sessionId = session.id!!)
 
-            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id) } returns Mono.just(session)
+            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id!!) } returns Mono.just(session)
 
             StepVerifier
                 .create(coBrowsingService.startSession(command))
@@ -178,11 +178,11 @@ class CoBrowsingServiceTest :
         }
 
         "endSession should transition session to ENDED" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val session = makeSession(channelId, CoBrowsingStatus.ACTIVE)
-            val command = EndCoBrowsingCommand(channelId = channelId, sessionId = session.id)
+            val command = EndCoBrowsingCommand(channelId = channelId, sessionId = session.id!!)
 
-            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id) } returns Mono.just(session)
+            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id!!) } returns Mono.just(session)
             every { coBrowsingSessionRepository.save(any()) } answers { Mono.just(firstArg()) }
             every {
                 coBrowsingSessionReadRepository.updateStatus(
@@ -205,11 +205,11 @@ class CoBrowsingServiceTest :
         }
 
         "endSession should also work when session is still REQUESTED" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val session = makeSession(channelId, CoBrowsingStatus.REQUESTED)
-            val command = EndCoBrowsingCommand(channelId = channelId, sessionId = session.id)
+            val command = EndCoBrowsingCommand(channelId = channelId, sessionId = session.id!!)
 
-            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id) } returns Mono.just(session)
+            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id!!) } returns Mono.just(session)
             every { coBrowsingSessionRepository.save(any()) } answers { Mono.just(firstArg()) }
             every {
                 coBrowsingSessionReadRepository.updateStatus(
@@ -229,11 +229,11 @@ class CoBrowsingServiceTest :
         }
 
         "endSession should throw ConflictException when session is already ENDED" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val session = makeSession(channelId, CoBrowsingStatus.ENDED)
-            val command = EndCoBrowsingCommand(channelId = channelId, sessionId = session.id)
+            val command = EndCoBrowsingCommand(channelId = channelId, sessionId = session.id!!)
 
-            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id) } returns Mono.just(session)
+            every { coBrowsingSessionRepository.findByIdAndNotDeleted(session.id!!) } returns Mono.just(session)
 
             StepVerifier
                 .create(coBrowsingService.endSession(command))

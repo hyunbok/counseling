@@ -8,7 +8,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -28,8 +27,8 @@ class AdminChannelR2dbcRepository(
 
     private fun mapToChannel(row: io.r2dbc.spi.Readable): Channel =
         Channel(
-            id = row.get("id", UUID::class.java)!!,
-            agentId = row.get("agent_id", UUID::class.java),
+            id = row.get("id", String::class.java)!!,
+            agentId = row.get("agent_id", String::class.java),
             status = ChannelStatus.valueOf(row.get("status", String::class.java)!!),
             startedAt = row.get("started_at", Instant::class.java),
             endedAt = row.get("ended_at", Instant::class.java),

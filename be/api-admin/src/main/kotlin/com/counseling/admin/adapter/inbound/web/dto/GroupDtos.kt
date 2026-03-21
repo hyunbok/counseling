@@ -1,7 +1,6 @@
 package com.counseling.admin.adapter.inbound.web.dto
 
 import java.time.Instant
-import java.util.UUID
 
 data class CreateGroupRequest(
     val name: String,
@@ -13,7 +12,7 @@ data class UpdateGroupRequest(
 )
 
 data class GroupResponse(
-    val id: UUID,
+    val id: String?,
     val name: String,
     val status: String,
     val agentCount: Int,

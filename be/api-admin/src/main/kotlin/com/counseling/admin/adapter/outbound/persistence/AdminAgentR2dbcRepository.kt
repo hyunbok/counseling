@@ -17,8 +17,9 @@ import java.util.UUID
 class AdminAgentR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : AdminAgentRepository {
-    override fun save(agent: Agent): Mono<Agent> =
-        databaseClient
+    override fun save(agent: Agent): Mono<Agent> {
+        val id = agent.id ?: UUID.randomUUID().toString()
+        return databaseClient
             .sql(
                 """
                 INSERT INTO agents (id, username, password_hash, name, role, agent_status, group_id, active, created_at, updated_at, deleted)
@@ -28,21 +29,22 @@ class AdminAgentR2dbcRepository(
                     agent_status = :agentStatus, group_id = :groupId, active = :active,
                     updated_at = :updatedAt, deleted = :deleted
                 """.trimIndent(),
-            ).bind("id", agent.id)
+            ).bind("id", id)
             .bind("username", agent.username)
             .bind("passwordHash", agent.passwordHash)
             .bind("name", agent.name)
             .bind("role", agent.role.name)
             .bind("agentStatus", agent.agentStatus.name)
-            .bindNullable("groupId", agent.groupId, UUID::class.java)
+            .bindNullable("groupId", agent.groupId, String::class.java)
             .bind("active", agent.active)
             .bind("createdAt", agent.createdAt)
             .bind("updatedAt", agent.updatedAt)
             .bind("deleted", agent.deleted)
             .then()
-            .thenReturn(agent)
+            .thenReturn(agent.copy(id = id))
+    }
 
-    override fun findByIdAndNotDeleted(id: UUID): Mono<Agent> =
+    override fun findByIdAndNotDeleted(id: String): Mono<Agent> =
         databaseClient
             .sql("SELECT * FROM agents WHERE id = :id AND deleted = false")
             .bind("id", id)
@@ -80,7 +82,7 @@ class AdminAgentR2dbcRepository(
             .one()
             .defaultIfEmpty(0L)
 
-    override fun findAllByGroupIdAndNotDeleted(groupId: UUID): Flux<Agent> =
+    override fun findAllByGroupIdAndNotDeleted(groupId: String): Flux<Agent> =
         databaseClient
             .sql("SELECT * FROM agents WHERE group_id = :groupId AND deleted = false ORDER BY created_at DESC")
             .bind("groupId", groupId)
@@ -88,24 +90,20 @@ class AdminAgentR2dbcRepository(
             .all()
 
     override fun findAllByGroupIdAndNotDeleted(
-        groupId: UUID,
+        groupId: String,
         page: Int,
         size: Int,
     ): Flux<Agent> =
         databaseClient
             .sql(
-                """
-                SELECT * FROM agents
-                WHERE group_id = :groupId AND deleted = false
-                ORDER BY created_at DESC LIMIT :limit OFFSET :offset
-                """.trimIndent(),
+                "SELECT * FROM agents WHERE group_id = :groupId AND deleted = false ORDER BY created_at DESC LIMIT :limit OFFSET :offset",
             ).bind("groupId", groupId)
             .bind("limit", size)
             .bind("offset", page * size)
             .map { row -> mapToAgent(row) }
             .all()
 
-    override fun countAllByGroupIdAndNotDeleted(groupId: UUID): Mono<Long> =
+    override fun countAllByGroupIdAndNotDeleted(groupId: String): Mono<Long> =
         databaseClient
             .sql("SELECT COUNT(*) as cnt FROM agents WHERE group_id = :groupId AND deleted = false")
             .bind("groupId", groupId)
@@ -113,101 +111,17 @@ class AdminAgentR2dbcRepository(
             .one()
             .defaultIfEmpty(0L)
 
-    override fun countByGroupIdAndNotDeleted(groupId: UUID): Mono<Long> = countAllByGroupIdAndNotDeleted(groupId)
-
-    override fun searchByNotDeleted(
-        search: String?,
-        role: String?,
-        active: Boolean?,
-        agentStatus: String?,
-        page: Int,
-        size: Int,
-    ): Flux<Agent> {
-        val conditions = mutableListOf("deleted = FALSE")
-        if (!search.isNullOrBlank()) {
-            conditions.add("(LOWER(name) LIKE :search OR LOWER(username) LIKE :search)")
-        }
-        if (!role.isNullOrBlank()) {
-            conditions.add("role = :role")
-        }
-        if (active != null) {
-            conditions.add("active = :active")
-        }
-        if (!agentStatus.isNullOrBlank()) {
-            conditions.add("agent_status = :agentStatus")
-        }
-        val where = conditions.joinToString(" AND ")
-        var spec =
-            databaseClient.sql(
-                "SELECT * FROM agents WHERE $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset",
-            )
-        if (!search.isNullOrBlank()) {
-            spec = spec.bind("search", "%${search.lowercase()}%")
-        }
-        if (!role.isNullOrBlank()) {
-            spec = spec.bind("role", role)
-        }
-        if (active != null) {
-            spec = spec.bind("active", active)
-        }
-        if (!agentStatus.isNullOrBlank()) {
-            spec = spec.bind("agentStatus", agentStatus)
-        }
-        return spec
-            .bind("limit", size)
-            .bind("offset", page * size)
-            .map { row -> mapToAgent(row) }
-            .all()
-    }
-
-    override fun countSearchByNotDeleted(
-        search: String?,
-        role: String?,
-        active: Boolean?,
-        agentStatus: String?,
-    ): Mono<Long> {
-        val conditions = mutableListOf("deleted = FALSE")
-        if (!search.isNullOrBlank()) {
-            conditions.add("(LOWER(name) LIKE :search OR LOWER(username) LIKE :search)")
-        }
-        if (!role.isNullOrBlank()) {
-            conditions.add("role = :role")
-        }
-        if (active != null) {
-            conditions.add("active = :active")
-        }
-        if (!agentStatus.isNullOrBlank()) {
-            conditions.add("agent_status = :agentStatus")
-        }
-        val where = conditions.joinToString(" AND ")
-        var spec = databaseClient.sql("SELECT COUNT(*) as cnt FROM agents WHERE $where")
-        if (!search.isNullOrBlank()) {
-            spec = spec.bind("search", "%${search.lowercase()}%")
-        }
-        if (!role.isNullOrBlank()) {
-            spec = spec.bind("role", role)
-        }
-        if (active != null) {
-            spec = spec.bind("active", active)
-        }
-        if (!agentStatus.isNullOrBlank()) {
-            spec = spec.bind("agentStatus", agentStatus)
-        }
-        return spec
-            .map { row -> row.get("cnt", java.lang.Long::class.java)!!.toLong() }
-            .one()
-            .defaultIfEmpty(0L)
-    }
+    override fun countByGroupIdAndNotDeleted(groupId: String): Mono<Long> = countAllByGroupIdAndNotDeleted(groupId)
 
     private fun mapToAgent(row: io.r2dbc.spi.Readable): Agent =
         Agent(
-            id = row.get("id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
             username = row.get("username", String::class.java)!!,
             passwordHash = row.get("password_hash", String::class.java)!!,
             name = row.get("name", String::class.java)!!,
             role = AgentRole.valueOf(row.get("role", String::class.java)!!),
             agentStatus = AgentStatus.valueOf(row.get("agent_status", String::class.java)!!),
-            groupId = row.get("group_id", UUID::class.java),
+            groupId = row.get("group_id", String::class.java),
             active = row.get("active", java.lang.Boolean::class.java)?.booleanValue() ?: true,
             createdAt = row.get("created_at", Instant::class.java)!!,
             updatedAt = row.get("updated_at", Instant::class.java)!!,

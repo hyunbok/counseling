@@ -6,7 +6,6 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
-import java.util.UUID
 
 @Document(collection = "shared_files")
 @CompoundIndex(name = "idx_tenant_channel_created", def = "{'tenantId': 1, 'channelId': 1, 'createdAt': -1}")
@@ -25,8 +24,8 @@ data class SharedFileDocument(
 ) {
     fun toDomain(): SharedFile =
         SharedFile(
-            id = UUID.fromString(id),
-            channelId = UUID.fromString(channelId),
+            id = id,
+            channelId = channelId,
             uploaderId = uploaderId,
             uploaderType = SenderType.valueOf(uploaderType),
             originalFilename = originalFilename,
@@ -44,9 +43,9 @@ data class SharedFileDocument(
             tenantId: String? = null,
         ): SharedFileDocument =
             SharedFileDocument(
-                id = file.id.toString(),
+                id = file.id ?: throw IllegalStateException("SharedFile id must not be null"),
                 tenantId = tenantId,
-                channelId = file.channelId.toString(),
+                channelId = file.channelId,
                 uploaderId = file.uploaderId,
                 uploaderType = file.uploaderType.name,
                 originalFilename = file.originalFilename,

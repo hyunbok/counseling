@@ -1,12 +1,11 @@
 package com.counseling.api.domain
 
 import java.time.Instant
-import java.util.UUID
 
 data class PositionUpdate(
-    val entryId: UUID,
+    val entryId: String,
     val position: Long,
     val queueSize: Long,
-    val channelId: UUID? = null,
+    val channelId: String? = null,
     val timestamp: Instant = Instant.now(),
 )

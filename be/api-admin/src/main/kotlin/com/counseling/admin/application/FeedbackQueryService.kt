@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import reactor.kotlin.core.util.function.component1
 import reactor.kotlin.core.util.function.component2
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -18,7 +17,7 @@ class FeedbackQueryService(
     private val feedbackRepository: AdminFeedbackRepository,
 ) : FeedbackQuery {
     override fun listFeedbacks(
-        agentId: UUID?,
+        agentId: String?,
         rating: Int?,
         page: Int,
         size: Int,
@@ -29,7 +28,7 @@ class FeedbackQueryService(
                 feedbackRepository.countAll(agentId, rating),
             ).map { (content, total) -> PagedResult(content, total, page, size) }
 
-    override fun getFeedback(id: UUID): Mono<Feedback> =
+    override fun getFeedback(id: String): Mono<Feedback> =
         feedbackRepository
             .findById(id)
             .switchIfEmpty(Mono.error(NotFoundException("Feedback not found: $id")))

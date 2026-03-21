@@ -5,7 +5,6 @@ import com.counseling.api.domain.ChannelStatus
 import com.counseling.api.domain.Endpoint
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 data class TokenResult(
     val token: String,
@@ -21,24 +20,24 @@ data class ChannelDetail(
 
 interface ChannelUseCase {
     fun getAgentToken(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Mono<TokenResult>
 
     fun getCustomerToken(
-        channelId: UUID,
+        channelId: String,
         customerName: String,
     ): Mono<TokenResult>
 
     fun closeChannel(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Mono<Void>
 
-    fun getChannel(channelId: UUID): Mono<ChannelDetail>
+    fun getChannel(channelId: String): Mono<ChannelDetail>
 
     fun getAgentChannels(
-        agentId: UUID,
+        agentId: String,
         status: ChannelStatus?,
     ): Flux<Channel>
 }

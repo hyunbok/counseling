@@ -29,7 +29,6 @@ import reactor.core.publisher.Mono
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/channels/{channelId}/files")
@@ -41,7 +40,7 @@ class SharedFileController(
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @ResponseStatus(HttpStatus.CREATED)
     fun uploadFile(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestPart("file") filePart: FilePart,
         @RequestPart("senderType") senderType: String,
         @RequestPart("senderId") senderId: String,
@@ -80,7 +79,7 @@ class SharedFileController(
 
     @GetMapping
     fun listFiles(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestParam(required = false) before: Instant?,
         @RequestParam(defaultValue = "20") limit: Int,
     ): Mono<SharedFileListResponse> =
@@ -96,8 +95,8 @@ class SharedFileController(
 
     @GetMapping("/{fileId}/download")
     fun downloadFile(
-        @PathVariable channelId: UUID,
-        @PathVariable fileId: UUID,
+        @PathVariable channelId: String,
+        @PathVariable fileId: String,
     ): Mono<ResponseEntity<Resource>> =
         sharedFileUseCase
             .download(channelId, fileId)
@@ -118,14 +117,14 @@ class SharedFileController(
 
     @GetMapping("/stream", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun streamFileEvents(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Flux<SharedFileResponse> = sharedFileQuery.streamFileEvents(channelId).map { it.toResponse() }
 
     @DeleteMapping("/{fileId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteFile(
-        @PathVariable channelId: UUID,
-        @PathVariable fileId: UUID,
+        @PathVariable channelId: String,
+        @PathVariable fileId: String,
     ): Mono<Void> = sharedFileUseCase.delete(channelId, fileId)
 
     private fun SharedFile.toResponse(): SharedFileResponse =

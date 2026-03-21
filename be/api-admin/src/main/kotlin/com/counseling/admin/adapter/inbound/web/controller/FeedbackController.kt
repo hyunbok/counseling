@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.util.UUID
 import kotlin.math.ceil
 
 @RestController
@@ -21,7 +20,7 @@ class FeedbackController(
 ) {
     @GetMapping
     fun listFeedbacks(
-        @RequestParam(required = false) agentId: UUID?,
+        @RequestParam(required = false) agentId: String?,
         @RequestParam(required = false) rating: Int?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
@@ -47,7 +46,7 @@ class FeedbackController(
 
     @GetMapping("/{id}")
     fun getFeedback(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
     ): Mono<FeedbackResponse> =
         feedbackQuery.getFeedback(id).map { feedback ->
             FeedbackResponse(

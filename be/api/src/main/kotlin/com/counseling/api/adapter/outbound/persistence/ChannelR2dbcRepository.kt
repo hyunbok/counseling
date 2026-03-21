@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -18,6 +17,7 @@ class ChannelR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : ChannelRepository {
     override fun save(channel: Channel): Mono<Channel> {
+        val id = channel.id ?: throw IllegalStateException("Channel id must not be null before save")
         val spec =
             databaseClient
                 .sql(
@@ -34,7 +34,7 @@ class ChannelR2dbcRepository(
                         updated_at = :updatedAt,
                         deleted = :deleted
                     """.trimIndent(),
-                ).bind("id", channel.id)
+                ).bind("id", id)
                 .bind("status", channel.status.name)
                 .bind("createdAt", channel.createdAt)
                 .bind("updatedAt", channel.updatedAt)
@@ -43,7 +43,7 @@ class ChannelR2dbcRepository(
             if (channel.agentId != null) {
                 spec.bind("agentId", channel.agentId)
             } else {
-                spec.bindNull("agentId", UUID::class.java)
+                spec.bindNull("agentId", String::class.java)
             }
         val specWithStartedAt =
             if (channel.startedAt != null) {
@@ -72,14 +72,14 @@ class ChannelR2dbcRepository(
         return specWithRoomName.then().thenReturn(channel)
     }
 
-    override fun findByIdAndNotDeleted(id: UUID): Mono<Channel> =
+    override fun findByIdAndNotDeleted(id: String): Mono<Channel> =
         databaseClient
             .sql("SELECT * FROM channels WHERE id = :id AND deleted = FALSE")
             .bind("id", id)
             .map { row -> mapToChannel(row) }
             .one()
 
-    override fun findAllByAgentIdAndNotDeleted(agentId: UUID): Flux<Channel> =
+    override fun findAllByAgentIdAndNotDeleted(agentId: String): Flux<Channel> =
         databaseClient
             .sql("SELECT * FROM channels WHERE agent_id = :agentId AND deleted = FALSE ORDER BY created_at")
             .bind("agentId", agentId)
@@ -94,7 +94,7 @@ class ChannelR2dbcRepository(
             .all()
 
     override fun findAllByAgentIdAndStatusAndNotDeleted(
-        agentId: UUID,
+        agentId: String,
         status: ChannelStatus,
     ): Flux<Channel> =
         databaseClient
@@ -105,17 +105,10 @@ class ChannelR2dbcRepository(
             .map { row -> mapToChannel(row) }
             .all()
 
-    override fun findByLivekitRoomNameAndNotDeleted(roomName: String): Mono<Channel> =
-        databaseClient
-            .sql("SELECT * FROM channels WHERE livekit_room_name = :roomName AND deleted = FALSE")
-            .bind("roomName", roomName)
-            .map { row -> mapToChannel(row) }
-            .one()
-
     private fun mapToChannel(row: Readable): Channel =
         Channel(
-            id = row.get("id", UUID::class.java)!!,
-            agentId = row.get("agent_id", UUID::class.java),
+            id = row.get("id", String::class.java)!!,
+            agentId = row.get("agent_id", String::class.java),
             status = ChannelStatus.valueOf(row.get("status", String::class.java)!!),
             startedAt = row.get("started_at", Instant::class.java),
             endedAt = row.get("ended_at", Instant::class.java),

@@ -9,14 +9,13 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
 class FeedbackQueryService(
     private val feedbackReadRepository: FeedbackReadRepository,
 ) : FeedbackQuery {
-    override fun getByChannelId(channelId: UUID): Mono<Feedback> =
+    override fun getByChannelId(channelId: String): Mono<Feedback> =
         TenantContext.getTenantId().flatMap { tenantId ->
             feedbackReadRepository.findByChannelId(channelId, tenantId)
         }

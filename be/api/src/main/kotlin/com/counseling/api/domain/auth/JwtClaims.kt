@@ -2,10 +2,9 @@ package com.counseling.api.domain.auth
 
 import com.counseling.api.domain.AgentRole
 import java.time.Instant
-import java.util.UUID
 
 data class JwtClaims(
-    val subject: UUID,
+    val subject: String,
     val role: AgentRole,
     val tenantId: String,
     val tokenType: TokenType,

@@ -15,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -43,10 +42,10 @@ class AuthService(
                             } else {
                                 val onlineAgent = agent.updateStatus(AgentStatus.ONLINE)
                                 agentRepository.save(onlineAgent).map { saved ->
-                                    val tokenPair = jwtTokenProvider.generateTokenPair(saved.id, tenantId, saved.role)
+                                    val tokenPair = jwtTokenProvider.generateTokenPair(saved.id!!, tenantId, saved.role)
                                     LoginResult(
                                         tokenPair = tokenPair,
-                                        agentId = saved.id,
+                                        agentId = saved.id!!,
                                         username = saved.username,
                                         name = saved.name,
                                         role = saved.role,
@@ -119,7 +118,7 @@ class AuthService(
                                     } else {
                                         Mono.empty()
                                     }
-                                val newPair = jwtTokenProvider.generateTokenPair(agent.id, tenantId, agent.role)
+                                val newPair = jwtTokenProvider.generateTokenPair(agent.id!!, tenantId, agent.role)
                                 blacklistOld.thenReturn(newPair)
                             }
                     }
@@ -127,7 +126,7 @@ class AuthService(
         }
 
     override fun changePassword(
-        agentId: UUID,
+        agentId: String,
         currentPassword: String,
         newPassword: String,
     ): Mono<Void> =
@@ -150,16 +149,5 @@ class AuthService(
                                 }
                         }
                     }
-            }
-
-    override fun changeName(
-        agentId: UUID,
-        newName: String,
-    ): Mono<Void> =
-        agentRepository
-            .findByIdAndNotDeleted(agentId)
-            .switchIfEmpty(Mono.error(UnauthorizedException("Agent not found")))
-            .flatMap { agent ->
-                agentRepository.save(agent.changeName(newName)).then()
             }
 }

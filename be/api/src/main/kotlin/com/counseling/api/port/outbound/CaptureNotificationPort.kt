@@ -2,15 +2,14 @@ package com.counseling.api.port.outbound
 
 import com.counseling.api.domain.ScreenCapture
 import reactor.core.publisher.Flux
-import java.util.UUID
 
 interface CaptureNotificationPort {
     fun emitCapture(
-        channelId: UUID,
+        channelId: String,
         capture: ScreenCapture,
     )
 
-    fun subscribeCaptures(channelId: UUID): Flux<ScreenCapture>
+    fun subscribeCaptures(channelId: String): Flux<ScreenCapture>
 
-    fun removeChannel(channelId: UUID)
+    fun removeChannel(channelId: String)
 }

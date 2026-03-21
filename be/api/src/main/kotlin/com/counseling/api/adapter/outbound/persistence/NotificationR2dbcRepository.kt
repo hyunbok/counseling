@@ -11,7 +11,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -19,6 +18,7 @@ class NotificationR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : NotificationRepository {
     override fun save(notification: Notification): Mono<Notification> {
+        val id = notification.id ?: throw IllegalStateException("Notification id must not be null before save")
         val spec =
             databaseClient
                 .sql(
@@ -27,7 +27,7 @@ class NotificationR2dbcRepository(
                     VALUES (:id, :recipientId, :recipientType, :type, :title, :body, :referenceId, :referenceType, :deliveryMethod, :read, :createdAt)
                     RETURNING *
                     """.trimIndent(),
-                ).bind("id", notification.id)
+                ).bind("id", id)
                 .bind("recipientId", notification.recipientId)
                 .bind("recipientType", notification.recipientType.name)
                 .bind("type", notification.type.name)
@@ -40,7 +40,7 @@ class NotificationR2dbcRepository(
             if (notification.referenceId != null) {
                 spec.bind("referenceId", notification.referenceId)
             } else {
-                spec.bindNull("referenceId", UUID::class.java)
+                spec.bindNull("referenceId", String::class.java)
             }
         val specWithReferenceType =
             if (notification.referenceType != null) {
@@ -54,8 +54,8 @@ class NotificationR2dbcRepository(
     }
 
     override fun findByIdAndRecipientId(
-        id: UUID,
-        recipientId: UUID,
+        id: String,
+        recipientId: String,
     ): Mono<Notification> =
         databaseClient
             .sql(
@@ -70,8 +70,8 @@ class NotificationR2dbcRepository(
             .one()
 
     override fun markAsRead(
-        id: UUID,
-        recipientId: UUID,
+        id: String,
+        recipientId: String,
     ): Mono<Boolean> =
         databaseClient
             .sql(
@@ -84,7 +84,7 @@ class NotificationR2dbcRepository(
             .rowsUpdated()
             .map { it > 0 }
 
-    override fun markAllAsReadByRecipientId(recipientId: UUID): Mono<Long> =
+    override fun markAllAsReadByRecipientId(recipientId: String): Mono<Long> =
         databaseClient
             .sql(
                 """
@@ -96,13 +96,13 @@ class NotificationR2dbcRepository(
 
     private fun mapToNotification(row: Readable): Notification =
         Notification(
-            id = row.get("id", UUID::class.java)!!,
-            recipientId = row.get("recipient_id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
+            recipientId = row.get("recipient_id", String::class.java)!!,
             recipientType = RecipientType.valueOf(row.get("recipient_type", String::class.java)!!),
             type = NotificationType.valueOf(row.get("type", String::class.java)!!),
             title = row.get("title", String::class.java)!!,
             body = row.get("body", String::class.java)!!,
-            referenceId = row.get("reference_id", UUID::class.java),
+            referenceId = row.get("reference_id", String::class.java),
             referenceType = row.get("reference_type", String::class.java),
             deliveryMethod = DeliveryMethod.valueOf(row.get("delivery_method", String::class.java)!!),
             read = row.get("read", Boolean::class.java)!!,

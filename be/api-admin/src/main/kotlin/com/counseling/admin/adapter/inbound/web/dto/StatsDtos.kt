@@ -1,7 +1,5 @@
 package com.counseling.admin.adapter.inbound.web.dto
 
-import java.util.UUID
-
 data class StatsSummaryResponse(
     val totalChannels: Long,
     val completedChannels: Long,
@@ -10,7 +8,7 @@ data class StatsSummaryResponse(
 )
 
 data class AgentStatsResponse(
-    val agentId: UUID,
+    val agentId: String,
     val agentName: String,
     val totalChannels: Long,
     val completedChannels: Long,

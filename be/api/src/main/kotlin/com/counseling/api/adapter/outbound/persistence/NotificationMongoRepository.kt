@@ -13,7 +13,6 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -29,7 +28,7 @@ class NotificationMongoRepository(
             .map { it.toDomain() }
 
     override fun findByRecipientId(
-        recipientId: UUID,
+        recipientId: String,
         tenantId: String,
         type: NotificationType?,
         read: Boolean?,
@@ -41,7 +40,7 @@ class NotificationMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("recipientId")
-                .`is`(recipientId.toString())
+                .`is`(recipientId)
         if (type != null) {
             criteria = criteria.and("type").`is`(type.name)
         }
@@ -62,7 +61,7 @@ class NotificationMongoRepository(
     }
 
     override fun countUnread(
-        recipientId: UUID,
+        recipientId: String,
         tenantId: String,
     ): Mono<Long> {
         val criteria =
@@ -70,14 +69,14 @@ class NotificationMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("recipientId")
-                .`is`(recipientId.toString())
+                .`is`(recipientId)
                 .and("read")
                 .`is`(false)
         return mongoTemplate.count(Query.query(criteria), NotificationDocument::class.java, COLLECTION_NAME)
     }
 
     override fun markAsRead(
-        notificationId: UUID,
+        notificationId: String,
         tenantId: String,
     ): Mono<Boolean> {
         val criteria =
@@ -85,7 +84,7 @@ class NotificationMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("_id")
-                .`is`(notificationId.toString())
+                .`is`(notificationId)
         return mongoTemplate
             .updateFirst(
                 Query.query(criteria),
@@ -96,7 +95,7 @@ class NotificationMongoRepository(
     }
 
     override fun markAllAsRead(
-        recipientId: UUID,
+        recipientId: String,
         tenantId: String,
     ): Mono<Long> {
         val criteria =
@@ -104,7 +103,7 @@ class NotificationMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("recipientId")
-                .`is`(recipientId.toString())
+                .`is`(recipientId)
                 .and("read")
                 .`is`(false)
         return mongoTemplate

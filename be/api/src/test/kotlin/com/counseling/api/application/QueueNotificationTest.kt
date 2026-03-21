@@ -16,7 +16,7 @@ class QueueNotificationTest :
 
         fun makeEntry(): QueueEntry =
             QueueEntry(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 customerName = "Test",
                 customerContact = "010-0000-0000",
                 groupId = null,
@@ -44,7 +44,7 @@ class QueueNotificationTest :
 
         "subscribePositionUpdates receives emitted PositionUpdate" {
             val adapter = InMemoryQueueNotificationAdapter()
-            val entryId = UUID.randomUUID()
+            val entryId = UUID.randomUUID().toString()
             val positionUpdate =
                 PositionUpdate(
                     entryId = entryId,

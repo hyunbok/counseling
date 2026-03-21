@@ -1,7 +1,6 @@
 package com.counseling.api.application
 
 import com.counseling.api.config.LiveKitProperties
-import com.counseling.api.config.UserAgentParser
 import com.counseling.api.domain.Agent
 import com.counseling.api.domain.AgentRole
 import com.counseling.api.domain.AgentStatus
@@ -49,7 +48,6 @@ class QueueServiceTest :
         val notificationUseCase = mockk<NotificationUseCase>(relaxed = true)
         val historyReadRepository = mockk<HistoryReadRepository>(relaxed = true)
         val groupRepository = mockk<GroupRepository>(relaxed = true)
-        val userAgentParser = mockk<UserAgentParser>(relaxed = true)
         val liveKitProperties =
             LiveKitProperties(
                 url = "wss://livekit.test",
@@ -69,7 +67,6 @@ class QueueServiceTest :
                 notificationUseCase,
                 historyReadRepository,
                 groupRepository,
-                userAgentParser,
             )
 
         val tenantId = "tenant-test"
@@ -77,9 +74,9 @@ class QueueServiceTest :
 
         afterEach { clearAllMocks() }
 
-        fun makeEntry(groupId: UUID? = null): QueueEntry =
+        fun makeEntry(groupId: String? = null): QueueEntry =
             QueueEntry(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 customerName = "Test Customer",
                 customerContact = "010-0000-0000",
                 groupId = groupId,
@@ -88,7 +85,7 @@ class QueueServiceTest :
 
         fun makeAgent(status: AgentStatus = AgentStatus.ONLINE): Agent =
             Agent(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 username = "agent1",
                 passwordHash = "hash",
                 name = "Agent One",
@@ -179,14 +176,14 @@ class QueueServiceTest :
 
         "acceptCustomer throws ConflictException when agent is not available" {
             val agent = makeAgent(AgentStatus.BUSY)
-            val entryId = UUID.randomUUID()
+            val entryId = UUID.randomUUID().toString()
 
-            every { agentRepository.findByIdAndNotDeleted(agent.id) } returns Mono.just(agent)
+            every { agentRepository.findByIdAndNotDeleted(agent.id!!) } returns Mono.just(agent)
 
             StepVerifier
                 .create(
                     queueService
-                        .acceptCustomer(entryId, agent.id)
+                        .acceptCustomer(entryId, agent.id!!)
                         .contextWrite(tenantContext),
                 ).expectErrorMatches { it is ConflictException }
                 .verify()
@@ -199,7 +196,7 @@ class QueueServiceTest :
             val savedEndpoints = mutableListOf<Endpoint>()
             val testRoomName = "$tenantId-channel-test"
 
-            every { agentRepository.findByIdAndNotDeleted(agent.id) } returns Mono.just(agent)
+            every { agentRepository.findByIdAndNotDeleted(agent.id!!) } returns Mono.just(agent)
             every { queueRepository.removeAtomically(tenantId, entry.id) } returns Mono.just(entry)
             every { channelRepository.save(any()) } answers {
                 val ch = firstArg<Channel>()
@@ -220,7 +217,7 @@ class QueueServiceTest :
             StepVerifier
                 .create(
                     queueService
-                        .acceptCustomer(entry.id, agent.id)
+                        .acceptCustomer(entry.id, agent.id!!)
                         .contextWrite(tenantContext),
                 ).assertNext { result ->
                     result.customerName shouldBe entry.customerName
@@ -261,7 +258,7 @@ class QueueServiceTest :
         }
 
         "getPosition returns position and size" {
-            val entryId = UUID.randomUUID()
+            val entryId = UUID.randomUUID().toString()
 
             every { queueRepository.getPosition(tenantId, entryId) } returns Mono.just(3L)
             every { queueRepository.getSize(tenantId) } returns Mono.just(5L)

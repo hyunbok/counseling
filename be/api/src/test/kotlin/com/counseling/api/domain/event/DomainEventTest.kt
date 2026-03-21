@@ -18,7 +18,7 @@ class DomainEventTest :
 
         fun createAgent(): Agent =
             Agent(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 username = "agent1",
                 passwordHash = "hash",
                 name = "Test Agent",
@@ -30,7 +30,7 @@ class DomainEventTest :
 
         fun createChannel(): Channel =
             Channel(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 agentId = null,
                 status = ChannelStatus.WAITING,
                 startedAt = null,
@@ -42,8 +42,8 @@ class DomainEventTest :
 
         fun createFeedback(): Feedback =
             Feedback(
-                id = UUID.randomUUID(),
-                channelId = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
+                channelId = UUID.randomUUID().toString(),
                 rating = 4,
                 comment = "Great service",
                 createdAt = baseInstant,

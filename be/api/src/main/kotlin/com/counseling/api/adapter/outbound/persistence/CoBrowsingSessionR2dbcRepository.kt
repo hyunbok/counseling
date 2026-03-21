@@ -9,7 +9,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -17,6 +16,7 @@ class CoBrowsingSessionR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : CoBrowsingSessionRepository {
     override fun save(session: CoBrowsingSession): Mono<CoBrowsingSession> {
+        val id = session.id ?: throw IllegalStateException("CoBrowsingSession id must not be null before save")
         val spec =
             databaseClient
                 .sql(
@@ -32,7 +32,7 @@ class CoBrowsingSessionR2dbcRepository(
                         updated_at = EXCLUDED.updated_at,
                         deleted = EXCLUDED.deleted
                     """.trimIndent(),
-                ).bind("id", session.id)
+                ).bind("id", id)
                 .bind("channelId", session.channelId)
                 .bind("initiatedBy", session.initiatedBy)
                 .bind("status", session.status.name)
@@ -54,7 +54,7 @@ class CoBrowsingSessionR2dbcRepository(
         return specWithEndedAt.then().thenReturn(session)
     }
 
-    override fun findByIdAndNotDeleted(id: UUID): Mono<CoBrowsingSession> =
+    override fun findByIdAndNotDeleted(id: String): Mono<CoBrowsingSession> =
         databaseClient
             .sql(
                 """
@@ -66,7 +66,7 @@ class CoBrowsingSessionR2dbcRepository(
             .map { row -> mapToCoBrowsingSession(row) }
             .one()
 
-    override fun findActiveByChannelId(channelId: UUID): Mono<CoBrowsingSession> =
+    override fun findActiveByChannelId(channelId: String): Mono<CoBrowsingSession> =
         databaseClient
             .sql(
                 """
@@ -80,9 +80,9 @@ class CoBrowsingSessionR2dbcRepository(
 
     private fun mapToCoBrowsingSession(row: Readable): CoBrowsingSession =
         CoBrowsingSession(
-            id = row.get("id", UUID::class.java)!!,
-            channelId = row.get("channel_id", UUID::class.java)!!,
-            initiatedBy = row.get("initiated_by", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
+            channelId = row.get("channel_id", String::class.java)!!,
+            initiatedBy = row.get("initiated_by", String::class.java)!!,
             status = CoBrowsingStatus.valueOf(row.get("status", String::class.java)!!),
             startedAt = row.get("started_at", Instant::class.java),
             endedAt = row.get("ended_at", Instant::class.java),

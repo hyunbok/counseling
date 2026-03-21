@@ -11,7 +11,7 @@ class GroupTest :
 
         fun createGroup(status: GroupStatus = GroupStatus.ACTIVE): Group =
             Group(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 name = "Test Group",
                 status = status,
                 createdAt = baseInstant,

@@ -2,7 +2,6 @@ package com.counseling.admin.adapter.inbound.web.dto
 
 import com.counseling.admin.domain.Tenant
 import java.time.Instant
-import java.util.UUID
 
 data class CreateTenantRequest(
     val name: String,
@@ -28,7 +27,7 @@ data class UpdateTenantStatusRequest(
 )
 
 data class TenantSummaryResponse(
-    val id: UUID,
+    val id: String?,
     val name: String,
     val slug: String,
     val status: String,
@@ -49,7 +48,7 @@ data class TenantSummaryResponse(
 }
 
 data class TenantDetailResponse(
-    val id: UUID,
+    val id: String?,
     val name: String,
     val slug: String,
     val status: String,

@@ -12,7 +12,6 @@ import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -28,7 +27,7 @@ class FeedbackMongoRepository(
             .map { it.toDomain() }
 
     override fun findByChannelId(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
     ): Mono<Feedback> {
         val criteria =
@@ -36,7 +35,7 @@ class FeedbackMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("channelId")
-                .`is`(channelId.toString())
+                .`is`(channelId)
         return mongoTemplate
             .findOne(Query.query(criteria), FeedbackDocument::class.java, COLLECTION_NAME)
             .map { it.toDomain() }

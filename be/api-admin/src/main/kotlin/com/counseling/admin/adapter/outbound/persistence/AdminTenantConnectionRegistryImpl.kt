@@ -28,7 +28,7 @@ class AdminTenantConnectionRegistryImpl : TenantConnectionRegistry {
         }
 
     override fun register(tenant: Tenant): Mono<Void> =
-        Mono.defer {
+        Mono.fromRunnable {
             val options =
                 ConnectionFactoryOptions
                     .builder()
@@ -52,42 +52,11 @@ class AdminTenantConnectionRegistryImpl : TenantConnectionRegistry {
                     .maxAcquireTime(Duration.ofSeconds(5))
                     .build()
 
-            val pool = ConnectionPool(poolConfig)
-
-            Mono
-                .from(pool.create())
-                .flatMap { conn ->
-                    Mono
-                        .from(conn.validate(io.r2dbc.spi.ValidationDepth.REMOTE))
-                        .doFinally { Mono.from(conn.close()).subscribe() }
-                }.flatMap<Void> { valid ->
-                    if (!valid) {
-                        pool.disposeLater().then(
-                            Mono.error(
-                                IllegalStateException(
-                                    "Database connection validation failed for tenant: ${tenant.slug}",
-                                ),
-                            ),
-                        )
-                    } else {
-                        val oldPool = pools.put(tenant.slug, pool)
-                        oldPool
-                            ?.disposeLater()
-                            ?.doOnError { e ->
-                                log.warn("Failed to dispose old pool for tenant: {}", tenant.slug, e)
-                            }?.subscribe()
-                        Mono.empty()
-                    }
-                }.onErrorResume { e ->
-                    pool.disposeLater().then(
-                        Mono.error(
-                            IllegalStateException(
-                                "Cannot connect to database for tenant '${tenant.slug}': ${e.message}",
-                                e,
-                            ),
-                        ),
-                    )
-                }
+            val oldPool = pools.put(tenant.slug, ConnectionPool(poolConfig))
+            oldPool
+                ?.disposeLater()
+                ?.doOnError { e -> log.warn("Failed to dispose old pool for tenant: {}", tenant.slug, e) }
+                ?.subscribe()
         }
 
     override fun evict(tenantSlug: String): Mono<Void> {

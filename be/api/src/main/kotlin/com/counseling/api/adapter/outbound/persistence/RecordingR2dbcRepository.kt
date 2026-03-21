@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -18,6 +17,7 @@ class RecordingR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : RecordingRepository {
     override fun save(recording: Recording): Mono<Recording> {
+        val id = recording.id ?: throw IllegalStateException("Recording id must not be null before save")
         val spec =
             databaseClient
                 .sql(
@@ -32,7 +32,7 @@ class RecordingR2dbcRepository(
                         updated_at = :updatedAt,
                         deleted = :deleted
                     """.trimIndent(),
-                ).bind("id", recording.id)
+                ).bind("id", id)
                 .bind("channelId", recording.channelId)
                 .bind("egressId", recording.egressId)
                 .bind("status", recording.status.name)
@@ -55,14 +55,14 @@ class RecordingR2dbcRepository(
         return specWithStoppedAt.then().thenReturn(recording)
     }
 
-    override fun findByIdAndNotDeleted(id: UUID): Mono<Recording> =
+    override fun findByIdAndNotDeleted(id: String): Mono<Recording> =
         databaseClient
             .sql("SELECT * FROM recordings WHERE id = :id AND deleted = FALSE")
             .bind("id", id)
             .map { row -> mapToRecording(row) }
             .one()
 
-    override fun findActiveByChannelId(channelId: UUID): Mono<Recording> =
+    override fun findActiveByChannelId(channelId: String): Mono<Recording> =
         databaseClient
             .sql(
                 "SELECT * FROM recordings WHERE channel_id = :channelId AND status = :status AND deleted = FALSE",
@@ -71,7 +71,7 @@ class RecordingR2dbcRepository(
             .map { row -> mapToRecording(row) }
             .one()
 
-    override fun findAllByChannelIdAndNotDeleted(channelId: UUID): Flux<Recording> =
+    override fun findAllByChannelIdAndNotDeleted(channelId: String): Flux<Recording> =
         databaseClient
             .sql(
                 "SELECT * FROM recordings WHERE channel_id = :channelId AND deleted = FALSE ORDER BY created_at",
@@ -81,8 +81,8 @@ class RecordingR2dbcRepository(
 
     private fun mapToRecording(row: Readable): Recording =
         Recording(
-            id = row.get("id", UUID::class.java)!!,
-            channelId = row.get("channel_id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
+            channelId = row.get("channel_id", String::class.java)!!,
             egressId = row.get("egress_id", String::class.java)!!,
             status = RecordingStatus.valueOf(row.get("status", String::class.java)!!),
             filePath = row.get("file_path", String::class.java),

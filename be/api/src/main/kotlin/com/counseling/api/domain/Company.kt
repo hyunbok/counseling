@@ -1,10 +1,9 @@
 package com.counseling.api.domain
 
 import java.time.Instant
-import java.util.UUID
 
 data class Company(
-    val id: UUID,
+    val id: String? = null,
     val name: String,
     val contact: String?,
     val address: String?,

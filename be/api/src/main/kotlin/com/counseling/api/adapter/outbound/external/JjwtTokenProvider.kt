@@ -13,7 +13,6 @@ import io.jsonwebtoken.security.Keys
 import org.springframework.stereotype.Component
 import java.time.Instant
 import java.util.Date
-import java.util.UUID
 
 @Component
 class JjwtTokenProvider(
@@ -24,18 +23,24 @@ class JjwtTokenProvider(
     }
 
     override fun generateTokenPair(
-        agentId: UUID,
+        agentId: String,
         tenantId: String,
         role: AgentRole,
     ): TokenPair {
         val now = Instant.now()
-        val accessJti = UUID.randomUUID().toString()
-        val refreshJti = UUID.randomUUID().toString()
+        val accessJti =
+            java.util.UUID
+                .randomUUID()
+                .toString()
+        val refreshJti =
+            java.util.UUID
+                .randomUUID()
+                .toString()
 
         val accessToken =
             buildToken(
                 jti = accessJti,
-                subject = agentId.toString(),
+                subject = agentId,
                 tenantId = tenantId,
                 role = role,
                 tokenType = TokenType.ACCESS,
@@ -142,7 +147,7 @@ class JjwtTokenProvider(
                 ?: throw UnauthorizedException("Missing tenant id claim")
 
         return JwtClaims(
-            subject = UUID.fromString(claims.subject),
+            subject = claims.subject,
             role = role,
             tenantId = tenantId,
             tokenType = tokenType,
