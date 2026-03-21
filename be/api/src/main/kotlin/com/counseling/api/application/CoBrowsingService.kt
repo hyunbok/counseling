@@ -19,7 +19,6 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -53,7 +52,10 @@ class CoBrowsingService(
                         val now = Instant.now()
                         val session =
                             CoBrowsingSession(
-                                id = UUID.randomUUID(),
+                                id =
+                                    java.util.UUID
+                                        .randomUUID()
+                                        .toString(),
                                 channelId = command.channelId,
                                 initiatedBy = command.agentId,
                                 status = CoBrowsingStatus.REQUESTED,
@@ -107,7 +109,7 @@ class CoBrowsingService(
                     }.flatMap { saved ->
                         coBrowsingSessionReadRepository
                             .updateStatus(
-                                id = saved.id,
+                                id = saved.id!!,
                                 status = saved.status,
                                 startedAt = saved.startedAt,
                                 endedAt = saved.endedAt,
@@ -145,7 +147,7 @@ class CoBrowsingService(
                     }.flatMap { saved ->
                         coBrowsingSessionReadRepository
                             .updateStatus(
-                                id = saved.id,
+                                id = saved.id!!,
                                 status = saved.status,
                                 startedAt = saved.startedAt,
                                 endedAt = saved.endedAt,

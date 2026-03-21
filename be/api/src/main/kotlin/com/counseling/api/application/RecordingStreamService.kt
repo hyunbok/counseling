@@ -14,7 +14,6 @@ import org.springframework.core.io.FileSystemResource
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.io.File
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -24,9 +23,9 @@ class RecordingStreamService(
     private val recordingProperties: RecordingProperties,
 ) : RecordingStreamUseCase {
     override fun getRecordingResource(
-        channelId: UUID,
-        recordingId: UUID,
-        agentId: UUID,
+        channelId: String,
+        recordingId: String,
+        agentId: String,
     ): Mono<RecordingResource> =
         recordingRepository
             .findByIdAndNotDeleted(recordingId)

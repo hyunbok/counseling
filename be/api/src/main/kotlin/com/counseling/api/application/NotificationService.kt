@@ -17,7 +17,6 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -34,7 +33,10 @@ class NotificationService(
         TenantContext.getTenantId().flatMap { tenantId ->
             val notification =
                 Notification(
-                    id = UUID.randomUUID(),
+                    id =
+                        java.util.UUID
+                            .randomUUID()
+                            .toString(),
                     recipientId = command.recipientId,
                     recipientType = command.recipientType,
                     type = command.type,
@@ -98,8 +100,8 @@ class NotificationService(
         }
 
     override fun markAsRead(
-        notificationId: UUID,
-        recipientId: UUID,
+        notificationId: String,
+        recipientId: String,
     ): Mono<Notification> =
         TenantContext.getTenantId().flatMap { tenantId ->
             notificationRepository
@@ -125,7 +127,7 @@ class NotificationService(
                 }
         }
 
-    override fun markAllAsRead(recipientId: UUID): Mono<Void> =
+    override fun markAllAsRead(recipientId: String): Mono<Void> =
         TenantContext.getTenantId().flatMap { tenantId ->
             notificationRepository
                 .markAllAsReadByRecipientId(recipientId)

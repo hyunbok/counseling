@@ -1,10 +1,9 @@
 package com.counseling.admin.domain
 
 import java.time.Instant
-import java.util.UUID
 
 data class Tenant(
-    val id: UUID,
+    val id: String? = null,
     val name: String,
     val slug: String,
     val status: TenantStatus,

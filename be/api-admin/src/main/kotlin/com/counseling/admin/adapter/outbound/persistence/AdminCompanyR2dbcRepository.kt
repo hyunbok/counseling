@@ -14,8 +14,9 @@ import java.util.UUID
 class AdminCompanyR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : AdminCompanyRepository {
-    override fun save(company: Company): Mono<Company> =
-        databaseClient
+    override fun save(company: Company): Mono<Company> {
+        val id = company.id ?: UUID.randomUUID().toString()
+        return databaseClient
             .sql(
                 """
                 INSERT INTO companies (id, name, contact, address, created_at, updated_at)
@@ -23,21 +24,22 @@ class AdminCompanyR2dbcRepository(
                 ON CONFLICT (id) DO UPDATE SET
                     name = :name, contact = :contact, address = :address, updated_at = :updatedAt
                 """.trimIndent(),
-            ).bind("id", company.id)
+            ).bind("id", id)
             .bind("name", company.name)
             .bindNullable("contact", company.contact, String::class.java)
             .bindNullable("address", company.address, String::class.java)
             .bind("createdAt", company.createdAt)
             .bind("updatedAt", company.updatedAt)
             .then()
-            .thenReturn(company)
+            .thenReturn(company.copy(id = id))
+    }
 
     override fun findFirst(): Mono<Company> =
         databaseClient
             .sql("SELECT * FROM companies LIMIT 1")
             .map { row ->
                 Company(
-                    id = row.get("id", UUID::class.java)!!,
+                    id = row.get("id", String::class.java)!!,
                     name = row.get("name", String::class.java)!!,
                     contact = row.get("contact", String::class.java),
                     address = row.get("address", String::class.java),

@@ -19,13 +19,11 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/queue")
@@ -37,10 +35,9 @@ class QueueController(
     @ResponseStatus(HttpStatus.CREATED)
     fun enter(
         @RequestBody request: EnterQueueRequest,
-        @RequestHeader("User-Agent", required = false) userAgent: String?,
     ): Mono<EnterQueueResponse> =
         queueUseCase
-            .enterQueue(request.name, request.contact, request.groupId, userAgent)
+            .enterQueue(request.name, request.contact, request.groupId)
             .map { result ->
                 EnterQueueResponse(
                     entryId = result.entry.id,
@@ -52,7 +49,7 @@ class QueueController(
     @DeleteMapping("/{entryId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun leave(
-        @PathVariable entryId: UUID,
+        @PathVariable entryId: String,
     ): Mono<Void> = queueUseCase.leaveQueue(entryId)
 
     @GetMapping
@@ -71,7 +68,7 @@ class QueueController(
 
     @PostMapping("/{entryId}/accept")
     fun accept(
-        @PathVariable entryId: UUID,
+        @PathVariable entryId: String,
     ): Mono<AcceptResponse> =
         authenticatedAgent().flatMap { principal ->
             queueUseCase
@@ -91,7 +88,7 @@ class QueueController(
 
     @GetMapping("/position/{entryId}")
     fun getPosition(
-        @PathVariable entryId: UUID,
+        @PathVariable entryId: String,
     ): Mono<PositionResponse> =
         queueUseCase.getPosition(entryId).map { result ->
             PositionResponse(
@@ -115,7 +112,7 @@ class QueueController(
 
     @GetMapping("/position/{entryId}/stream", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun streamPosition(
-        @PathVariable entryId: UUID,
+        @PathVariable entryId: String,
     ): Flux<PositionUpdateEvent> =
         queueUseCase.subscribePositionUpdates(entryId).map { update ->
             PositionUpdateEvent(

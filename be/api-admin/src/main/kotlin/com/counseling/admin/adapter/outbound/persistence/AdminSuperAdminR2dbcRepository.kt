@@ -8,7 +8,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -21,7 +20,7 @@ class AdminSuperAdminR2dbcRepository(
             .bind("username", username)
             .map { row ->
                 SuperAdmin(
-                    id = row.get("id", UUID::class.java)!!,
+                    id = row.get("id", String::class.java)!!,
                     username = row.get("username", String::class.java)!!,
                     passwordHash = row.get("password_hash", String::class.java)!!,
                     createdAt = row.get("created_at", Instant::class.java)!!,

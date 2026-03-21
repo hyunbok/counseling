@@ -1,16 +1,15 @@
 package com.counseling.api.domain
 
 import java.time.Instant
-import java.util.UUID
 
 data class Notification(
-    val id: UUID,
-    val recipientId: UUID,
+    val id: String? = null,
+    val recipientId: String,
     val recipientType: RecipientType,
     val type: NotificationType,
     val title: String,
     val body: String,
-    val referenceId: UUID?,
+    val referenceId: String?,
     val referenceType: String?,
     val deliveryMethod: DeliveryMethod,
     val read: Boolean = false,

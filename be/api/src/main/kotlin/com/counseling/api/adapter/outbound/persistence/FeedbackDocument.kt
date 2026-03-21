@@ -6,7 +6,6 @@ import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.index.CompoundIndexes
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
-import java.util.UUID
 
 @Document(collection = "feedbacks")
 @CompoundIndexes(
@@ -31,8 +30,8 @@ data class FeedbackDocument(
 ) {
     fun toDomain(): Feedback =
         Feedback(
-            id = UUID.fromString(id),
-            channelId = UUID.fromString(channelId),
+            id = id,
+            channelId = channelId,
             rating = rating,
             comment = comment,
             createdAt = createdAt,
@@ -44,9 +43,9 @@ data class FeedbackDocument(
             tenantId: String,
         ): FeedbackDocument =
             FeedbackDocument(
-                id = feedback.id.toString(),
+                id = feedback.id ?: throw IllegalStateException("Feedback id must not be null"),
                 tenantId = tenantId,
-                channelId = feedback.channelId.toString(),
+                channelId = feedback.channelId,
                 rating = feedback.rating,
                 comment = feedback.comment,
                 createdAt = feedback.createdAt,

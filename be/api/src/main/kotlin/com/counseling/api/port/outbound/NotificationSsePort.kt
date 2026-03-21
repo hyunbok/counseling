@@ -2,15 +2,14 @@ package com.counseling.api.port.outbound
 
 import com.counseling.api.domain.Notification
 import reactor.core.publisher.Flux
-import java.util.UUID
 
 interface NotificationSsePort {
     fun emit(
-        recipientId: UUID,
+        recipientId: String,
         notification: Notification,
     )
 
-    fun subscribe(recipientId: UUID): Flux<Notification>
+    fun subscribe(recipientId: String): Flux<Notification>
 
-    fun removeRecipient(recipientId: UUID)
+    fun removeRecipient(recipientId: String)
 }

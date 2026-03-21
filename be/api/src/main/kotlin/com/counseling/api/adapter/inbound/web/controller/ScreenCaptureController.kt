@@ -31,7 +31,6 @@ import reactor.core.publisher.Mono
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Instant
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/channels/{channelId}/captures")
@@ -43,7 +42,7 @@ class ScreenCaptureController(
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @ResponseStatus(HttpStatus.CREATED)
     fun captureScreen(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestPart("image") imagePart: FilePart,
         @RequestPart("note", required = false) note: String?,
     ): Mono<ScreenCaptureResponse> =
@@ -74,7 +73,7 @@ class ScreenCaptureController(
 
     @GetMapping
     fun listCaptures(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestParam(required = false) before: Instant?,
         @RequestParam(defaultValue = "20") limit: Int,
     ): Mono<ScreenCaptureListResponse> =
@@ -90,8 +89,8 @@ class ScreenCaptureController(
 
     @GetMapping("/{captureId}/download")
     fun downloadCapture(
-        @PathVariable channelId: UUID,
-        @PathVariable captureId: UUID,
+        @PathVariable channelId: String,
+        @PathVariable captureId: String,
     ): Mono<ResponseEntity<Resource>> =
         screenCaptureUseCase
             .download(channelId, captureId)
@@ -112,14 +111,14 @@ class ScreenCaptureController(
 
     @GetMapping("/stream", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun streamCaptureEvents(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Flux<ScreenCaptureResponse> = screenCaptureQuery.streamCaptureEvents(channelId).map { it.toResponse() }
 
     @DeleteMapping("/{captureId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteCapture(
-        @PathVariable channelId: UUID,
-        @PathVariable captureId: UUID,
+        @PathVariable channelId: String,
+        @PathVariable captureId: String,
     ): Mono<Void> =
         authenticatedAgent().flatMap {
             screenCaptureUseCase.delete(channelId, captureId)

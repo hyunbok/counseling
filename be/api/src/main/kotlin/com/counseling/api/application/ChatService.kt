@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -36,7 +35,10 @@ class ChatService(
                 }
                 val message =
                     ChatMessage(
-                        id = UUID.randomUUID(),
+                        id =
+                            java.util.UUID
+                                .randomUUID()
+                                .toString(),
                         channelId = command.channelId,
                         senderType = command.senderType,
                         senderId = command.senderId,

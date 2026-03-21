@@ -30,9 +30,9 @@ class NotificationQueryServiceTest :
 
         afterEach { clearAllMocks() }
 
-        fun makeNotification(recipientId: UUID = UUID.randomUUID()): Notification =
+        fun makeNotification(recipientId: String = UUID.randomUUID().toString()): Notification =
             Notification(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 recipientId = recipientId,
                 recipientType = RecipientType.AGENT,
                 type = NotificationType.NEW_COUNSELING_REQUEST,
@@ -46,7 +46,7 @@ class NotificationQueryServiceTest :
             )
 
         "getHistory() should return paginated results from MongoDB" {
-            val recipientId = UUID.randomUUID()
+            val recipientId = UUID.randomUUID().toString()
             val limit = 10
             val notifications = (1..3).map { makeNotification(recipientId) }
 
@@ -79,7 +79,7 @@ class NotificationQueryServiceTest :
         }
 
         "getHistory() should set hasMore when more results exist" {
-            val recipientId = UUID.randomUUID()
+            val recipientId = UUID.randomUUID().toString()
             val limit = 3
             val notifications = (1..(limit + 1)).map { makeNotification(recipientId) }
 
@@ -112,7 +112,7 @@ class NotificationQueryServiceTest :
         }
 
         "getUnreadCount() should return count from MongoDB" {
-            val recipientId = UUID.randomUUID()
+            val recipientId = UUID.randomUUID().toString()
 
             every {
                 notificationReadRepository.countUnread(recipientId, tenantId)
@@ -135,7 +135,7 @@ class NotificationQueryServiceTest :
         }
 
         "streamNotifications() should delegate to SSE port" {
-            val recipientId = UUID.randomUUID()
+            val recipientId = UUID.randomUUID().toString()
             val notification = makeNotification(recipientId)
 
             every { notificationSsePort.subscribe(recipientId) } returns Flux.just(notification)
@@ -147,7 +147,7 @@ class NotificationQueryServiceTest :
         }
 
         "streamNotifications() should cleanup on cancel" {
-            val recipientId = UUID.randomUUID()
+            val recipientId = UUID.randomUUID().toString()
 
             every { notificationSsePort.subscribe(recipientId) } returns Flux.never()
 

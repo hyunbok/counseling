@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/channels/{channelId}/recordings")
@@ -28,7 +27,7 @@ class RecordingController(
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun startRecording(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<StartRecordingResponse> =
         authenticatedAgent().flatMap { principal ->
             recordingUseCase
@@ -46,7 +45,7 @@ class RecordingController(
 
     @PostMapping("/stop")
     fun stopRecording(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<StopRecordingResponse> =
         authenticatedAgent().flatMap { principal ->
             recordingUseCase
@@ -66,7 +65,7 @@ class RecordingController(
 
     @GetMapping
     fun getRecordings(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<RecordingListResponse> =
         authenticatedAgent().flatMap { principal ->
             recordingUseCase

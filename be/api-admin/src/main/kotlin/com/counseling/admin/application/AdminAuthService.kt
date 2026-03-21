@@ -96,7 +96,7 @@ class AdminAuthService(
                         } else {
                             val tokenPair =
                                 jwtTokenProvider.generateTokenPair(
-                                    admin.id,
+                                    admin.id!!,
                                     null,
                                     AdminRole.SUPER_ADMIN,
                                 )
@@ -143,7 +143,7 @@ class AdminAuthService(
                             } else {
                                 val tokenPair =
                                     jwtTokenProvider.generateTokenPair(
-                                        agent.id,
+                                        agent.id!!,
                                         tenantId,
                                         AdminRole.COMPANY_ADMIN,
                                     )

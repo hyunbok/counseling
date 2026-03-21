@@ -1,10 +1,9 @@
 package com.counseling.api.domain.auth
 
 import com.counseling.api.domain.AgentRole
-import java.util.UUID
 
 data class AuthenticatedAgent(
-    val agentId: UUID,
+    val agentId: String,
     val tenantId: String,
     val role: AgentRole,
     val jti: String,

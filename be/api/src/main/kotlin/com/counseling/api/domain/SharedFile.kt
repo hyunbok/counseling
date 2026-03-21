@@ -1,11 +1,10 @@
 package com.counseling.api.domain
 
 import java.time.Instant
-import java.util.UUID
 
 data class SharedFile(
-    val id: UUID,
-    val channelId: UUID,
+    val id: String? = null,
+    val channelId: String,
     val uploaderId: String,
     val uploaderType: SenderType,
     val originalFilename: String,

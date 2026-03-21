@@ -11,7 +11,7 @@ class JwtClaimsTest :
     StringSpec({
         fun createClaims(expiration: Instant): JwtClaims =
             JwtClaims(
-                subject = UUID.randomUUID(),
+                subject = UUID.randomUUID().toString(),
                 role = AgentRole.COUNSELOR,
                 tenantId = "test-tenant",
                 tokenType = TokenType.ACCESS,

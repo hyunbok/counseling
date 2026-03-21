@@ -12,9 +12,9 @@ import java.util.UUID
 
 class NotificationSseAdapterTest :
     StringSpec({
-        fun makeNotification(recipientId: UUID = UUID.randomUUID()): Notification =
+        fun makeNotification(recipientId: String = UUID.randomUUID().toString()): Notification =
             Notification(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 recipientId = recipientId,
                 recipientType = RecipientType.AGENT,
                 type = NotificationType.NEW_COUNSELING_REQUEST,
@@ -29,7 +29,7 @@ class NotificationSseAdapterTest :
 
         "emit() then subscribe() should receive notification" {
             val adapter = NotificationSseAdapter()
-            val recipientId = UUID.randomUUID()
+            val recipientId = UUID.randomUUID().toString()
             val notification = makeNotification(recipientId)
 
             val flux = adapter.subscribe(recipientId)
@@ -45,8 +45,8 @@ class NotificationSseAdapterTest :
 
         "subscribe() from different recipients should be isolated" {
             val adapter = NotificationSseAdapter()
-            val recipientA = UUID.randomUUID()
-            val recipientB = UUID.randomUUID()
+            val recipientA = UUID.randomUUID().toString()
+            val recipientB = UUID.randomUUID().toString()
             val notificationA = makeNotification(recipientA)
 
             val fluxB = adapter.subscribe(recipientB)
@@ -71,7 +71,7 @@ class NotificationSseAdapterTest :
 
         "removeRecipient() should clean up sink" {
             val adapter = NotificationSseAdapter()
-            val recipientId = UUID.randomUUID()
+            val recipientId = UUID.randomUUID().toString()
             val notification = makeNotification(recipientId)
 
             val flux = adapter.subscribe(recipientId)

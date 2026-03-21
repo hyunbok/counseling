@@ -3,19 +3,18 @@ package com.counseling.admin.port.inbound
 import com.counseling.admin.domain.Agent
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 data class CreateAgentCommand(
     val username: String,
     val name: String,
     val role: String,
-    val groupId: UUID?,
+    val groupId: String?,
 )
 
 data class UpdateAgentCommand(
     val name: String?,
     val role: String?,
-    val groupId: UUID?,
+    val groupId: String?,
 )
 
 data class CreateAgentResult(
@@ -29,32 +28,29 @@ data class AgentWithGroupName(
 )
 
 interface AgentManagementUseCase {
-    fun listAgents(groupId: UUID?): Flux<Agent>
+    fun listAgents(groupId: String?): Flux<Agent>
 
-    fun listAgentsWithGroupName(groupId: UUID?): Flux<AgentWithGroupName>
+    fun listAgentsWithGroupName(groupId: String?): Flux<AgentWithGroupName>
 
     fun listAgentsPaged(
-        search: String?,
-        role: String?,
-        active: Boolean?,
-        agentStatus: String?,
+        groupId: String?,
         page: Int,
         size: Int,
     ): Mono<PagedResult<AgentWithGroupName>>
 
-    fun getAgent(id: UUID): Mono<Agent>
+    fun getAgent(id: String): Mono<Agent>
 
     fun createAgent(command: CreateAgentCommand): Mono<CreateAgentResult>
 
     fun updateAgent(
-        id: UUID,
+        id: String,
         command: UpdateAgentCommand,
     ): Mono<Agent>
 
     fun toggleAgentActive(
-        id: UUID,
+        id: String,
         active: Boolean,
     ): Mono<Agent>
 
-    fun resetPassword(id: UUID): Mono<String>
+    fun resetPassword(id: String): Mono<String>
 }

@@ -5,7 +5,6 @@ import com.counseling.api.domain.NotificationType
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 interface NotificationReadRepository {
     fun save(
@@ -14,7 +13,7 @@ interface NotificationReadRepository {
     ): Mono<Notification>
 
     fun findByRecipientId(
-        recipientId: UUID,
+        recipientId: String,
         tenantId: String,
         type: NotificationType?,
         read: Boolean?,
@@ -23,17 +22,17 @@ interface NotificationReadRepository {
     ): Flux<Notification>
 
     fun countUnread(
-        recipientId: UUID,
+        recipientId: String,
         tenantId: String,
     ): Mono<Long>
 
     fun markAsRead(
-        notificationId: UUID,
+        notificationId: String,
         tenantId: String,
     ): Mono<Boolean>
 
     fun markAllAsRead(
-        recipientId: UUID,
+        recipientId: String,
         tenantId: String,
     ): Mono<Long>
 }

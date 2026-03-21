@@ -24,15 +24,15 @@ class NotificationControllerTest :
         val notificationQuery = mockk<NotificationQuery>()
         val controller = NotificationController(notificationUseCase, notificationQuery)
 
-        val agentId = UUID.randomUUID()
-        val notificationId = UUID.randomUUID()
+        val agentId = UUID.randomUUID().toString()
+        val notificationId = UUID.randomUUID().toString()
         val now = Instant.now()
 
         // Note: All controller methods require authenticatedAgent() via ReactiveSecurityContextHolder.
         // Tests verify the use case / query mapping logic directly via the port mocks.
 
         fun makeNotification(
-            id: UUID = notificationId,
+            id: String = notificationId,
             read: Boolean = false,
         ): Notification =
             Notification(
@@ -70,7 +70,7 @@ class NotificationControllerTest :
         }
 
         "getHistory use case sets hasMore when more results exist" {
-            val notifications = (1..3).map { makeNotification(id = UUID.randomUUID()) }
+            val notifications = (1..3).map { makeNotification(id = UUID.randomUUID().toString()) }
             val result =
                 NotificationHistoryResult(
                     notifications = notifications,

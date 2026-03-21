@@ -6,7 +6,6 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
-import java.util.UUID
 
 @Document(collection = "chat_messages")
 @CompoundIndex(name = "idx_channel_created", def = "{'channelId': 1, 'createdAt': -1}")
@@ -21,8 +20,8 @@ data class ChatMessageDocument(
 ) {
     fun toDomain(): ChatMessage =
         ChatMessage(
-            id = UUID.fromString(id),
-            channelId = UUID.fromString(channelId),
+            id = id,
+            channelId = channelId,
             senderType = SenderType.valueOf(senderType),
             senderId = senderId,
             content = content,
@@ -32,8 +31,8 @@ data class ChatMessageDocument(
     companion object {
         fun fromDomain(message: ChatMessage): ChatMessageDocument =
             ChatMessageDocument(
-                id = message.id.toString(),
-                channelId = message.channelId.toString(),
+                id = message.id ?: throw IllegalStateException("ChatMessage id must not be null"),
+                channelId = message.channelId,
                 senderType = message.senderType.name,
                 senderId = message.senderId,
                 content = message.content,

@@ -6,7 +6,6 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
-import java.util.UUID
 
 @Document(collection = "co_browsing_sessions")
 @CompoundIndex(name = "idx_tenant_channel_created", def = "{'tenantId': 1, 'channelId': 1, 'createdAt': -1}")
@@ -25,9 +24,9 @@ data class CoBrowsingSessionDocument(
 ) {
     fun toDomain(): CoBrowsingSession =
         CoBrowsingSession(
-            id = UUID.fromString(id),
-            channelId = UUID.fromString(channelId),
-            initiatedBy = UUID.fromString(initiatedBy),
+            id = id,
+            channelId = channelId,
+            initiatedBy = initiatedBy,
             status = CoBrowsingStatus.valueOf(status),
             startedAt = startedAt,
             endedAt = endedAt,
@@ -42,10 +41,10 @@ data class CoBrowsingSessionDocument(
             tenantId: String? = null,
         ): CoBrowsingSessionDocument =
             CoBrowsingSessionDocument(
-                id = session.id.toString(),
+                id = session.id ?: throw IllegalStateException("CoBrowsingSession id must not be null"),
                 tenantId = tenantId,
-                channelId = session.channelId.toString(),
-                initiatedBy = session.initiatedBy.toString(),
+                channelId = session.channelId,
+                initiatedBy = session.initiatedBy,
                 status = session.status.name,
                 startedAt = session.startedAt,
                 endedAt = session.endedAt,

@@ -4,10 +4,9 @@ import com.counseling.api.domain.SenderType
 import com.counseling.api.domain.SharedFile
 import org.springframework.core.io.Resource
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 data class UploadFileCommand(
-    val channelId: UUID,
+    val channelId: String,
     val uploaderId: String,
     val uploaderType: SenderType,
     val originalFilename: String,
@@ -27,12 +26,12 @@ interface SharedFileUseCase {
     fun upload(command: UploadFileCommand): Mono<SharedFile>
 
     fun download(
-        channelId: UUID,
-        fileId: UUID,
+        channelId: String,
+        fileId: String,
     ): Mono<SharedFileResource>
 
     fun delete(
-        channelId: UUID,
-        fileId: UUID,
+        channelId: String,
+        fileId: String,
     ): Mono<Void>
 }

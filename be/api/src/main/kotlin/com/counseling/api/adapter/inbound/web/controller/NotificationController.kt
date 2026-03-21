@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -67,7 +66,7 @@ class NotificationController(
 
     @PatchMapping("/{notificationId}/read")
     fun markAsRead(
-        @PathVariable notificationId: UUID,
+        @PathVariable notificationId: String,
     ): Mono<NotificationResponse> =
         authenticatedAgent().flatMap { agent ->
             notificationUseCase.markAsRead(notificationId, agent.agentId).map { it.toResponse() }

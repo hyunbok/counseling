@@ -1,19 +1,18 @@
 package com.counseling.admin.adapter.inbound.web.dto
 
 import java.time.Instant
-import java.util.UUID
 
 data class CreateAgentRequest(
     val username: String,
     val name: String,
     val role: String,
-    val groupId: UUID?,
+    val groupId: String?,
 )
 
 data class UpdateAgentRequest(
     val name: String?,
     val role: String?,
-    val groupId: UUID?,
+    val groupId: String?,
 )
 
 data class UpdateAgentStatusRequest(
@@ -21,11 +20,11 @@ data class UpdateAgentStatusRequest(
 )
 
 data class AgentResponse(
-    val id: UUID,
+    val id: String?,
     val username: String,
     val name: String,
     val role: String,
-    val groupId: UUID?,
+    val groupId: String?,
     val groupName: String?,
     val active: Boolean,
     val agentStatus: String,
@@ -34,11 +33,11 @@ data class AgentResponse(
 )
 
 data class CreateAgentResponse(
-    val id: UUID,
+    val id: String?,
     val username: String,
     val name: String,
     val role: String,
-    val groupId: UUID?,
+    val groupId: String?,
     val temporaryPassword: String,
     val active: Boolean,
     val createdAt: Instant,

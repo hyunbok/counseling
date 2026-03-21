@@ -15,7 +15,6 @@ import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -28,18 +27,17 @@ class HistoryMongoRepository(
                 .where("tenantId")
                 .`is`(projection.tenantId)
                 .and("channelId")
-                .`is`(projection.channelId.toString())
+                .`is`(projection.channelId)
         val update =
             Update()
-                .setOnInsert("channelId", projection.channelId.toString())
+                .setOnInsert("channelId", projection.channelId)
                 .setOnInsert("tenantId", projection.tenantId)
-                .set("agentId", projection.agentId?.toString())
+                .set("agentId", projection.agentId)
                 .set("agentName", projection.agentName)
-                .set("groupId", projection.groupId?.toString())
+                .set("groupId", projection.groupId)
                 .set("groupName", projection.groupName)
                 .set("customerName", projection.customerName)
                 .set("customerContact", projection.customerContact)
-                .set("customerDevice", projection.customerDevice?.let { EmbeddedCustomerDevice.fromInfo(it) })
                 .set("status", projection.status)
                 .set("startedAt", projection.startedAt)
                 .set("endedAt", projection.endedAt)
@@ -55,7 +53,7 @@ class HistoryMongoRepository(
     }
 
     override fun updateRecording(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
         recording: RecordingProjection,
     ): Mono<Void> {
@@ -64,10 +62,10 @@ class HistoryMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("channelId")
-                .`is`(channelId.toString())
+                .`is`(channelId)
         val update =
             Update()
-                .set("recording.recordingId", recording.recordingId.toString())
+                .set("recording.recordingId", recording.recordingId)
                 .set("recording.status", recording.status)
                 .set("recording.filePath", recording.filePath)
                 .set("recording.startedAt", recording.startedAt)
@@ -82,7 +80,7 @@ class HistoryMongoRepository(
     }
 
     override fun updateFeedback(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
         feedback: FeedbackProjection,
     ): Mono<Void> {
@@ -91,7 +89,7 @@ class HistoryMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("channelId")
-                .`is`(channelId.toString())
+                .`is`(channelId)
         val update =
             Update()
                 .set("feedback.rating", feedback.rating)
@@ -107,7 +105,7 @@ class HistoryMongoRepository(
     }
 
     override fun updateCounselNote(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
         counselNote: CounselNoteProjection,
     ): Mono<Void> {
@@ -116,10 +114,10 @@ class HistoryMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("channelId")
-                .`is`(channelId.toString())
+                .`is`(channelId)
         val update =
             Update()
-                .set("counselNote.noteId", counselNote.noteId.toString())
+                .set("counselNote.noteId", counselNote.noteId)
                 .set("counselNote.content", counselNote.content)
                 .set("counselNote.createdAt", counselNote.createdAt)
                 .set("counselNote.updatedAt", counselNote.updatedAt)
@@ -133,7 +131,7 @@ class HistoryMongoRepository(
     }
 
     override fun updateStatus(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
         status: String,
         endedAt: Instant?,
@@ -144,7 +142,7 @@ class HistoryMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("channelId")
-                .`is`(channelId.toString())
+                .`is`(channelId)
         val update =
             Update()
                 .set("status", status)
@@ -161,62 +159,19 @@ class HistoryMongoRepository(
 
     override fun findByTenantId(
         tenantId: String,
-        agentId: UUID?,
-        groupId: UUID?,
-        status: String?,
-        customerName: String?,
+        agentId: String?,
+        groupId: String?,
         dateFrom: Instant?,
         dateTo: Instant?,
-        skip: Int,
+        before: Instant?,
         limit: Int,
     ): Mono<List<HistoryProjection>> {
-        val criteria = buildCriteria(tenantId, agentId, groupId, status, customerName, dateFrom, dateTo)
-        val query =
-            Query
-                .query(criteria)
-                .with(Sort.by(Sort.Direction.DESC, "startedAt"))
-                .skip(skip.toLong())
-                .limit(limit)
-        return mongoTemplate
-            .find(query, ChannelHistoryDocument::class.java, COLLECTION_NAME)
-            .map { it.toProjection() }
-            .collectList()
-    }
-
-    override fun countByTenantId(
-        tenantId: String,
-        agentId: UUID?,
-        groupId: UUID?,
-        status: String?,
-        customerName: String?,
-        dateFrom: Instant?,
-        dateTo: Instant?,
-    ): Mono<Long> {
-        val criteria = buildCriteria(tenantId, agentId, groupId, status, customerName, dateFrom, dateTo)
-        return mongoTemplate.count(Query.query(criteria), COLLECTION_NAME)
-    }
-
-    private fun buildCriteria(
-        tenantId: String,
-        agentId: UUID?,
-        groupId: UUID?,
-        status: String?,
-        customerName: String?,
-        dateFrom: Instant?,
-        dateTo: Instant?,
-    ): Criteria {
         var criteria = Criteria.where("tenantId").`is`(tenantId)
         if (agentId != null) {
-            criteria = criteria.and("agentId").`is`(agentId.toString())
+            criteria = criteria.and("agentId").`is`(agentId)
         }
         if (groupId != null) {
-            criteria = criteria.and("groupId").`is`(groupId.toString())
-        }
-        if (status != null) {
-            criteria = criteria.and("status").`is`(status)
-        }
-        if (!customerName.isNullOrBlank()) {
-            criteria = criteria.and("customerName").regex(customerName, "i")
+            criteria = criteria.and("groupId").`is`(groupId)
         }
         if (dateFrom != null && dateTo != null) {
             criteria = criteria.and("startedAt").gte(dateFrom).lte(dateTo)
@@ -225,11 +180,22 @@ class HistoryMongoRepository(
         } else if (dateTo != null) {
             criteria = criteria.and("startedAt").lte(dateTo)
         }
-        return criteria
+        if (before != null) {
+            criteria = criteria.and("endedAt").lt(before)
+        }
+        val query =
+            Query
+                .query(criteria)
+                .with(Sort.by(Sort.Direction.DESC, "endedAt"))
+                .limit(limit)
+        return mongoTemplate
+            .find(query, ChannelHistoryDocument::class.java, COLLECTION_NAME)
+            .map { it.toProjection() }
+            .collectList()
     }
 
     override fun findByChannelId(
-        channelId: UUID,
+        channelId: String,
         tenantId: String,
     ): Mono<HistoryProjection> {
         val criteria =
@@ -237,7 +203,7 @@ class HistoryMongoRepository(
                 .where("tenantId")
                 .`is`(tenantId)
                 .and("channelId")
-                .`is`(channelId.toString())
+                .`is`(channelId)
         return mongoTemplate
             .findOne(Query.query(criteria), ChannelHistoryDocument::class.java, COLLECTION_NAME)
             .map { it.toProjection() }

@@ -1,12 +1,11 @@
 package com.counseling.api.adapter.inbound.web.dto
 
 import java.time.Instant
-import java.util.UUID
 
 data class ScreenCaptureResponse(
-    val id: UUID,
-    val channelId: UUID,
-    val capturedBy: UUID,
+    val id: String?,
+    val channelId: String,
+    val capturedBy: String,
     val originalFilename: String,
     val contentType: String,
     val fileSize: Long,

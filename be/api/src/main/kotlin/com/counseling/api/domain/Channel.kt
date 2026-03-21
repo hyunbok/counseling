@@ -1,11 +1,10 @@
 package com.counseling.api.domain
 
 import java.time.Instant
-import java.util.UUID
 
 data class Channel(
-    val id: UUID,
-    val agentId: UUID?,
+    val id: String? = null,
+    val agentId: String?,
     val status: ChannelStatus,
     val startedAt: Instant?,
     val endedAt: Instant?,
@@ -15,7 +14,7 @@ data class Channel(
     val updatedAt: Instant,
     val deleted: Boolean = false,
 ) {
-    fun assignAgent(agentId: UUID): Channel = copy(agentId = agentId, updatedAt = Instant.now())
+    fun assignAgent(agentId: String): Channel = copy(agentId = agentId, updatedAt = Instant.now())
 
     fun withRoomName(name: String): Channel = copy(livekitRoomName = name, updatedAt = Instant.now())
 

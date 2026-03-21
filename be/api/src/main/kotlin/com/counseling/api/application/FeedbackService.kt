@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -60,7 +59,10 @@ class FeedbackService(
                             Mono.defer {
                                 val feedback =
                                     Feedback(
-                                        id = UUID.randomUUID(),
+                                        id =
+                                            java.util.UUID
+                                                .randomUUID()
+                                                .toString(),
                                         channelId = command.channelId,
                                         rating = command.rating,
                                         comment = command.comment,

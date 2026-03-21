@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.util.UUID
 import kotlin.math.ceil
 
 @RestController
@@ -34,14 +33,11 @@ class AgentController(
 ) {
     @GetMapping
     fun listAgents(
-        @RequestParam(required = false) search: String?,
-        @RequestParam(required = false) role: String?,
-        @RequestParam(required = false) active: Boolean?,
-        @RequestParam(required = false) agentStatus: String?,
+        @RequestParam(required = false) groupId: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): Mono<PageResponse<AgentResponse>> =
-        agentManagementUseCase.listAgentsPaged(search, role, active, agentStatus, page, size).map { result ->
+        agentManagementUseCase.listAgentsPaged(groupId, page, size).map { result ->
             PageResponse(
                 content =
                     result.content.map { item ->
@@ -67,7 +63,7 @@ class AgentController(
 
     @GetMapping("/{id}")
     fun getAgent(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
     ): Mono<AgentResponse> =
         agentManagementUseCase.getAgent(id).map { agent ->
             AgentResponse(
@@ -112,7 +108,7 @@ class AgentController(
 
     @PutMapping("/{id}")
     fun updateAgent(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
         @RequestBody request: UpdateAgentRequest,
     ): Mono<AgentResponse> =
         agentManagementUseCase
@@ -140,7 +136,7 @@ class AgentController(
 
     @PatchMapping("/{id}/status")
     fun toggleAgentActive(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
         @RequestBody request: UpdateAgentStatusRequest,
     ): Mono<AgentResponse> =
         agentManagementUseCase.toggleAgentActive(id, request.active).map { agent ->
@@ -160,7 +156,7 @@ class AgentController(
 
     @PostMapping("/{id}/reset-password")
     fun resetPassword(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
     ): Mono<ResetPasswordResponse> =
         agentManagementUseCase.resetPassword(id).map { tempPassword ->
             ResetPasswordResponse(temporaryPassword = tempPassword)

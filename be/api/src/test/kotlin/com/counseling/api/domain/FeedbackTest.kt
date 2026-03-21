@@ -12,8 +12,8 @@ class FeedbackTest :
 
         fun createFeedback(rating: Int): Feedback =
             Feedback(
-                id = UUID.randomUUID(),
-                channelId = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
+                channelId = UUID.randomUUID().toString(),
                 rating = rating,
                 comment = "test comment",
                 createdAt = baseInstant,

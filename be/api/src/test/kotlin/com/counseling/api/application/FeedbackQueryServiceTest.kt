@@ -27,8 +27,8 @@ class FeedbackQueryServiceTest :
 
         fun makeFeedback(): Feedback =
             Feedback(
-                id = UUID.randomUUID(),
-                channelId = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
+                channelId = UUID.randomUUID().toString(),
                 rating = 4,
                 comment = "Good",
                 createdAt = Instant.now(),
@@ -72,7 +72,7 @@ class FeedbackQueryServiceTest :
         }
 
         "getByChannelId() should return empty when feedback not found" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
 
             every {
                 feedbackReadRepository.findByChannelId(channelId, tenantId)

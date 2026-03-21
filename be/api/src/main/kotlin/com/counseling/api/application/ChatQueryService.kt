@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -19,7 +18,7 @@ class ChatQueryService(
     private val chatNotificationPort: ChatNotificationPort,
 ) : ChatQuery {
     override fun getMessageHistory(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Mono<ChatHistoryResult> =
@@ -37,5 +36,6 @@ class ChatQueryService(
                 )
             }
 
-    override fun streamMessages(channelId: UUID): Flux<ChatMessage> = chatNotificationPort.subscribeMessages(channelId)
+    override fun streamMessages(channelId: String): Flux<ChatMessage> =
+        chatNotificationPort.subscribeMessages(channelId)
 }

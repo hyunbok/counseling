@@ -12,8 +12,8 @@ class RecordingTest :
 
         fun makeRecording(status: RecordingStatus = RecordingStatus.RECORDING): Recording =
             Recording(
-                id = UUID.randomUUID(),
-                channelId = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
+                channelId = UUID.randomUUID().toString(),
                 egressId = "egress-123",
                 status = status,
                 filePath = null,

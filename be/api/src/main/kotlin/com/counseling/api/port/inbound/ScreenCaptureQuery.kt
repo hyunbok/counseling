@@ -4,7 +4,6 @@ import com.counseling.api.domain.ScreenCapture
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 data class ScreenCaptureListResult(
     val captures: List<ScreenCapture>,
@@ -14,10 +13,10 @@ data class ScreenCaptureListResult(
 
 interface ScreenCaptureQuery {
     fun listCaptures(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Mono<ScreenCaptureListResult>
 
-    fun streamCaptureEvents(channelId: UUID): Flux<ScreenCapture>
+    fun streamCaptureEvents(channelId: String): Flux<ScreenCapture>
 }

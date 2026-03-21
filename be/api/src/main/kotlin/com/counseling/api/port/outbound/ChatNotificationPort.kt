@@ -2,15 +2,14 @@ package com.counseling.api.port.outbound
 
 import com.counseling.api.domain.ChatMessage
 import reactor.core.publisher.Flux
-import java.util.UUID
 
 interface ChatNotificationPort {
     fun emitMessage(
-        channelId: UUID,
+        channelId: String,
         message: ChatMessage,
     )
 
-    fun subscribeMessages(channelId: UUID): Flux<ChatMessage>
+    fun subscribeMessages(channelId: String): Flux<ChatMessage>
 
-    fun removeChannel(channelId: UUID)
+    fun removeChannel(channelId: String)
 }

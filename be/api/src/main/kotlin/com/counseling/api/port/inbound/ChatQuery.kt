@@ -4,7 +4,6 @@ import com.counseling.api.domain.ChatMessage
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 data class ChatHistoryResult(
     val messages: List<ChatMessage>,
@@ -14,10 +13,10 @@ data class ChatHistoryResult(
 
 interface ChatQuery {
     fun getMessageHistory(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Mono<ChatHistoryResult>
 
-    fun streamMessages(channelId: UUID): Flux<ChatMessage>
+    fun streamMessages(channelId: String): Flux<ChatMessage>
 }

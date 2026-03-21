@@ -3,11 +3,10 @@ package com.counseling.admin.port.inbound
 import com.counseling.admin.domain.AdminRole
 import com.counseling.admin.domain.auth.TokenPair
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 data class AdminLoginResult(
     val tokenPair: TokenPair,
-    val adminId: UUID,
+    val adminId: String,
     val username: String,
     val name: String?,
     val role: AdminRole,

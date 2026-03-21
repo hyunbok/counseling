@@ -1,7 +1,6 @@
 package com.counseling.api.adapter.inbound.web.dto
 
 import java.time.Instant
-import java.util.UUID
 
 data class SubmitFeedbackRequest(
     val rating: Int,
@@ -9,8 +8,8 @@ data class SubmitFeedbackRequest(
 )
 
 data class FeedbackResponse(
-    val id: UUID,
-    val channelId: UUID,
+    val id: String?,
+    val channelId: String,
     val rating: Int,
     val comment: String?,
     val createdAt: Instant,

@@ -8,7 +8,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
@@ -16,6 +15,7 @@ class CompanyR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : CompanyRepository {
     override fun save(company: Company): Mono<Company> {
+        val id = company.id ?: throw IllegalStateException("Company id must not be null before save")
         val spec =
             databaseClient
                 .sql(
@@ -28,7 +28,7 @@ class CompanyR2dbcRepository(
                         address = :address,
                         updated_at = :updatedAt
                     """.trimIndent(),
-                ).bind("id", company.id)
+                ).bind("id", id)
                 .bind("name", company.name)
                 .bind("createdAt", company.createdAt)
                 .bind("updatedAt", company.updatedAt)
@@ -55,7 +55,7 @@ class CompanyR2dbcRepository(
 
     private fun mapToCompany(row: Readable): Company =
         Company(
-            id = row.get("id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
             name = row.get("name", String::class.java)!!,
             contact = row.get("contact", String::class.java),
             address = row.get("address", String::class.java),

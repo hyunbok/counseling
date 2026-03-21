@@ -26,8 +26,8 @@ class HistoryQueryServiceTest :
         afterEach { clearAllMocks() }
 
         fun makeProjection(
-            channelId: UUID = UUID.randomUUID(),
-            agentId: UUID = UUID.randomUUID(),
+            channelId: String = UUID.randomUUID().toString(),
+            agentId: String = UUID.randomUUID().toString(),
             endedAt: Instant? = Instant.now(),
         ): HistoryProjection =
             HistoryProjection(
@@ -39,7 +39,6 @@ class HistoryQueryServiceTest :
                 groupName = null,
                 customerName = "Test Customer",
                 customerContact = null,
-                customerDevice = null,
                 status = "CLOSED",
                 startedAt = Instant.now().minusSeconds(300),
                 endedAt = endedAt,
@@ -50,15 +49,12 @@ class HistoryQueryServiceTest :
             )
 
         "list() should return paginated results" {
-            val filter = HistoryFilter(size = 10)
+            val filter = HistoryFilter(limit = 10)
             val projections = (1..3).map { makeProjection() }
 
             every {
-                historyReadRepository.findByTenantId(tenantId, null, null, null, null, null, null, 0, 10)
+                historyReadRepository.findByTenantId(tenantId, null, null, null, null, null, 11)
             } returns Mono.just(projections)
-            every {
-                historyReadRepository.countByTenantId(tenantId, null, null, null, null, null, null)
-            } returns Mono.just(3L)
 
             StepVerifier
                 .create(
@@ -67,22 +63,38 @@ class HistoryQueryServiceTest :
                         .contextWrite(TenantContext.withTenantId(Context.empty(), tenantId)),
                 ).assertNext { result ->
                     result.items.size shouldBe 3
-                    result.totalCount shouldBe 3L
-                    result.totalPages shouldBe 1
+                    result.hasMore shouldBe false
+                }.verifyComplete()
+        }
+
+        "list() should set hasMore when more results exist" {
+            val limit = 3
+            val filter = HistoryFilter(limit = limit)
+            val projections = (1..(limit + 1)).map { makeProjection() }
+
+            every {
+                historyReadRepository.findByTenantId(tenantId, null, null, null, null, null, limit + 1)
+            } returns Mono.just(projections)
+
+            StepVerifier
+                .create(
+                    service
+                        .list(tenantId, filter)
+                        .contextWrite(TenantContext.withTenantId(Context.empty(), tenantId)),
+                ).assertNext { result ->
+                    result.items.size shouldBe limit
+                    result.hasMore shouldBe true
                 }.verifyComplete()
         }
 
         "list() should filter by agentId for COUNSELOR role" {
-            val agentId = UUID.randomUUID()
-            val filter = HistoryFilter(agentId = agentId, size = 20)
+            val agentId = UUID.randomUUID().toString()
+            val filter = HistoryFilter(agentId = agentId, limit = 20)
             val projections = listOf(makeProjection(agentId = agentId))
 
             every {
-                historyReadRepository.findByTenantId(tenantId, agentId, null, null, null, null, null, 0, 20)
+                historyReadRepository.findByTenantId(tenantId, agentId, null, null, null, null, 21)
             } returns Mono.just(projections)
-            every {
-                historyReadRepository.countByTenantId(tenantId, agentId, null, null, null, null, null)
-            } returns Mono.just(1L)
 
             StepVerifier
                 .create(
@@ -96,7 +108,7 @@ class HistoryQueryServiceTest :
         }
 
         "getDetail() should return history detail" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val projection = makeProjection(channelId = channelId)
 
             every {
@@ -116,7 +128,7 @@ class HistoryQueryServiceTest :
         }
 
         "getDetail() should return NotFoundException when not found" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
 
             every {
                 historyReadRepository.findByChannelId(channelId, tenantId)

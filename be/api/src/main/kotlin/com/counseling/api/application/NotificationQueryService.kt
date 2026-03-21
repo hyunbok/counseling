@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -21,7 +20,7 @@ class NotificationQueryService(
     private val notificationSsePort: NotificationSsePort,
 ) : NotificationQuery {
     override fun getHistory(
-        recipientId: UUID,
+        recipientId: String,
         type: NotificationType?,
         read: Boolean?,
         before: Instant?,
@@ -41,12 +40,12 @@ class NotificationQueryService(
                 }
         }
 
-    override fun getUnreadCount(recipientId: UUID): Mono<Long> =
+    override fun getUnreadCount(recipientId: String): Mono<Long> =
         TenantContext.getTenantId().flatMap { tenantId ->
             notificationReadRepository.countUnread(recipientId, tenantId)
         }
 
-    override fun streamNotifications(recipientId: UUID): Flux<Notification> =
+    override fun streamNotifications(recipientId: String): Flux<Notification> =
         notificationSsePort
             .subscribe(recipientId)
             .doFinally { notificationSsePort.removeRecipient(recipientId) }

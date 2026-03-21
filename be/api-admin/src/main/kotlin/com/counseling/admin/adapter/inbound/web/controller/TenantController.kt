@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.util.UUID
 import kotlin.math.ceil
 
 @RestController
@@ -35,13 +34,12 @@ class TenantController(
 ) {
     @GetMapping
     fun listTenants(
-        @RequestParam(required = false) search: String?,
         @RequestParam(required = false) status: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): Mono<PageResponse<TenantSummaryResponse>> =
         tenantManagementUseCase
-            .listTenants(search, status, page, size)
+            .listTenants(status, page, size)
             .map { result ->
                 PageResponse(
                     content = result.content.map { TenantSummaryResponse.from(it) },
@@ -54,7 +52,7 @@ class TenantController(
 
     @GetMapping("/{id}")
     fun getTenant(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
     ): Mono<TenantDetailResponse> =
         tenantManagementUseCase
             .getTenant(id)
@@ -80,7 +78,7 @@ class TenantController(
 
     @PutMapping("/{id}")
     fun updateTenant(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
         @RequestBody request: UpdateTenantRequest,
     ): Mono<TenantDetailResponse> =
         tenantManagementUseCase
@@ -98,7 +96,7 @@ class TenantController(
 
     @PatchMapping("/{id}/status")
     fun updateTenantStatus(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
         @RequestBody request: UpdateTenantStatusRequest,
     ): Mono<TenantDetailResponse> {
         val status =

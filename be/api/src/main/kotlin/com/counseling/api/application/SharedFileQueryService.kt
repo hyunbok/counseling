@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -19,7 +18,7 @@ class SharedFileQueryService(
     private val fileNotificationPort: FileNotificationPort,
 ) : SharedFileQuery {
     override fun listFiles(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Mono<SharedFileListResult> =
@@ -37,5 +36,5 @@ class SharedFileQueryService(
                 )
             }
 
-    override fun streamFileEvents(channelId: UUID): Flux<SharedFile> = fileNotificationPort.subscribeFiles(channelId)
+    override fun streamFileEvents(channelId: String): Flux<SharedFile> = fileNotificationPort.subscribeFiles(channelId)
 }

@@ -6,16 +6,15 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Sinks
-import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 @Component
 class InMemoryFileNotificationAdapter : FileNotificationPort {
     private val log = LoggerFactory.getLogger(javaClass)
-    private val channelSinks = ConcurrentHashMap<UUID, Sinks.Many<SharedFile>>()
+    private val channelSinks = ConcurrentHashMap<String, Sinks.Many<SharedFile>>()
 
     override fun emitFile(
-        channelId: UUID,
+        channelId: String,
         file: SharedFile,
     ) {
         val result = channelSink(channelId).tryEmitNext(file)
@@ -24,13 +23,13 @@ class InMemoryFileNotificationAdapter : FileNotificationPort {
         }
     }
 
-    override fun subscribeFiles(channelId: UUID): Flux<SharedFile> = channelSink(channelId).asFlux()
+    override fun subscribeFiles(channelId: String): Flux<SharedFile> = channelSink(channelId).asFlux()
 
-    override fun removeChannel(channelId: UUID) {
+    override fun removeChannel(channelId: String) {
         channelSinks.remove(channelId)?.tryEmitComplete()
     }
 
-    private fun channelSink(channelId: UUID): Sinks.Many<SharedFile> =
+    private fun channelSink(channelId: String): Sinks.Many<SharedFile> =
         channelSinks.computeIfAbsent(channelId) {
             Sinks.many().multicast().onBackpressureBuffer()
         }

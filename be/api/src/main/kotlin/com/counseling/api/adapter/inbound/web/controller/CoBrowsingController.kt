@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @RestController
 @RequestMapping("/api/channels/{channelId}/co-browsing")
@@ -36,7 +35,7 @@ class CoBrowsingController(
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun requestSession(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<CoBrowsingSessionResponse> =
         authenticatedAgent().flatMap { agent ->
             coBrowsingUseCase
@@ -46,8 +45,8 @@ class CoBrowsingController(
 
     @PostMapping("/{sessionId}/start")
     fun startSession(
-        @PathVariable channelId: UUID,
-        @PathVariable sessionId: UUID,
+        @PathVariable channelId: String,
+        @PathVariable sessionId: String,
     ): Mono<CoBrowsingSessionResponse> =
         coBrowsingUseCase
             .startSession(StartCoBrowsingCommand(channelId = channelId, sessionId = sessionId))
@@ -55,8 +54,8 @@ class CoBrowsingController(
 
     @PostMapping("/{sessionId}/end")
     fun endSession(
-        @PathVariable channelId: UUID,
-        @PathVariable sessionId: UUID,
+        @PathVariable channelId: String,
+        @PathVariable sessionId: String,
     ): Mono<CoBrowsingSessionResponse> =
         coBrowsingUseCase
             .endSession(EndCoBrowsingCommand(channelId = channelId, sessionId = sessionId))
@@ -64,7 +63,7 @@ class CoBrowsingController(
 
     @GetMapping("/active")
     fun getActiveSession(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<CoBrowsingSessionResponse> =
         coBrowsingQuery
             .getActiveSession(channelId)
@@ -72,7 +71,7 @@ class CoBrowsingController(
 
     @GetMapping
     fun listSessions(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestParam(required = false) before: Instant?,
         @RequestParam(defaultValue = "20") limit: Int,
     ): Mono<CoBrowsingSessionListResponse> =
@@ -90,7 +89,7 @@ class CoBrowsingController(
 
     @GetMapping("/stream", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun streamUpdates(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Flux<CoBrowsingSessionResponse> = coBrowsingQuery.streamUpdates(channelId).map { it.toResponse() }
 
     private fun authenticatedAgent(): Mono<AuthenticatedAgent> =

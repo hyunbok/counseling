@@ -32,7 +32,7 @@ class JwtAuthenticationWebFilterTest :
         val tokenBlacklistRepository = mockk<TokenBlacklistRepository>()
         val filter = JwtAuthenticationWebFilter(jwtTokenProvider, tokenBlacklistRepository)
 
-        val agentId = UUID.randomUUID()
+        val agentId = UUID.randomUUID().toString()
         val tenantId = "test-tenant"
         val jti = UUID.randomUUID().toString()
 

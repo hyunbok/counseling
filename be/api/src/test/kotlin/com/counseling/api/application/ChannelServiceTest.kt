@@ -63,7 +63,7 @@ class ChannelServiceTest :
 
         fun makeAgent(status: AgentStatus = AgentStatus.ONLINE): Agent =
             Agent(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 username = "agent1",
                 passwordHash = "hash",
                 name = "Agent One",
@@ -74,13 +74,13 @@ class ChannelServiceTest :
             )
 
         fun makeChannel(
-            agentId: UUID,
+            agentId: String,
             status: ChannelStatus = ChannelStatus.IN_PROGRESS,
             roomName: String? = "tenant-channel-id",
         ): Channel {
             val now = Instant.now()
             return Channel(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 agentId = agentId,
                 status = status,
                 startedAt = now,
@@ -93,12 +93,12 @@ class ChannelServiceTest :
         }
 
         fun makeEndpoint(
-            channelId: UUID,
+            channelId: String,
             type: EndpointType,
             customerName: String? = null,
         ): Endpoint =
             Endpoint(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
                 type = type,
                 customerName = customerName,
@@ -109,16 +109,16 @@ class ChannelServiceTest :
 
         "getAgentToken returns token for valid agent and open channel" {
             val agent = makeAgent()
-            val channel = makeChannel(agentId = agent.id, roomName = "room-123")
+            val channel = makeChannel(agentId = agent.id!!, roomName = "room-123")
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
             every { agentRepository.findByIdAndNotDeleted(agent.id) } returns Mono.just(agent)
             every {
                 liveKitPort.generateToken("room-123", "agent:${agent.id}", agent.name, true, true)
             } returns "agent-jwt-token"
 
             StepVerifier
-                .create(channelService.getAgentToken(channel.id, agent.id))
+                .create(channelService.getAgentToken(channel.id!!, agent.id!!))
                 .assertNext { result ->
                     result.token shouldBe "agent-jwt-token"
                     result.roomName shouldBe "room-123"
@@ -129,20 +129,20 @@ class ChannelServiceTest :
 
         "getAgentToken throws ConflictException when agent is not channel owner" {
             val agent = makeAgent()
-            val otherAgentId = UUID.randomUUID()
+            val otherAgentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = otherAgentId, roomName = "room-123")
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
-                .create(channelService.getAgentToken(channel.id, agent.id))
+                .create(channelService.getAgentToken(channel.id!!, agent.id!!))
                 .expectErrorMatches { it is ConflictException }
                 .verify()
         }
 
         "getAgentToken throws NotFoundException when channel not found" {
-            val channelId = UUID.randomUUID()
-            val agentId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val agentId = UUID.randomUUID().toString()
 
             every { channelRepository.findByIdAndNotDeleted(channelId) } returns Mono.empty()
 
@@ -154,23 +154,23 @@ class ChannelServiceTest :
 
         "getAgentToken throws ConflictException when channel is closed" {
             val agent = makeAgent()
-            val channel = makeChannel(agentId = agent.id, status = ChannelStatus.CLOSED, roomName = "room-123")
+            val channel = makeChannel(agentId = agent.id!!, status = ChannelStatus.CLOSED, roomName = "room-123")
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
-                .create(channelService.getAgentToken(channel.id, agent.id))
+                .create(channelService.getAgentToken(channel.id!!, agent.id!!))
                 .expectErrorMatches { it is ConflictException }
                 .verify()
         }
 
         "getCustomerToken returns token for valid customer with existing endpoint" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId, roomName = "room-456")
-            val endpoint = makeEndpoint(channel.id, EndpointType.CUSTOMER, customerName = "Alice")
+            val endpoint = makeEndpoint(channel.id!!, EndpointType.CUSTOMER, customerName = "Alice")
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { endpointRepository.findAllByChannelId(channel.id) } returns Flux.just(endpoint)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { endpointRepository.findAllByChannelId(channel.id!!) } returns Flux.just(endpoint)
             every {
                 liveKitPort.generateToken("room-456", "customer:Alice", "Alice", true, true)
             } returns "customer-jwt-token"
@@ -186,12 +186,12 @@ class ChannelServiceTest :
         }
 
         "getCustomerToken throws NotFoundException when customer endpoint not found" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId, roomName = "room-456")
-            val agentEndpoint = makeEndpoint(channel.id, EndpointType.AGENT)
+            val agentEndpoint = makeEndpoint(channel.id!!, EndpointType.AGENT)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { endpointRepository.findAllByChannelId(channel.id) } returns Flux.just(agentEndpoint)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { endpointRepository.findAllByChannelId(channel.id!!) } returns Flux.just(agentEndpoint)
 
             StepVerifier
                 .create(channelService.getCustomerToken(channel.id, "Bob"))
@@ -201,14 +201,14 @@ class ChannelServiceTest :
 
         "closeChannel closes channel, updates endpoints, and sets agent ONLINE" {
             val agent = makeAgent(AgentStatus.BUSY)
-            val channel = makeChannel(agentId = agent.id, roomName = "room-789")
-            val customerEndpoint = makeEndpoint(channel.id, EndpointType.CUSTOMER, "Alice")
-            val agentEndpoint = makeEndpoint(channel.id, EndpointType.AGENT)
+            val channel = makeChannel(agentId = agent.id!!, roomName = "room-789")
+            val customerEndpoint = makeEndpoint(channel.id!!, EndpointType.CUSTOMER, "Alice")
+            val agentEndpoint = makeEndpoint(channel.id!!, EndpointType.AGENT)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
             every { liveKitPort.deleteRoom("room-789") } returns Mono.empty()
             every {
-                endpointRepository.findAllByChannelId(channel.id)
+                endpointRepository.findAllByChannelId(channel.id!!)
             } returns Flux.just(customerEndpoint, agentEndpoint)
             every { endpointRepository.save(any()) } answers { Mono.just(firstArg()) }
             every { channelRepository.save(any()) } answers { Mono.just(firstArg()) }
@@ -219,7 +219,7 @@ class ChannelServiceTest :
             } returns Mono.empty()
 
             StepVerifier
-                .create(channelService.closeChannel(channel.id, agent.id))
+                .create(channelService.closeChannel(channel.id!!, agent.id!!))
                 .verifyComplete()
 
             verify { liveKitPort.deleteRoom("room-789") }
@@ -228,44 +228,44 @@ class ChannelServiceTest :
         }
 
         "closeChannel throws ConflictException when agent is not channel owner" {
-            val agentId = UUID.randomUUID()
-            val otherAgentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
+            val otherAgentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = otherAgentId, roomName = "room-789")
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
-                .create(channelService.closeChannel(channel.id, agentId))
+                .create(channelService.closeChannel(channel.id!!, agentId))
                 .expectErrorMatches { it is ConflictException }
                 .verify()
         }
 
         "closeChannel throws ConflictException when channel is already closed" {
             val agent = makeAgent()
-            val channel = makeChannel(agentId = agent.id, status = ChannelStatus.CLOSED, roomName = "room-789")
+            val channel = makeChannel(agentId = agent.id!!, status = ChannelStatus.CLOSED, roomName = "room-789")
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
-                .create(channelService.closeChannel(channel.id, agent.id))
+                .create(channelService.closeChannel(channel.id!!, agent.id!!))
                 .expectErrorMatches { it is ConflictException }
                 .verify()
         }
 
         "getChannel returns channel with endpoints" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId)
             val endpoints =
                 listOf(
-                    makeEndpoint(channel.id, EndpointType.CUSTOMER, "Alice"),
-                    makeEndpoint(channel.id, EndpointType.AGENT),
+                    makeEndpoint(channel.id!!, EndpointType.CUSTOMER, "Alice"),
+                    makeEndpoint(channel.id!!, EndpointType.AGENT),
                 )
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { endpointRepository.findAllByChannelId(channel.id) } returns Flux.fromIterable(endpoints)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { endpointRepository.findAllByChannelId(channel.id!!) } returns Flux.fromIterable(endpoints)
 
             StepVerifier
-                .create(channelService.getChannel(channel.id))
+                .create(channelService.getChannel(channel.id!!))
                 .assertNext { detail ->
                     detail.channel shouldBe channel
                     detail.endpoints.size shouldBe 2
@@ -273,7 +273,7 @@ class ChannelServiceTest :
         }
 
         "getAgentChannels without status returns all agent channels" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel1 = makeChannel(agentId = agentId, status = ChannelStatus.IN_PROGRESS)
             val channel2 = makeChannel(agentId = agentId, status = ChannelStatus.CLOSED)
 
@@ -287,7 +287,7 @@ class ChannelServiceTest :
         }
 
         "getAgentChannels with status filters channels by status" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId, status = ChannelStatus.IN_PROGRESS)
 
             every {

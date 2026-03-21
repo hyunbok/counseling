@@ -11,7 +11,7 @@ class TenantTest :
 
         fun createTenant(status: TenantStatus = TenantStatus.PENDING): Tenant =
             Tenant(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 name = "Test Corp",
                 slug = "test-corp",
                 status = status,

@@ -1,7 +1,6 @@
 package com.counseling.api.adapter.inbound.web.dto
 
 import java.time.Instant
-import java.util.UUID
 
 data class ChannelTokenResponse(
     val token: String,
@@ -11,8 +10,8 @@ data class ChannelTokenResponse(
 )
 
 data class ChannelDetailResponse(
-    val id: UUID,
-    val agentId: UUID?,
+    val id: String?,
+    val agentId: String?,
     val status: String,
     val livekitRoomName: String?,
     val customerName: String?,
@@ -23,7 +22,7 @@ data class ChannelDetailResponse(
 )
 
 data class ChannelSummaryResponse(
-    val id: UUID,
+    val id: String?,
     val status: String,
     val customerName: String?,
     val startedAt: Instant?,

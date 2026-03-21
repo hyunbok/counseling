@@ -4,7 +4,6 @@ import com.counseling.api.domain.CoBrowsingSession
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 data class CoBrowsingSessionPage(
     val sessions: List<CoBrowsingSession>,
@@ -13,13 +12,13 @@ data class CoBrowsingSessionPage(
 )
 
 interface CoBrowsingQuery {
-    fun getActiveSession(channelId: UUID): Mono<CoBrowsingSession>
+    fun getActiveSession(channelId: String): Mono<CoBrowsingSession>
 
     fun listSessions(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Mono<CoBrowsingSessionPage>
 
-    fun streamUpdates(channelId: UUID): Flux<CoBrowsingSession>
+    fun streamUpdates(channelId: String): Flux<CoBrowsingSession>
 }

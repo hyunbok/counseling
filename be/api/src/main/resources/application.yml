@@ -20,8 +20,6 @@ spring:
     port: ${MAIL_PORT:1025}
     username: ${MAIL_USERNAME:}
     password: ${MAIL_PASSWORD:}
-  flyway:
-    enabled: false
   webflux:
     multipart:
       max-in-memory-size: 10485760

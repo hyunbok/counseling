@@ -5,7 +5,6 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.CompoundIndex
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
-import java.util.UUID
 
 @Document(collection = "screen_captures")
 @CompoundIndex(name = "idx_tenant_channel_created", def = "{'tenantId': 1, 'channelId': 1, 'createdAt': -1}")
@@ -24,9 +23,9 @@ data class ScreenCaptureDocument(
 ) {
     fun toDomain(): ScreenCapture =
         ScreenCapture(
-            id = UUID.fromString(id),
-            channelId = UUID.fromString(channelId),
-            capturedBy = UUID.fromString(capturedBy),
+            id = id,
+            channelId = channelId,
+            capturedBy = capturedBy,
             originalFilename = originalFilename,
             storedFilename = "",
             contentType = contentType,
@@ -43,10 +42,10 @@ data class ScreenCaptureDocument(
             tenantId: String? = null,
         ): ScreenCaptureDocument =
             ScreenCaptureDocument(
-                id = capture.id.toString(),
+                id = capture.id ?: throw IllegalStateException("ScreenCapture id must not be null"),
                 tenantId = tenantId,
-                channelId = capture.channelId.toString(),
-                capturedBy = capture.capturedBy.toString(),
+                channelId = capture.channelId,
+                capturedBy = capture.capturedBy,
                 originalFilename = capture.originalFilename,
                 contentType = capture.contentType,
                 fileSize = capture.fileSize,

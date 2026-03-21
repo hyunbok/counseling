@@ -2,15 +2,14 @@ package com.counseling.api.port.outbound
 
 import com.counseling.api.domain.SharedFile
 import reactor.core.publisher.Flux
-import java.util.UUID
 
 interface FileNotificationPort {
     fun emitFile(
-        channelId: UUID,
+        channelId: String,
         file: SharedFile,
     )
 
-    fun subscribeFiles(channelId: UUID): Flux<SharedFile>
+    fun subscribeFiles(channelId: String): Flux<SharedFile>
 
-    fun removeChannel(channelId: UUID)
+    fun removeChannel(channelId: String)
 }

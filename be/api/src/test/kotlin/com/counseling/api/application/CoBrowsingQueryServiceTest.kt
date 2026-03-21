@@ -32,15 +32,15 @@ class CoBrowsingQueryServiceTest :
         afterEach { clearAllMocks() }
 
         fun makeSession(
-            channelId: UUID,
+            channelId: String,
             status: CoBrowsingStatus = CoBrowsingStatus.ACTIVE,
             createdAt: Instant = Instant.now(),
         ): CoBrowsingSession {
             val now = Instant.now()
             return CoBrowsingSession(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
-                initiatedBy = UUID.randomUUID(),
+                initiatedBy = UUID.randomUUID().toString(),
                 status = status,
                 startedAt = if (status == CoBrowsingStatus.ACTIVE || status == CoBrowsingStatus.ENDED) now else null,
                 endedAt = if (status == CoBrowsingStatus.ENDED) now else null,
@@ -50,7 +50,7 @@ class CoBrowsingQueryServiceTest :
         }
 
         "getActiveSession should return active session from repository" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val session = makeSession(channelId, CoBrowsingStatus.ACTIVE)
 
             every { coBrowsingSessionRepository.findActiveByChannelId(channelId) } returns Mono.just(session)
@@ -67,7 +67,7 @@ class CoBrowsingQueryServiceTest :
         }
 
         "getActiveSession should return empty when no active session" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
 
             every { coBrowsingSessionRepository.findActiveByChannelId(channelId) } returns Mono.empty()
 
@@ -77,7 +77,7 @@ class CoBrowsingQueryServiceTest :
         }
 
         "listSessions should return sessions with hasMore false when within limit" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val sessions = (1..3).map { makeSession(channelId, CoBrowsingStatus.ENDED) }
 
             every { coBrowsingSessionReadRepository.findByChannelId(channelId, null, 4) } returns
@@ -92,7 +92,7 @@ class CoBrowsingQueryServiceTest :
         }
 
         "listSessions should return hasMore true and trim last item when result exceeds limit" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val sessions = (1..4).map { makeSession(channelId, CoBrowsingStatus.ENDED) }
 
             every { coBrowsingSessionReadRepository.findByChannelId(channelId, null, 4) } returns
@@ -107,7 +107,7 @@ class CoBrowsingQueryServiceTest :
         }
 
         "listSessions should pass before cursor to read repository" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val before = Instant.now().minusSeconds(60)
             val sessions = (1..2).map { makeSession(channelId, CoBrowsingStatus.ENDED) }
 
@@ -125,7 +125,7 @@ class CoBrowsingQueryServiceTest :
         }
 
         "listSessions should set oldestTimestamp from the first session in reversed list" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val older = Instant.now().minusSeconds(120)
             val newer = Instant.now().minusSeconds(60)
             val sessions =
@@ -145,7 +145,7 @@ class CoBrowsingQueryServiceTest :
         }
 
         "listSessions should return empty result when no sessions found" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
 
             every { coBrowsingSessionReadRepository.findByChannelId(channelId, null, 11) } returns Flux.empty()
 
@@ -159,7 +159,7 @@ class CoBrowsingQueryServiceTest :
         }
 
         "streamUpdates should delegate to coBrowsingNotificationPort" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val session = makeSession(channelId)
 
             every { coBrowsingNotificationPort.subscribeSessionUpdates(channelId) } returns Flux.just(session)

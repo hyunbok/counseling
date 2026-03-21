@@ -5,7 +5,6 @@ import com.counseling.api.domain.NotificationType
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 data class NotificationHistoryResult(
     val notifications: List<Notification>,
@@ -14,14 +13,14 @@ data class NotificationHistoryResult(
 
 interface NotificationQuery {
     fun getHistory(
-        recipientId: UUID,
+        recipientId: String,
         type: NotificationType?,
         read: Boolean?,
         before: Instant?,
         limit: Int,
     ): Mono<NotificationHistoryResult>
 
-    fun getUnreadCount(recipientId: UUID): Mono<Long>
+    fun getUnreadCount(recipientId: String): Mono<Long>
 
-    fun streamNotifications(recipientId: UUID): Flux<Notification>
+    fun streamNotifications(recipientId: String): Flux<Notification>
 }

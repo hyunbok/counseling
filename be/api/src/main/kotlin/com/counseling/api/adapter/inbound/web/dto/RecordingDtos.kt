@@ -1,19 +1,18 @@
 package com.counseling.api.adapter.inbound.web.dto
 
 import java.time.Instant
-import java.util.UUID
 
 data class StartRecordingResponse(
-    val recordingId: UUID,
-    val channelId: UUID,
+    val recordingId: String,
+    val channelId: String,
     val egressId: String,
     val status: String,
     val startedAt: Instant,
 )
 
 data class StopRecordingResponse(
-    val recordingId: UUID,
-    val channelId: UUID,
+    val recordingId: String,
+    val channelId: String,
     val egressId: String,
     val status: String,
     val startedAt: Instant,
@@ -22,8 +21,8 @@ data class StopRecordingResponse(
 )
 
 data class RecordingInfoResponse(
-    val recordingId: UUID,
-    val channelId: UUID,
+    val recordingId: String,
+    val channelId: String,
     val egressId: String,
     val status: String,
     val startedAt: Instant,

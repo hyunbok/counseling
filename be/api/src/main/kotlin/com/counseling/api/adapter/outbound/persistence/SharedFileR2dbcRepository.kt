@@ -9,15 +9,15 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Repository
 @Profile("!test")
 class SharedFileR2dbcRepository(
     private val databaseClient: DatabaseClient,
 ) : SharedFileRepository {
-    override fun save(file: SharedFile): Mono<SharedFile> =
-        databaseClient
+    override fun save(file: SharedFile): Mono<SharedFile> {
+        val id = file.id ?: throw IllegalStateException("SharedFile id must not be null before save")
+        return databaseClient
             .sql(
                 """
                 INSERT INTO shared_files
@@ -27,7 +27,7 @@ class SharedFileR2dbcRepository(
                     (:id, :channelId, :uploaderId, :uploaderType, :originalFilename,
                      :storedFilename, :contentType, :fileSize, :storagePath, :createdAt, :deleted)
                 """.trimIndent(),
-            ).bind("id", file.id)
+            ).bind("id", id)
             .bind("channelId", file.channelId)
             .bind("uploaderId", file.uploaderId)
             .bind("uploaderType", file.uploaderType.name)
@@ -40,8 +40,9 @@ class SharedFileR2dbcRepository(
             .bind("deleted", file.deleted)
             .then()
             .thenReturn(file)
+    }
 
-    override fun findByIdAndNotDeleted(id: UUID): Mono<SharedFile> =
+    override fun findByIdAndNotDeleted(id: String): Mono<SharedFile> =
         databaseClient
             .sql(
                 """
@@ -54,7 +55,7 @@ class SharedFileR2dbcRepository(
             .map { row -> mapToSharedFile(row) }
             .one()
 
-    override fun softDelete(id: UUID): Mono<Void> =
+    override fun softDelete(id: String): Mono<Void> =
         databaseClient
             .sql("UPDATE shared_files SET deleted = TRUE WHERE id = :id")
             .bind("id", id)
@@ -62,8 +63,8 @@ class SharedFileR2dbcRepository(
 
     private fun mapToSharedFile(row: Readable): SharedFile =
         SharedFile(
-            id = row.get("id", UUID::class.java)!!,
-            channelId = row.get("channel_id", UUID::class.java)!!,
+            id = row.get("id", String::class.java)!!,
+            channelId = row.get("channel_id", String::class.java)!!,
             uploaderId = row.get("uploader_id", String::class.java)!!,
             uploaderType = SenderType.valueOf(row.get("uploader_type", String::class.java)!!),
             originalFilename = row.get("original_filename", String::class.java)!!,

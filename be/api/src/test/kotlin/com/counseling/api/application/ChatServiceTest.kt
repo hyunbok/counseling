@@ -41,8 +41,8 @@ class ChatServiceTest :
         fun makeChannel(status: ChannelStatus = ChannelStatus.IN_PROGRESS): Channel {
             val now = Instant.now()
             return Channel(
-                id = UUID.randomUUID(),
-                agentId = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
+                agentId = UUID.randomUUID().toString(),
                 status = status,
                 startedAt = now,
                 endedAt = null,
@@ -53,9 +53,9 @@ class ChatServiceTest :
             )
         }
 
-        fun makeMessage(channelId: UUID): ChatMessage =
+        fun makeMessage(channelId: String): ChatMessage =
             ChatMessage(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
                 senderType = SenderType.AGENT,
                 senderId = "agent-1",
@@ -67,13 +67,13 @@ class ChatServiceTest :
             val channel = makeChannel(ChannelStatus.IN_PROGRESS)
             val command =
                 SendMessageCommand(
-                    channelId = channel.id,
+                    channelId = channel.id!!,
                     senderType = SenderType.AGENT,
                     senderId = "agent-1",
                     content = "Hello",
                 )
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
             every { chatMessageRepository.save(any()) } answers {
                 Mono.just(firstArg())
             }
@@ -90,11 +90,11 @@ class ChatServiceTest :
 
             verify { chatMessageRepository.save(any()) }
             verify { chatMessageReadRepository.save(any()) }
-            verify { chatNotificationPort.emitMessage(channel.id, any()) }
+            verify { chatNotificationPort.emitMessage(channel.id!!, any()) }
         }
 
         "sendMessage should fail with NotFoundException when channel not found" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val command =
                 SendMessageCommand(
                     channelId = channelId,
@@ -115,13 +115,13 @@ class ChatServiceTest :
             val channel = makeChannel(ChannelStatus.CLOSED)
             val command =
                 SendMessageCommand(
-                    channelId = channel.id,
+                    channelId = channel.id!!,
                     senderType = SenderType.AGENT,
                     senderId = "agent-1",
                     content = "Too late",
                 )
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
                 .create(chatService.sendMessage(command))

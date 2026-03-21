@@ -5,7 +5,6 @@ import com.counseling.api.domain.QueueEntry
 import com.counseling.api.domain.QueueUpdate
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 data class EnterQueueResult(
     val entry: QueueEntry,
@@ -14,7 +13,7 @@ data class EnterQueueResult(
 )
 
 data class AcceptResult(
-    val channelId: UUID,
+    val channelId: String,
     val customerName: String,
     val customerContact: String,
     val livekitRoomName: String,
@@ -38,22 +37,21 @@ interface QueueUseCase {
     fun enterQueue(
         name: String,
         contact: String,
-        groupId: UUID?,
-        userAgent: String? = null,
+        groupId: String?,
     ): Mono<EnterQueueResult>
 
-    fun leaveQueue(entryId: UUID): Mono<Void>
+    fun leaveQueue(entryId: String): Mono<Void>
 
     fun acceptCustomer(
-        entryId: UUID,
-        agentId: UUID,
+        entryId: String,
+        agentId: String,
     ): Mono<AcceptResult>
 
     fun getQueue(): Flux<QueueEntryWithPosition>
 
-    fun getPosition(entryId: UUID): Mono<PositionResult>
+    fun getPosition(entryId: String): Mono<PositionResult>
 
     fun subscribeQueueUpdates(): Flux<QueueUpdate>
 
-    fun subscribePositionUpdates(entryId: UUID): Flux<PositionUpdate>
+    fun subscribePositionUpdates(entryId: String): Flux<PositionUpdate>
 }

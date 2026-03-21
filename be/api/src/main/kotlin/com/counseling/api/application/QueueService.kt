@@ -1,7 +1,6 @@
 package com.counseling.api.application
 
 import com.counseling.api.config.LiveKitProperties
-import com.counseling.api.config.UserAgentParser
 import com.counseling.api.domain.AgentStatus
 import com.counseling.api.domain.Channel
 import com.counseling.api.domain.ChannelStatus
@@ -39,7 +38,6 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -54,25 +52,25 @@ class QueueService(
     private val notificationUseCase: NotificationUseCase,
     private val historyReadRepository: HistoryReadRepository,
     private val groupRepository: GroupRepository,
-    private val userAgentParser: UserAgentParser,
 ) : QueueUseCase {
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun enterQueue(
         name: String,
         contact: String,
-        groupId: UUID?,
-        userAgent: String?,
+        groupId: String?,
     ): Mono<EnterQueueResult> =
         TenantContext.getTenantId().flatMap { tenantId ->
             val entry =
                 QueueEntry(
-                    id = UUID.randomUUID(),
+                    id =
+                        java.util.UUID
+                            .randomUUID()
+                            .toString(),
                     customerName = name,
                     customerContact = contact,
                     groupId = groupId,
                     enteredAt = Instant.now(),
-                    userAgent = userAgent,
                 )
             queueRepository
                 .add(tenantId, entry)
@@ -98,7 +96,7 @@ class QueueService(
                             .flatMap { agent ->
                                 notificationUseCase.send(
                                     SendNotificationCommand(
-                                        recipientId = agent.id,
+                                        recipientId = agent.id!!,
                                         recipientType = RecipientType.AGENT,
                                         type = NotificationType.NEW_COUNSELING_REQUEST,
                                         title = "새로운 상담 요청",
@@ -118,7 +116,7 @@ class QueueService(
                 }
         }
 
-    override fun leaveQueue(entryId: UUID): Mono<Void> =
+    override fun leaveQueue(entryId: String): Mono<Void> =
         TenantContext.getTenantId().flatMap { tenantId ->
             queueRepository
                 .remove(tenantId, entryId)
@@ -144,8 +142,8 @@ class QueueService(
         }
 
     override fun acceptCustomer(
-        entryId: UUID,
-        agentId: UUID,
+        entryId: String,
+        agentId: String,
     ): Mono<AcceptResult> =
         TenantContext.getTenantId().flatMap { tenantId ->
             agentRepository
@@ -159,7 +157,10 @@ class QueueService(
                         .removeAtomically(tenantId, entryId)
                         .flatMap { entry ->
                             val now = Instant.now()
-                            val channelId = UUID.randomUUID()
+                            val channelId =
+                                java.util.UUID
+                                    .randomUUID()
+                                    .toString()
                             val channel =
                                 Channel(
                                     id = channelId,
@@ -173,7 +174,10 @@ class QueueService(
                                 )
                             val customerEndpoint =
                                 Endpoint(
-                                    id = UUID.randomUUID(),
+                                    id =
+                                        java.util.UUID
+                                            .randomUUID()
+                                            .toString(),
                                     channelId = channelId,
                                     type = EndpointType.CUSTOMER,
                                     customerName = entry.customerName,
@@ -183,7 +187,10 @@ class QueueService(
                                 )
                             val agentEndpoint =
                                 Endpoint(
-                                    id = UUID.randomUUID(),
+                                    id =
+                                        java.util.UUID
+                                            .randomUUID()
+                                            .toString(),
                                     channelId = channelId,
                                     type = EndpointType.AGENT,
                                     customerName = null,
@@ -220,7 +227,6 @@ class QueueService(
                                                         groupName = groupName.ifBlank { null },
                                                         customerName = entry.customerName,
                                                         customerContact = entry.customerContact,
-                                                        customerDevice = userAgentParser.parse(entry.userAgent),
                                                         status = "IN_PROGRESS",
                                                         startedAt = now,
                                                         endedAt = null,
@@ -303,7 +309,7 @@ class QueueService(
                 }
         }
 
-    override fun getPosition(entryId: UUID): Mono<PositionResult> =
+    override fun getPosition(entryId: String): Mono<PositionResult> =
         TenantContext.getTenantId().flatMap { tenantId ->
             Mono
                 .zip(
@@ -319,7 +325,7 @@ class QueueService(
             queueNotificationPort.subscribeAgentUpdates(tenantId)
         }
 
-    override fun subscribePositionUpdates(entryId: UUID): Flux<PositionUpdate> =
+    override fun subscribePositionUpdates(entryId: String): Flux<PositionUpdate> =
         TenantContext.getTenantId().flatMapMany { tenantId ->
             queueNotificationPort
                 .subscribePositionUpdates(tenantId)

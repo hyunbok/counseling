@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -19,7 +18,7 @@ class ScreenCaptureQueryService(
     private val captureNotificationPort: CaptureNotificationPort,
 ) : ScreenCaptureQuery {
     override fun listCaptures(
-        channelId: UUID,
+        channelId: String,
         before: Instant?,
         limit: Int,
     ): Mono<ScreenCaptureListResult> =
@@ -37,6 +36,6 @@ class ScreenCaptureQueryService(
                 )
             }
 
-    override fun streamCaptureEvents(channelId: UUID): Flux<ScreenCapture> =
+    override fun streamCaptureEvents(channelId: String): Flux<ScreenCapture> =
         captureNotificationPort.subscribeCaptures(channelId)
 }

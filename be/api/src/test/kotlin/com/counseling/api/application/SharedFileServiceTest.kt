@@ -45,10 +45,10 @@ class SharedFileServiceTest :
 
         afterEach { clearAllMocks() }
 
-        fun makeFile(channelId: UUID = UUID.randomUUID()): SharedFile {
+        fun makeFile(channelId: String = UUID.randomUUID().toString()): SharedFile {
             val now = Instant.now()
             return SharedFile(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
                 uploaderId = "agent-1",
                 uploaderType = SenderType.AGENT,
@@ -62,7 +62,7 @@ class SharedFileServiceTest :
         }
 
         fun makeCommand(
-            channelId: UUID = UUID.randomUUID(),
+            channelId: String = UUID.randomUUID().toString(),
             contentType: String = "image/png",
             fileSize: Long = 1024L,
             content: ByteArray = byteArrayOf(1, 2, 3),
@@ -137,8 +137,8 @@ class SharedFileServiceTest :
         }
 
         "download should return SharedFileResource from storage" {
-            val channelId = UUID.randomUUID()
-            val fileId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val fileId = UUID.randomUUID().toString()
             val file = makeFile(channelId).copy(id = fileId)
             val resource = ByteArrayResource(byteArrayOf(1, 2, 3))
 
@@ -155,8 +155,8 @@ class SharedFileServiceTest :
         }
 
         "download should fail with NotFoundException when file does not exist" {
-            val channelId = UUID.randomUUID()
-            val fileId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val fileId = UUID.randomUUID().toString()
 
             every { sharedFileRepository.findByIdAndNotDeleted(fileId) } returns Mono.empty()
 
@@ -167,8 +167,8 @@ class SharedFileServiceTest :
         }
 
         "delete should soft-delete file and mark deleted in read store" {
-            val channelId = UUID.randomUUID()
-            val fileId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val fileId = UUID.randomUUID().toString()
             val file = makeFile(channelId).copy(id = fileId)
 
             every { sharedFileRepository.findByIdAndNotDeleted(fileId) } returns Mono.just(file)
@@ -186,8 +186,8 @@ class SharedFileServiceTest :
         }
 
         "delete should fail with NotFoundException when file does not exist" {
-            val channelId = UUID.randomUUID()
-            val fileId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val fileId = UUID.randomUUID().toString()
 
             every { sharedFileRepository.findByIdAndNotDeleted(fileId) } returns Mono.empty()
 

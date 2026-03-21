@@ -20,7 +20,7 @@ class AuthControllerTest :
         val authUseCase = mockk<AuthUseCase>()
         val controller = AuthController(authUseCase)
 
-        val agentId = UUID.randomUUID()
+        val agentId = UUID.randomUUID().toString()
 
         fun makeTokenPair() =
             TokenPair(

@@ -23,12 +23,12 @@ class ChannelControllerTest :
         val channelUseCase = mockk<ChannelUseCase>()
         val controller = ChannelController(channelUseCase)
 
-        val channelId = UUID.randomUUID()
-        val agentId = UUID.randomUUID()
+        val channelId = UUID.randomUUID().toString()
+        val agentId = UUID.randomUUID().toString()
         val now = Instant.now()
 
         fun makeChannel(
-            id: UUID = channelId,
+            id: String = channelId,
             status: ChannelStatus = ChannelStatus.IN_PROGRESS,
         ) = Channel(
             id = id,
@@ -47,7 +47,7 @@ class ChannelControllerTest :
             customerName: String? = "Jane",
             customerContact: String? = "010-1234-5678",
         ) = Endpoint(
-            id = UUID.randomUUID(),
+            id = UUID.randomUUID().toString(),
             channelId = channelId,
             type = type,
             customerName = customerName,
@@ -124,7 +124,7 @@ class ChannelControllerTest :
 
         "getAgentChannels returns flux of ChannelSummaryResponse" {
             val channel1 = makeChannel()
-            val channel2 = makeChannel(id = UUID.randomUUID(), status = ChannelStatus.CLOSED)
+            val channel2 = makeChannel(id = UUID.randomUUID().toString(), status = ChannelStatus.CLOSED)
             every { channelUseCase.getAgentChannels(any(), null) } returns
                 Flux.just(channel1, channel2)
 

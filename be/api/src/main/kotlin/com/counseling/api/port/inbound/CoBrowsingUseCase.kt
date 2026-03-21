@@ -2,21 +2,20 @@ package com.counseling.api.port.inbound
 
 import com.counseling.api.domain.CoBrowsingSession
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 data class RequestCoBrowsingCommand(
-    val channelId: UUID,
-    val agentId: UUID,
+    val channelId: String,
+    val agentId: String,
 )
 
 data class StartCoBrowsingCommand(
-    val channelId: UUID,
-    val sessionId: UUID,
+    val channelId: String,
+    val sessionId: String,
 )
 
 data class EndCoBrowsingCommand(
-    val channelId: UUID,
-    val sessionId: UUID,
+    val channelId: String,
+    val sessionId: String,
 )
 
 interface CoBrowsingUseCase {

@@ -10,9 +10,9 @@ import java.util.UUID
 
 class InMemoryChatNotificationAdapterTest :
     StringSpec({
-        fun makeMessage(channelId: UUID): ChatMessage =
+        fun makeMessage(channelId: String): ChatMessage =
             ChatMessage(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
                 senderType = SenderType.AGENT,
                 senderId = "agent-1",
@@ -22,7 +22,7 @@ class InMemoryChatNotificationAdapterTest :
 
         "emitMessage should deliver to subscriber" {
             val adapter = InMemoryChatNotificationAdapter()
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val message = makeMessage(channelId)
 
             val flux = adapter.subscribeMessages(channelId)
@@ -38,8 +38,8 @@ class InMemoryChatNotificationAdapterTest :
 
         "messages should be isolated per channel" {
             val adapter = InMemoryChatNotificationAdapter()
-            val channelA = UUID.randomUUID()
-            val channelB = UUID.randomUUID()
+            val channelA = UUID.randomUUID().toString()
+            val channelB = UUID.randomUUID().toString()
             val messageA = makeMessage(channelA)
 
             val fluxB = adapter.subscribeMessages(channelB)

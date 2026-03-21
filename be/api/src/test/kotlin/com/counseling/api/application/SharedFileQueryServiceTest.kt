@@ -28,11 +28,11 @@ class SharedFileQueryServiceTest :
         afterEach { clearAllMocks() }
 
         fun makeFile(
-            channelId: UUID,
+            channelId: String,
             createdAt: Instant = Instant.now(),
         ): SharedFile =
             SharedFile(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
                 uploaderId = "agent-1",
                 uploaderType = SenderType.AGENT,
@@ -45,7 +45,7 @@ class SharedFileQueryServiceTest :
             )
 
         "listFiles should return files from read repository with hasMore false when within limit" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val files = (1..3).map { makeFile(channelId) }
 
             every { sharedFileReadRepository.findByChannelId(channelId, null, 4) } returns
@@ -60,7 +60,7 @@ class SharedFileQueryServiceTest :
         }
 
         "listFiles should return hasMore true and trim last item when result exceeds limit" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val files = (1..4).map { makeFile(channelId) }
 
             every { sharedFileReadRepository.findByChannelId(channelId, null, 4) } returns
@@ -75,7 +75,7 @@ class SharedFileQueryServiceTest :
         }
 
         "listFiles should pass before parameter to read repository for cursor pagination" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val before = Instant.now().minusSeconds(60)
             val files = (1..2).map { makeFile(channelId) }
 
@@ -93,7 +93,7 @@ class SharedFileQueryServiceTest :
         }
 
         "listFiles should set oldestTimestamp from the first file in reversed list" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val older = Instant.now().minusSeconds(120)
             val newer = Instant.now().minusSeconds(60)
             val files =
@@ -113,7 +113,7 @@ class SharedFileQueryServiceTest :
         }
 
         "listFiles should return empty result when no files found" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
 
             every { sharedFileReadRepository.findByChannelId(channelId, null, 11) } returns Flux.empty()
 
@@ -127,7 +127,7 @@ class SharedFileQueryServiceTest :
         }
 
         "streamFileEvents should delegate to fileNotificationPort" {
-            val channelId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
             val file = makeFile(channelId)
 
             every { fileNotificationPort.subscribeFiles(channelId) } returns Flux.just(file)

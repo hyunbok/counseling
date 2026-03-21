@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
-import java.util.UUID
 import kotlin.math.ceil
 
 @RestController
@@ -29,12 +28,10 @@ class GroupController(
 ) {
     @GetMapping
     fun listGroups(
-        @RequestParam(required = false) search: String?,
-        @RequestParam(required = false) status: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): Mono<PageResponse<GroupResponse>> =
-        groupManagementUseCase.listGroupsPaged(search, status, page, size).map { result ->
+        groupManagementUseCase.listGroupsPaged(page, size).map { result ->
             PageResponse(
                 content =
                     result.content.map { item ->
@@ -72,7 +69,7 @@ class GroupController(
 
     @PutMapping("/{id}")
     fun updateGroup(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
         @RequestBody request: UpdateGroupRequest,
     ): Mono<GroupResponse> =
         groupManagementUseCase.updateGroup(id, request.name, request.status).map { group ->
@@ -89,6 +86,6 @@ class GroupController(
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteGroup(
-        @PathVariable id: UUID,
+        @PathVariable id: String,
     ): Mono<Void> = groupManagementUseCase.deleteGroup(id)
 }

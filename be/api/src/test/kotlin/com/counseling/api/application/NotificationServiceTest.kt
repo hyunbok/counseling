@@ -46,9 +46,9 @@ class NotificationServiceTest :
         afterEach { clearAllMocks() }
 
         fun makeNotification(deliveryMethod: DeliveryMethod = DeliveryMethod.IN_APP): Notification {
-            val recipientId = UUID.randomUUID()
+            val recipientId = UUID.randomUUID().toString()
             return Notification(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 recipientId = recipientId,
                 recipientType = RecipientType.AGENT,
                 type = NotificationType.NEW_COUNSELING_REQUEST,
@@ -63,7 +63,7 @@ class NotificationServiceTest :
         }
 
         fun makeCommand(
-            recipientId: UUID = UUID.randomUUID(),
+            recipientId: String = UUID.randomUUID().toString(),
             deliveryMethod: DeliveryMethod = DeliveryMethod.IN_APP,
         ): SendNotificationCommand =
             SendNotificationCommand(
@@ -183,7 +183,7 @@ class NotificationServiceTest :
 
         "markAsRead() should update PostgreSQL and MongoDB" {
             val notification = makeNotification()
-            val notificationId = notification.id
+            val notificationId = notification.id!!
             val recipientId = notification.recipientId
 
             every {
@@ -215,8 +215,8 @@ class NotificationServiceTest :
         }
 
         "markAsRead() should return error when notification not found" {
-            val notificationId = UUID.randomUUID()
-            val recipientId = UUID.randomUUID()
+            val notificationId = UUID.randomUUID().toString()
+            val recipientId = UUID.randomUUID().toString()
 
             every {
                 notificationRepository.findByIdAndRecipientId(notificationId, recipientId)
@@ -238,7 +238,7 @@ class NotificationServiceTest :
         }
 
         "markAllAsRead() should update both stores" {
-            val recipientId = UUID.randomUUID()
+            val recipientId = UUID.randomUUID().toString()
 
             every { notificationRepository.markAllAsReadByRecipientId(recipientId) } returns Mono.just(3L)
             every {

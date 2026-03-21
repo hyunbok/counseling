@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Duration
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -38,8 +37,8 @@ class ChannelService(
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun getAgentToken(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Mono<TokenResult> =
         channelRepository
             .findByIdAndNotDeleted(channelId)
@@ -70,7 +69,7 @@ class ChannelService(
             }
 
     override fun getCustomerToken(
-        channelId: UUID,
+        channelId: String,
         customerName: String,
     ): Mono<TokenResult> =
         channelRepository
@@ -102,8 +101,8 @@ class ChannelService(
             }
 
     override fun closeChannel(
-        channelId: UUID,
-        agentId: UUID,
+        channelId: String,
+        agentId: String,
     ): Mono<Void> =
         channelRepository
             .findByIdAndNotDeleted(channelId)
@@ -167,7 +166,7 @@ class ChannelService(
                     }.then()
             }
 
-    override fun getChannel(channelId: UUID): Mono<ChannelDetail> =
+    override fun getChannel(channelId: String): Mono<ChannelDetail> =
         channelRepository
             .findByIdAndNotDeleted(channelId)
             .switchIfEmpty(Mono.error(NotFoundException("Channel not found: $channelId")))
@@ -179,7 +178,7 @@ class ChannelService(
             }
 
     override fun getAgentChannels(
-        agentId: UUID,
+        agentId: String,
         status: ChannelStatus?,
     ): Flux<Channel> =
         if (status != null) {

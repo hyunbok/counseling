@@ -55,12 +55,12 @@ class ScreenCaptureServiceTest :
                 0x0A,
             )
 
-        fun makeCapture(channelId: UUID = UUID.randomUUID()): ScreenCapture {
+        fun makeCapture(channelId: String = UUID.randomUUID().toString()): ScreenCapture {
             val now = Instant.now()
             return ScreenCapture(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
-                capturedBy = UUID.randomUUID(),
+                capturedBy = UUID.randomUUID().toString().toString(),
                 originalFilename = "screenshot.png",
                 storedFilename = "stored.png",
                 contentType = "image/png",
@@ -72,14 +72,14 @@ class ScreenCaptureServiceTest :
         }
 
         fun makeCommand(
-            channelId: UUID = UUID.randomUUID(),
+            channelId: String = UUID.randomUUID().toString(),
             contentType: String = "image/png",
             content: ByteArray = pngHeader + byteArrayOf(0, 0, 0),
             note: String? = null,
         ): CaptureScreenCommand =
             CaptureScreenCommand(
                 channelId = channelId,
-                capturedBy = UUID.randomUUID(),
+                capturedBy = UUID.randomUUID().toString().toString(),
                 originalFilename = "screenshot.png",
                 contentType = contentType,
                 fileSize = content.size.toLong(),
@@ -178,8 +178,8 @@ class ScreenCaptureServiceTest :
         }
 
         "download should return ScreenCaptureResource from storage" {
-            val channelId = UUID.randomUUID()
-            val captureId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val captureId = UUID.randomUUID().toString()
             val capture = makeCapture(channelId).copy(id = captureId)
             val resource = ByteArrayResource(byteArrayOf(1, 2, 3))
 
@@ -196,8 +196,8 @@ class ScreenCaptureServiceTest :
         }
 
         "download should fail with NotFoundException when capture does not exist" {
-            val channelId = UUID.randomUUID()
-            val captureId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val captureId = UUID.randomUUID().toString()
 
             every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.empty()
 
@@ -208,9 +208,9 @@ class ScreenCaptureServiceTest :
         }
 
         "download should fail with NotFoundException when capture belongs to different channel" {
-            val channelId = UUID.randomUUID()
-            val otherChannelId = UUID.randomUUID()
-            val captureId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val otherChannelId = UUID.randomUUID().toString()
+            val captureId = UUID.randomUUID().toString()
             val capture = makeCapture(otherChannelId).copy(id = captureId)
 
             every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.just(capture)
@@ -222,8 +222,8 @@ class ScreenCaptureServiceTest :
         }
 
         "delete should soft-delete capture and mark deleted in read store" {
-            val channelId = UUID.randomUUID()
-            val captureId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val captureId = UUID.randomUUID().toString()
             val capture = makeCapture(channelId).copy(id = captureId)
 
             every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.just(capture)
@@ -241,8 +241,8 @@ class ScreenCaptureServiceTest :
         }
 
         "delete should fail with NotFoundException when capture does not exist" {
-            val channelId = UUID.randomUUID()
-            val captureId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val captureId = UUID.randomUUID().toString()
 
             every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.empty()
 
@@ -253,9 +253,9 @@ class ScreenCaptureServiceTest :
         }
 
         "delete should fail with NotFoundException when capture belongs to different channel" {
-            val channelId = UUID.randomUUID()
-            val otherChannelId = UUID.randomUUID()
-            val captureId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val otherChannelId = UUID.randomUUID().toString()
+            val captureId = UUID.randomUUID().toString()
             val capture = makeCapture(otherChannelId).copy(id = captureId)
 
             every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.just(capture)
@@ -267,8 +267,8 @@ class ScreenCaptureServiceTest :
         }
 
         "delete should complete even when markDeleted in read store fails" {
-            val channelId = UUID.randomUUID()
-            val captureId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val captureId = UUID.randomUUID().toString()
             val capture = makeCapture(channelId).copy(id = captureId)
 
             every { screenCaptureRepository.findByIdAndNotDeleted(captureId) } returns Mono.just(capture)

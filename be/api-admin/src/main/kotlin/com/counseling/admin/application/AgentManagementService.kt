@@ -22,7 +22,6 @@ import reactor.core.scheduler.Schedulers
 import reactor.kotlin.core.util.function.component1
 import reactor.kotlin.core.util.function.component2
 import java.time.Instant
-import java.util.UUID
 
 @Service
 @Profile("!test")
@@ -31,17 +30,17 @@ class AgentManagementService(
     private val groupRepository: AdminGroupRepository,
     private val passwordEncoder: PasswordEncoder,
 ) : AgentManagementUseCase {
-    override fun listAgents(groupId: UUID?): Flux<Agent> =
+    override fun listAgents(groupId: String?): Flux<Agent> =
         if (groupId != null) {
             agentRepository.findAllByGroupIdAndNotDeleted(groupId)
         } else {
             agentRepository.findAllByNotDeleted()
         }
 
-    override fun listAgentsWithGroupName(groupId: UUID?): Flux<AgentWithGroupName> =
+    override fun listAgentsWithGroupName(groupId: String?): Flux<AgentWithGroupName> =
         groupRepository
             .findAllByNotDeleted()
-            .collectMap({ it.id }, { it.name })
+            .collectMap({ it.id ?: "" }, { it.name })
             .flatMapMany { groupNameMap ->
                 listAgents(groupId).map { agent ->
                     AgentWithGroupName(
@@ -52,32 +51,40 @@ class AgentManagementService(
             }
 
     override fun listAgentsPaged(
-        search: String?,
-        role: String?,
-        active: Boolean?,
-        agentStatus: String?,
+        groupId: String?,
         page: Int,
         size: Int,
     ): Mono<PagedResult<AgentWithGroupName>> =
         groupRepository
             .findAllByNotDeleted()
-            .collectMap({ it.id }, { it.name })
+            .collectMap({ it.id ?: "" }, { it.name })
             .flatMap { groupNameMap ->
+                val agentFlux =
+                    if (groupId != null) {
+                        agentRepository.findAllByGroupIdAndNotDeleted(groupId, page, size)
+                    } else {
+                        agentRepository.findAllByNotDeleted(page, size)
+                    }
+                val countMono =
+                    if (groupId != null) {
+                        agentRepository.countAllByGroupIdAndNotDeleted(groupId)
+                    } else {
+                        agentRepository.countAllByNotDeleted()
+                    }
                 Mono
                     .zip(
-                        agentRepository
-                            .searchByNotDeleted(search, role, active, agentStatus, page, size)
+                        agentFlux
                             .map { agent ->
                                 AgentWithGroupName(
                                     agent = agent,
                                     groupName = agent.groupId?.let { groupNameMap[it] },
                                 )
                             }.collectList(),
-                        agentRepository.countSearchByNotDeleted(search, role, active, agentStatus),
+                        countMono,
                     ).map { (content, total) -> PagedResult(content, total, page, size) }
             }
 
-    override fun getAgent(id: UUID): Mono<Agent> =
+    override fun getAgent(id: String): Mono<Agent> =
         agentRepository
             .findByIdAndNotDeleted(id)
             .switchIfEmpty(Mono.error(NotFoundException("Agent not found: $id")))
@@ -97,7 +104,7 @@ class AgentManagementService(
                             val now = Instant.now()
                             val agent =
                                 Agent(
-                                    id = UUID.randomUUID(),
+                                    id = null,
                                     username = command.username,
                                     passwordHash = hash,
                                     name = command.name,
@@ -119,7 +126,7 @@ class AgentManagementService(
             )
 
     override fun updateAgent(
-        id: UUID,
+        id: String,
         command: UpdateAgentCommand,
     ): Mono<Agent> =
         agentRepository
@@ -136,7 +143,7 @@ class AgentManagementService(
             }
 
     override fun toggleAgentActive(
-        id: UUID,
+        id: String,
         active: Boolean,
     ): Mono<Agent> =
         agentRepository
@@ -147,7 +154,7 @@ class AgentManagementService(
                 agentRepository.save(updated)
             }
 
-    override fun resetPassword(id: UUID): Mono<String> =
+    override fun resetPassword(id: String): Mono<String> =
         agentRepository
             .findByIdAndNotDeleted(id)
             .switchIfEmpty(Mono.error(NotFoundException("Agent not found: $id")))

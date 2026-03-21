@@ -52,13 +52,13 @@ class RecordingServiceTest :
         afterEach { clearAllMocks() }
 
         fun makeChannel(
-            agentId: UUID,
+            agentId: String,
             roomName: String? = "test-room",
             status: ChannelStatus = ChannelStatus.IN_PROGRESS,
         ): Channel {
             val now = Instant.now()
             return Channel(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 agentId = agentId,
                 status = status,
                 startedAt = now,
@@ -71,12 +71,12 @@ class RecordingServiceTest :
         }
 
         fun makeRecording(
-            channelId: UUID,
+            channelId: String,
             status: RecordingStatus = RecordingStatus.RECORDING,
         ): Recording {
             val now = Instant.now()
             return Recording(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 channelId = channelId,
                 egressId = "egress-456",
                 status = status,
@@ -89,12 +89,12 @@ class RecordingServiceTest :
         }
 
         "startRecording creates recording and returns result" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId, roomName = "test-room")
             val egressResult = EgressStartResult(egressId = "egress-789")
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { recordingRepository.findActiveByChannelId(channel.id) } returns Mono.empty()
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { recordingRepository.findActiveByChannelId(channel.id!!) } returns Mono.empty()
             every { liveKitEgressPort.startRoomCompositeEgress("test-room", any()) } returns
                 Mono.just(egressResult)
             every { recordingRepository.save(any()) } answers { Mono.just(firstArg()) }
@@ -102,7 +102,7 @@ class RecordingServiceTest :
             StepVerifier
                 .create(
                     recordingService
-                        .startRecording(channel.id, agentId)
+                        .startRecording(channel.id!!, agentId)
                         .contextWrite(tenantContext),
                 ).assertNext { result ->
                     result.channelId shouldBe channel.id
@@ -114,8 +114,8 @@ class RecordingServiceTest :
         }
 
         "startRecording throws NotFoundException when channel not found" {
-            val channelId = UUID.randomUUID()
-            val agentId = UUID.randomUUID()
+            val channelId = UUID.randomUUID().toString()
+            val agentId = UUID.randomUUID().toString()
 
             every { channelRepository.findByIdAndNotDeleted(channelId) } returns Mono.empty()
 
@@ -129,75 +129,75 @@ class RecordingServiceTest :
         }
 
         "startRecording throws ConflictException when channel not IN_PROGRESS" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId, status = ChannelStatus.CLOSED)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
                 .create(
                     recordingService
-                        .startRecording(channel.id, agentId)
+                        .startRecording(channel.id!!, agentId)
                         .contextWrite(tenantContext),
                 ).expectErrorMatches { it is ConflictException }
                 .verify()
         }
 
         "startRecording throws ConflictException when agent not authorized" {
-            val agentId = UUID.randomUUID()
-            val otherAgentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
+            val otherAgentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = otherAgentId)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
                 .create(
                     recordingService
-                        .startRecording(channel.id, agentId)
+                        .startRecording(channel.id!!, agentId)
                         .contextWrite(tenantContext),
                 ).expectErrorMatches { it is ConflictException }
                 .verify()
         }
 
         "startRecording throws ConflictException when no LiveKit room" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId, roomName = null)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
                 .create(
                     recordingService
-                        .startRecording(channel.id, agentId)
+                        .startRecording(channel.id!!, agentId)
                         .contextWrite(tenantContext),
                 ).expectErrorMatches { it is ConflictException }
                 .verify()
         }
 
         "startRecording throws ConflictException when already recording" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId)
-            val activeRecording = makeRecording(channelId = channel.id)
+            val activeRecording = makeRecording(channelId = channel.id!!)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { recordingRepository.findActiveByChannelId(channel.id) } returns Mono.just(activeRecording)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { recordingRepository.findActiveByChannelId(channel.id!!) } returns Mono.just(activeRecording)
 
             StepVerifier
                 .create(
                     recordingService
-                        .startRecording(channel.id, agentId)
+                        .startRecording(channel.id!!, agentId)
                         .contextWrite(tenantContext),
                 ).expectErrorMatches { it is ConflictException }
                 .verify()
         }
 
         "stopRecording stops egress and returns result" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId)
-            val activeRecording = makeRecording(channelId = channel.id)
+            val activeRecording = makeRecording(channelId = channel.id!!)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { recordingRepository.findActiveByChannelId(channel.id) } returns Mono.just(activeRecording)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { recordingRepository.findActiveByChannelId(channel.id!!) } returns Mono.just(activeRecording)
             every { liveKitEgressPort.stopEgress(activeRecording.egressId) } returns Mono.empty()
             every { recordingRepository.save(any()) } answers { Mono.just(firstArg()) }
             every { channelRepository.save(any()) } answers { Mono.just(firstArg()) }
@@ -208,7 +208,7 @@ class RecordingServiceTest :
             StepVerifier
                 .create(
                     recordingService
-                        .stopRecording(channel.id, agentId)
+                        .stopRecording(channel.id!!, agentId)
                         .contextWrite(tenantContext),
                 ).assertNext { result ->
                     result.channelId shouldBe channel.id
@@ -222,35 +222,35 @@ class RecordingServiceTest :
         }
 
         "stopRecording throws NotFoundException when no active recording" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { recordingRepository.findActiveByChannelId(channel.id) } returns Mono.empty()
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { recordingRepository.findActiveByChannelId(channel.id!!) } returns Mono.empty()
 
             StepVerifier
                 .create(
                     recordingService
-                        .stopRecording(channel.id, agentId)
+                        .stopRecording(channel.id!!, agentId)
                         .contextWrite(tenantContext),
                 ).expectErrorMatches { it is NotFoundException }
                 .verify()
         }
 
         "getRecordings returns list of recordings for channel" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = agentId)
-            val recording1 = makeRecording(channelId = channel.id, status = RecordingStatus.STOPPED)
-            val recording2 = makeRecording(channelId = channel.id, status = RecordingStatus.RECORDING)
+            val recording1 = makeRecording(channelId = channel.id!!, status = RecordingStatus.STOPPED)
+            val recording2 = makeRecording(channelId = channel.id!!, status = RecordingStatus.RECORDING)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
-            every { recordingRepository.findAllByChannelIdAndNotDeleted(channel.id) } returns
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
+            every { recordingRepository.findAllByChannelIdAndNotDeleted(channel.id!!) } returns
                 Flux.just(recording1, recording2)
 
             StepVerifier
                 .create(
                     recordingService
-                        .getRecordings(channel.id, agentId)
+                        .getRecordings(channel.id!!, agentId)
                         .contextWrite(tenantContext),
                 ).assertNext { info ->
                     info.channelId shouldBe channel.id
@@ -262,16 +262,16 @@ class RecordingServiceTest :
         }
 
         "getRecordings throws ConflictException when agent not authorized" {
-            val agentId = UUID.randomUUID()
-            val otherAgentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
+            val otherAgentId = UUID.randomUUID().toString()
             val channel = makeChannel(agentId = otherAgentId)
 
-            every { channelRepository.findByIdAndNotDeleted(channel.id) } returns Mono.just(channel)
+            every { channelRepository.findByIdAndNotDeleted(channel.id!!) } returns Mono.just(channel)
 
             StepVerifier
                 .create(
                     recordingService
-                        .getRecordings(channel.id, agentId)
+                        .getRecordings(channel.id!!, agentId)
                         .contextWrite(tenantContext),
                 ).expectErrorMatches { it is ConflictException }
                 .verify()

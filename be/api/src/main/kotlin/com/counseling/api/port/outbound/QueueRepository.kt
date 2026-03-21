@@ -3,7 +3,6 @@ package com.counseling.api.port.outbound
 import com.counseling.api.domain.QueueEntry
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 interface QueueRepository {
     fun add(
@@ -16,25 +15,25 @@ interface QueueRepository {
      */
     fun remove(
         tenantId: String,
-        entryId: UUID,
+        entryId: String,
     ): Mono<QueueEntry>
 
     fun findAll(tenantId: String): Flux<QueueEntry>
 
     fun findById(
         tenantId: String,
-        entryId: UUID,
+        entryId: String,
     ): Mono<QueueEntry>
 
     fun getPosition(
         tenantId: String,
-        entryId: UUID,
+        entryId: String,
     ): Mono<Long>
 
     fun getSize(tenantId: String): Mono<Long>
 
     fun removeAtomically(
         tenantId: String,
-        entryId: UUID,
+        entryId: String,
     ): Mono<QueueEntry>
 }

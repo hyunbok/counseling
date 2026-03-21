@@ -12,11 +12,11 @@ class ChannelTest :
 
         fun createChannel(
             status: ChannelStatus = ChannelStatus.WAITING,
-            agentId: UUID? = null,
+            agentId: String? = null,
             deleted: Boolean = false,
         ): Channel =
             Channel(
-                id = UUID.randomUUID(),
+                id = UUID.randomUUID().toString(),
                 agentId = agentId,
                 status = status,
                 startedAt = null,
@@ -28,7 +28,7 @@ class ChannelTest :
             )
 
         "assignAgent() sets agentId" {
-            val agentId = UUID.randomUUID()
+            val agentId = UUID.randomUUID().toString()
             val channel = createChannel()
             val updated = channel.assignAgent(agentId)
             updated.agentId shouldBe agentId
