@@ -29,6 +29,7 @@
 *.war
 .DS_Store
 .claude/
+.playwright-mcp/
 .env
 .env.*
 .gradle/
@@ -45,6 +46,9 @@ Thumbs.db
 bin/
 build/
 coverage/
+e2e/playwright-report/
+e2e/test-results/
+test-results/
 dist/
 docker-compose.override.yml
 logs/
