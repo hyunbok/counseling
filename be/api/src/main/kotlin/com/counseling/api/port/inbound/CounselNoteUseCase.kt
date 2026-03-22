@@ -3,11 +3,10 @@ package com.counseling.api.port.inbound
 import com.counseling.api.domain.CounselNote
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import java.util.UUID
 
 data class SaveCounselNoteCommand(
-    val channelId: UUID,
-    val agentId: UUID,
+    val channelId: String,
+    val agentId: String,
     val tenantId: String,
     val content: String,
 )
@@ -15,5 +14,5 @@ data class SaveCounselNoteCommand(
 interface CounselNoteUseCase {
     fun save(command: SaveCounselNoteCommand): Mono<CounselNote>
 
-    fun findByChannel(channelId: UUID): Flux<CounselNote>
+    fun findByChannel(channelId: String): Flux<CounselNote>
 }

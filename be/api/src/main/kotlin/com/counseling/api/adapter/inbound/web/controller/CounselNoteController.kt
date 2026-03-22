@@ -17,16 +17,15 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 data class SaveNoteRequest(
     val content: String,
 )
 
 data class CounselNoteResponse(
-    val id: UUID,
-    val channelId: UUID,
-    val agentId: UUID,
+    val id: String?,
+    val channelId: String,
+    val agentId: String,
     val content: String,
     val createdAt: Instant,
     val updatedAt: Instant,
@@ -41,7 +40,7 @@ class CounselNoteController(
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
     fun saveNote(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
         @RequestBody request: SaveNoteRequest,
     ): Mono<CounselNoteResponse> =
         authenticatedAgent().flatMap { agent ->
@@ -58,7 +57,7 @@ class CounselNoteController(
 
     @GetMapping
     fun getNotes(
-        @PathVariable channelId: UUID,
+        @PathVariable channelId: String,
     ): Mono<List<CounselNoteResponse>> =
         counselNoteUseCase
             .findByChannel(channelId)

@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.time.Instant
-import java.util.UUID
 
 @Service
 class CounselNoteService(
@@ -29,7 +28,7 @@ class CounselNoteService(
                     val now = Instant.now()
                     counselNoteRepository.save(
                         CounselNote(
-                            id = UUID.randomUUID(),
+                            id = null,
                             channelId = command.channelId,
                             agentId = command.agentId,
                             content = command.content,
@@ -45,7 +44,7 @@ class CounselNoteService(
                         tenantId = command.tenantId,
                         counselNote =
                             CounselNoteProjection(
-                                noteId = savedNote.id,
+                                noteId = savedNote.id ?: "",
                                 content = savedNote.content,
                                 createdAt = savedNote.createdAt,
                                 updatedAt = savedNote.updatedAt,
@@ -53,6 +52,6 @@ class CounselNoteService(
                     ).thenReturn(savedNote)
             }
 
-    override fun findByChannel(channelId: UUID): Flux<CounselNote> =
+    override fun findByChannel(channelId: String): Flux<CounselNote> =
         counselNoteRepository.findAllByChannelIdAndNotDeleted(channelId)
 }
