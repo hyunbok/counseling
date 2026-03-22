@@ -35,6 +35,30 @@ import java.time.Duration
         ),
     ],
 )
+class TenantR2dbcRepositoryConfig
+
+@Configuration
+@Profile("!test")
+@EnableR2dbcRepositories(
+    basePackages = ["com.counseling.api.port.outbound"],
+    entityOperationsRef = "metaR2dbcEntityTemplate",
+    includeFilters = [
+        ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            classes = [TenantRepository::class],
+        ),
+    ],
+    excludeFilters = [
+        ComponentScan.Filter(
+            type = FilterType.REGEX,
+            pattern = [".*"],
+        ),
+    ],
+)
+class MetaR2dbcRepositoryConfig
+
+@Configuration
+@Profile("!test")
 class R2dbcConfig {
     @Bean
     @Qualifier("metaConnectionFactory")
@@ -97,23 +121,3 @@ class R2dbcConfig {
         @Qualifier("metaDatabaseClient") databaseClient: DatabaseClient,
     ): R2dbcEntityTemplate = R2dbcEntityTemplate(databaseClient, PostgresDialect.INSTANCE)
 }
-
-@Configuration
-@Profile("!test")
-@EnableR2dbcRepositories(
-    basePackages = ["com.counseling.api.port.outbound"],
-    entityOperationsRef = "metaR2dbcEntityTemplate",
-    includeFilters = [
-        ComponentScan.Filter(
-            type = FilterType.ASSIGNABLE_TYPE,
-            classes = [TenantRepository::class],
-        ),
-    ],
-    excludeFilters = [
-        ComponentScan.Filter(
-            type = FilterType.REGEX,
-            pattern = [".*"],
-        ),
-    ],
-)
-class MetaR2dbcRepositoryConfig
