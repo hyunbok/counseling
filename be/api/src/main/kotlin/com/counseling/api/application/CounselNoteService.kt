@@ -18,7 +18,7 @@ class CounselNoteService(
 ) : CounselNoteUseCase {
     override fun save(command: SaveCounselNoteCommand): Mono<CounselNote> =
         counselNoteRepository
-            .findAllByChannelIdAndNotDeleted(command.channelId)
+            .findAllByChannelIdAndDeletedFalseOrderByCreatedAt(command.channelId)
             .filter { it.agentId == command.agentId }
             .next()
             .flatMap { existing ->
@@ -53,5 +53,5 @@ class CounselNoteService(
             }
 
     override fun findByChannel(channelId: String): Flux<CounselNote> =
-        counselNoteRepository.findAllByChannelIdAndNotDeleted(channelId)
+        counselNoteRepository.findAllByChannelIdAndDeletedFalseOrderByCreatedAt(channelId)
 }
