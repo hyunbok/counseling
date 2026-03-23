@@ -1,10 +1,10 @@
 -- Seed default admin agent
--- username: agent1 / password: admin123 / role: ADMIN
+-- username: agent1 / password: agent123 / role: ADMIN
 INSERT INTO agents (id, username, password_hash, name, email, role, agent_status, active, created_at, updated_at, deleted)
 VALUES (
     gen_random_uuid()::TEXT,
     'agent1',
-    '$2a$10$wm/UN1Uvjd1DqWILXYIQQeSNHVsGy2ZU.zmVhS.TplaxSg1kggX7u',
+    '$2a$10$g9nhW.uRwowYLjE.JD.KueKteIecTpYziYFfcziXNNQPtNYchUuNe',
     'Admin Agent',
     'agent1@example.com',
     'ADMIN', 'OFFLINE', TRUE,

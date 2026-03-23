@@ -21,13 +21,14 @@ export function ChatPanel({ channelId, customerName }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(0);
 
-  // Track unread messages when panel is closed
+  // Track unread messages from agent when panel is closed
+  const agentMessageCount = messages.filter((m) => m.senderType === 'AGENT').length;
   useEffect(() => {
-    if (!isOpen && messages.length > prevCountRef.current) {
-      setUnread((prev) => prev + (messages.length - prevCountRef.current));
+    if (!isOpen && agentMessageCount > prevCountRef.current) {
+      setUnread((prev) => prev + (agentMessageCount - prevCountRef.current));
     }
-    prevCountRef.current = messages.length;
-  }, [messages.length, isOpen]);
+    prevCountRef.current = agentMessageCount;
+  }, [agentMessageCount, isOpen]);
 
   // Auto-scroll on new messages
   useEffect(() => {

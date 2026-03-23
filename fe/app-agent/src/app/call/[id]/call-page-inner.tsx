@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import '@livekit/components-styles';
 import { VideoRoom } from '@/components/call/video-room';
 import { ChatPanel } from '@/components/call/chat-panel';
@@ -30,6 +31,39 @@ export function CallPageInner({ channelId }: { channelId: string }) {
   const { customerName, activeTab, setActiveTab } = useCallStore();
   const agentId = useAuthStore((s) => s.user?.id ?? '');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [unreadChat, setUnreadChat] = useState(0);
+  const seenCountRef = useRef(0);
+
+  // Poll chat messages to detect new customer messages for unread badge
+  const { data: chatData } = useQuery({
+    queryKey: ['chat-unread', channelId],
+    queryFn: async () => {
+      const { data } = await api.get<{ messages: { senderType: string }[] }>(
+        `/api/channels/${channelId}/chat`,
+        { params: { limit: 100 } },
+      );
+      return data.messages.filter((m) => m.senderType === 'CUSTOMER').length;
+    },
+    refetchInterval: 2000,
+    enabled: !!channelId,
+  });
+
+  useEffect(() => {
+    if (chatData === undefined) return;
+    if (activeTab !== 'chat' && chatData > seenCountRef.current) {
+      setUnreadChat((prev) => prev + (chatData - seenCountRef.current));
+    }
+    seenCountRef.current = chatData;
+  }, [chatData, activeTab]);
+
+  const handleTabClick = useCallback(
+    (tab: Tab) => {
+      setActiveTab(tab);
+      if (tab === 'chat') setUnreadChat(0);
+    },
+    [setActiveTab],
+  );
+
   const { isRecording, startRecording, stopRecording } = useRecording(channelId);
   const { session: coBrowseSession, requestCoBrowse, endCoBrowse } = useCoBrowse(channelId);
   const { status: connectionStatus, retryCount, elapsedMs: reconnectElapsedMs } = useReconnection();
@@ -158,7 +192,7 @@ export function CallPageInner({ channelId }: { channelId: string }) {
             {tabs.map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => handleTabClick(tab.key)}
                 className={`flex-1 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab.key
                     ? 'text-indigo-400 border-b-2 border-indigo-400'
@@ -168,6 +202,11 @@ export function CallPageInner({ channelId }: { channelId: string }) {
                 role="tab"
               >
                 {tab.label}
+                {tab.key === 'chat' && unreadChat > 0 && activeTab !== 'chat' && (
+                  <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
+                    {unreadChat > 99 ? '99+' : unreadChat}
+                  </span>
+                )}
               </button>
             ))}
           </div>
