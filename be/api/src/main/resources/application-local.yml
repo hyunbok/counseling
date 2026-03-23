@@ -20,7 +20,7 @@ spring:
           min-idle: 5
 
 cors:
-  allowed-origins: http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3100
+  allowed-origins: "*"
 
 livekit:
   url: ${LIVEKIT_URL:http://localhost:7880}

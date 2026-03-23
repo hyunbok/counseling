@@ -1,18 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useAuthStore from '@/stores/auth-store';
 
 export const useAuthGuard = () => {
   const router = useRouter();
   const accessToken = useAuthStore((state) => state.accessToken);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (!accessToken) {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated && !accessToken) {
       router.push('/login');
     }
-  }, [accessToken, router]);
+  }, [hydrated, accessToken, router]);
 
-  return { isAuthenticated: !!accessToken };
+  return { isAuthenticated: hydrated && !!accessToken };
 };

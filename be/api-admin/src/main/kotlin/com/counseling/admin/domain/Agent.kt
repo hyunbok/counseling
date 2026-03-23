@@ -1,18 +1,22 @@
 package com.counseling.admin.domain
 
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
 
+@Table("agents")
 data class Agent(
-    val id: String? = null,
+    @Id val id: String? = null,
     val username: String,
-    val passwordHash: String,
+    @Column("password_hash") val passwordHash: String,
     val name: String,
     val role: AgentRole,
-    val createdAt: Instant,
-    val updatedAt: Instant,
+    @Column("created_at") val createdAt: Instant,
+    @Column("updated_at") val updatedAt: Instant,
     val deleted: Boolean = false,
-    val groupId: String? = null,
-    val agentStatus: AgentStatus = AgentStatus.OFFLINE,
+    @Column("group_id") val groupId: String? = null,
+    @Column("agent_status") val agentStatus: AgentStatus = AgentStatus.OFFLINE,
     val active: Boolean = true,
 ) {
     fun changePassword(newHash: String): Agent = copy(passwordHash = newHash, updatedAt = Instant.now())

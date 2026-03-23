@@ -1,1 +1,0 @@
-ALTER TABLE agents ADD COLUMN email VARCHAR(256);

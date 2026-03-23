@@ -19,7 +19,7 @@ meta-datasource:
       port: 6379
 
 cors:
-  allowed-origins: http://localhost:3000,http://localhost:3001,http://localhost:3002
+  allowed-origins: "*"
 
 livekit:
   url: ${LIVEKIT_URL:ws://localhost:7880}

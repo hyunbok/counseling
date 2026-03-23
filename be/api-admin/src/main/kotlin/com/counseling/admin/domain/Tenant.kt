@@ -1,19 +1,23 @@
 package com.counseling.admin.domain
 
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
 
+@Table("tenants")
 data class Tenant(
-    val id: String? = null,
+    @Id val id: String? = null,
     val name: String,
     val slug: String,
     val status: TenantStatus,
-    val dbHost: String,
-    val dbPort: Int,
-    val dbName: String,
-    val dbUsername: String,
-    val dbPassword: String,
-    val createdAt: Instant,
-    val updatedAt: Instant,
+    @Column("db_host") val dbHost: String,
+    @Column("db_port") val dbPort: Int,
+    @Column("db_name") val dbName: String,
+    @Column("db_username") val dbUsername: String,
+    @Column("db_password") val dbPassword: String,
+    @Column("created_at") val createdAt: Instant,
+    @Column("updated_at") val updatedAt: Instant,
     val deleted: Boolean = false,
 ) {
     fun activate(): Tenant = copy(status = TenantStatus.ACTIVE, updatedAt = Instant.now())

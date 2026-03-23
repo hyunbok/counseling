@@ -1,13 +1,17 @@
 package com.counseling.admin.domain
 
+import org.springframework.data.annotation.Id
+import org.springframework.data.relational.core.mapping.Column
+import org.springframework.data.relational.core.mapping.Table
 import java.time.Instant
 
+@Table("channels")
 data class Channel(
-    val id: String? = null,
-    val agentId: String?,
+    @Id val id: String? = null,
+    @Column("agent_id") val agentId: String?,
     val status: ChannelStatus,
-    val startedAt: Instant?,
-    val endedAt: Instant?,
-    val createdAt: Instant,
-    val updatedAt: Instant,
+    @Column("started_at") val startedAt: Instant?,
+    @Column("ended_at") val endedAt: Instant?,
+    @Column("created_at") val createdAt: Instant,
+    @Column("updated_at") val updatedAt: Instant,
 )
